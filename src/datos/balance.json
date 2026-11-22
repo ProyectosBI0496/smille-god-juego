@@ -16,7 +16,24 @@
     "danio": 25,
     "alcance": 70,
     "recargaMs": 400,
-    "empuje": 380
+    "empuje": 380,
+    "rangoAutoApuntado": 220
+  },
+  "habilidad": {
+    "nombre": "Onda",
+    "danio": 15,
+    "radio": 170,
+    "empuje": 750,
+    "recargaMs": 4000
+  },
+  "especial": {
+    "nombre": "Torbellino",
+    "danio": 18,
+    "radio": 120,
+    "golpes": 6,
+    "intervaloMs": 220,
+    "empuje": 250,
+    "recargaMs": 10000
   },
   "enemigo": {
     "radio": 24,
@@ -26,7 +43,8 @@
     "danioContacto": 10,
     "aturdidoMs": 250,
     "reaparecerMs": 1500,
-    "distanciaMinimaAparicion": 500
+    "distanciaMinimaAparicion": 500,
+    "simultaneos": 3
   },
   "joystick": {
     "radioBase": 90,
@@ -35,6 +53,7 @@
   },
   "botones": {
     "radio": 70,
+    "radioPequeno": 52,
     "margen": 60
   }
 }

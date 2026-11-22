@@ -2,6 +2,8 @@
 // Escena de la arena
 // Etapa 1: arena con muros, héroe con joystick/teclado, cámara.
 // Etapa 2: botón de ataque, enemigo que persigue, vida y daño.
+// Etapa 3: auto-apuntado, Botón 2 "Onda", Botón 3 "Torbellino",
+//          varios enemigos a la vez.
 // =============================================================
 
 import Heroe from '../entidades/Heroe.js';
@@ -37,21 +39,11 @@ export default class EscenaArena extends Phaser.Scene {
     this.cameras.main.startFollow(this.heroe.cuerpo, true, 0.1, 0.1);
 
     // ---- Controles ----
-    // Teclado (PC): mover con WASD/flechas, atacar con ESPACIO o J
-    this.teclas = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J');
+    // Teclado (PC): mover con WASD/flechas; ESPACIO/J ataque, K Onda, L Torbellino
+    this.teclas = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,K,L');
     // Joystick (celular): mitad izquierda
     this.joystick = new Joystick(this, this.balance.joystick);
-    // Botón 1 — ataque básico (celular): esquina inferior derecha
-    const { radio, margen } = this.balance.botones;
-    this.botonAtaque = new BotonHabilidad(this, {
-      x: this.scale.width - margen - radio,
-      y: this.scale.height - margen - radio,
-      radio,
-      etiqueta: 'ATQ',
-      recargaMs: this.balance.ataqueBasico.recargaMs,
-      color: 0xf5c542,
-      alPulsar: () => this.atacar(),
-    });
+    this.crearBotones();
 
     // Vector reutilizable para la dirección (evita crear uno nuevo en cada frame)
     this.direccion = new Phaser.Math.Vector2();
@@ -59,7 +51,7 @@ export default class EscenaArena extends Phaser.Scene {
     // ---- Enemigos ----
     this.enemigos = [];
     this.derrotados = 0;
-    this.crearEnemigo();
+    for (let i = 0; i < this.balance.enemigo.simultaneos; i++) this.crearEnemigo();
 
     this.crearTextos();
   }
@@ -70,11 +62,15 @@ export default class EscenaArena extends Phaser.Scene {
     this.leerMovimiento();
     this.heroe.mover(this.direccion);
 
-    // Ataque con teclado (JustDown = solo en el instante en que se aprieta)
-    if (Phaser.Input.Keyboard.JustDown(this.teclas.SPACE) || Phaser.Input.Keyboard.JustDown(this.teclas.J)) {
-      this.botonAtaque.usar();
-    }
+    // Habilidades con teclado (JustDown = solo en el instante en que se aprieta)
+    const recienApretada = Phaser.Input.Keyboard.JustDown;
+    if (recienApretada(this.teclas.SPACE) || recienApretada(this.teclas.J)) this.botonAtaque.usar();
+    if (recienApretada(this.teclas.K)) this.botonOnda.usar();
+    if (recienApretada(this.teclas.L)) this.botonTorbellino.usar();
+
     this.botonAtaque.actualizar();
+    this.botonOnda.actualizar();
+    this.botonTorbellino.actualizar();
 
     // Enemigos: perseguir y, si tocan al héroe, hacerle daño
     for (const enemigo of this.enemigos) {
@@ -109,20 +105,135 @@ export default class EscenaArena extends Phaser.Scene {
     if (this.direccion.lengthSq() > 0) this.direccion.normalize();
   }
 
-  /** Ataque básico: golpea a todos los enemigos dentro de la zona de impacto */
+  /** Crea los 3 botones de habilidades en la esquina inferior derecha */
+  crearBotones() {
+    const { radio, radioPequeno, margen } = this.balance.botones;
+    const xAtq = this.scale.width - margen - radio;
+    const yAtq = this.scale.height - margen - radio;
+
+    // Botón 1 — ataque básico (el más grande, bajo el pulgar)
+    this.botonAtaque = new BotonHabilidad(this, {
+      x: xAtq, y: yAtq, radio,
+      etiqueta: 'ATQ',
+      recargaMs: this.balance.ataqueBasico.recargaMs,
+      color: 0xf5c542,
+      alPulsar: () => this.atacar(),
+    });
+
+    // Botón 2 — habilidad "Onda": a la izquierda del ataque
+    this.botonOnda = new BotonHabilidad(this, {
+      x: xAtq - 150, y: yAtq + 25, radio: radioPequeno,
+      etiqueta: 'ONDA',
+      recargaMs: this.balance.habilidad.recargaMs,
+      color: 0x4fc3f7,
+      alPulsar: () => this.usarOnda(),
+    });
+
+    // Botón 3 — especial "Torbellino": encima del ataque
+    this.botonTorbellino = new BotonHabilidad(this, {
+      x: xAtq - 35, y: yAtq - 150, radio: radioPequeno,
+      etiqueta: 'ESP',
+      recargaMs: this.balance.especial.recargaMs,
+      color: 0xab47bc,
+      alPulsar: () => this.usarTorbellino(),
+    });
+  }
+
+  /**
+   * Daña a todos los enemigos dentro de un círculo.
+   * El empuje los aleja del punto (origenX, origenY).
+   * Lo usan las tres habilidades: así la lógica de daño vive en un solo lugar.
+   */
+  golpearArea(x, y, radio, danio, empuje, origenX, origenY) {
+    const direccion = new Phaser.Math.Vector2();
+    for (const enemigo of [...this.enemigos]) {
+      const distancia = Phaser.Math.Distance.Between(x, y, enemigo.cuerpo.x, enemigo.cuerpo.y);
+      if (distancia > radio + enemigo.radio) continue;
+
+      direccion.set(enemigo.cuerpo.x - origenX, enemigo.cuerpo.y - origenY);
+      if (direccion.lengthSq() === 0) direccion.set(1, 0); // por si están en el mismo punto
+      direccion.normalize();
+
+      enemigo.recibirDanio(danio, direccion, empuje);
+      this.mostrarNumero(enemigo.cuerpo.x, enemigo.cuerpo.y - enemigo.radio, danio);
+      if (!enemigo.vivo) this.eliminarEnemigo(enemigo);
+    }
+  }
+
+  /** Devuelve el enemigo más cercano al héroe dentro de un rango (o null) */
+  enemigoMasCercano(rango) {
+    let elegido = null;
+    let mejor = rango;
+    for (const enemigo of this.enemigos) {
+      const d = Phaser.Math.Distance.Between(
+        this.heroe.cuerpo.x, this.heroe.cuerpo.y, enemigo.cuerpo.x, enemigo.cuerpo.y
+      );
+      if (d <= mejor) {
+        mejor = d;
+        elegido = enemigo;
+      }
+    }
+    return elegido;
+  }
+
+  /** Botón 1 — ataque básico con AUTO-APUNTADO al enemigo más cercano */
   atacar() {
     if (!this.heroe.vivo) return;
     const ataque = this.balance.ataqueBasico;
-    const zona = this.heroe.atacar(ataque);
 
-    for (const enemigo of [...this.enemigos]) {
-      const distancia = Phaser.Math.Distance.Between(zona.x, zona.y, enemigo.cuerpo.x, enemigo.cuerpo.y);
-      if (distancia <= zona.radio + enemigo.radio) {
-        enemigo.recibirDanio(ataque.danio, this.heroe.mirando, ataque.empuje);
-        this.mostrarNumero(enemigo.cuerpo.x, enemigo.cuerpo.y - enemigo.radio, ataque.danio);
-        if (!enemigo.vivo) this.eliminarEnemigo(enemigo);
-      }
-    }
+    // Si hay un enemigo cerca, el héroe se gira hacia él antes de golpear.
+    // Si no hay ninguno, golpea hacia donde está mirando.
+    const objetivo = this.enemigoMasCercano(ataque.rangoAutoApuntado);
+    if (objetivo) this.heroe.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
+
+    const zona = this.heroe.atacar(ataque);
+    this.golpearArea(zona.x, zona.y, zona.radio, ataque.danio, ataque.empuje,
+      this.heroe.cuerpo.x, this.heroe.cuerpo.y);
+  }
+
+  /** Botón 2 — "Onda": empujón en área alrededor del héroe */
+  usarOnda() {
+    if (!this.heroe.vivo) return;
+    const h = this.balance.habilidad;
+    const { x, y } = this.heroe.cuerpo;
+
+    // Efecto visual: un anillo que se expande
+    const anillo = this.add.circle(x, y, 10).setStrokeStyle(6, 0x4fc3f7).setDepth(40);
+    this.tweens.add({
+      targets: anillo, radius: h.radio, alpha: 0, duration: 250,
+      onComplete: () => anillo.destroy(),
+    });
+    this.cameras.main.shake(120, 0.004);
+
+    this.golpearArea(x, y, h.radio, h.danio, h.empuje, x, y);
+  }
+
+  /** Botón 3 — "Torbellino": varios golpes giratorios seguidos alrededor del héroe */
+  usarTorbellino() {
+    if (!this.heroe.vivo) return;
+    const e = this.balance.especial;
+
+    // Efecto visual: un anillo morado que gira y sigue al héroe
+    const anillo = this.add.circle(this.heroe.cuerpo.x, this.heroe.cuerpo.y, e.radio)
+      .setStrokeStyle(5, 0xab47bc, 0.8).setDepth(40);
+    const duracion = e.golpes * e.intervaloMs;
+    this.tweens.add({ targets: anillo, angle: 360 * 3, duration: duracion });
+
+    // Un temporizador que se repite: un golpe cada "intervaloMs"
+    let golpesDados = 0;
+    this.time.addEvent({
+      delay: e.intervaloMs,
+      repeat: e.golpes - 1,
+      callback: () => {
+        golpesDados += 1;
+        if (!this.heroe.vivo) return;
+        const { x, y } = this.heroe.cuerpo;
+        anillo.setPosition(x, y);
+        anillo.setAlpha(0.5 + (golpesDados % 2) * 0.5); // parpadeo en cada golpe
+        this.golpearArea(x, y, e.radio, e.danio, e.empuje, x, y);
+        if (golpesDados >= e.golpes) anillo.destroy();
+      },
+    });
   }
 
   /** Crea un enemigo en un punto al azar, lejos del héroe */
@@ -200,14 +311,14 @@ export default class EscenaArena extends Phaser.Scene {
   crearTextos() {
     const estilo = { fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#9fb3c8' };
 
-    this.add.text(20, 16, 'Smille God · Etapa 2 — Ataque y primer enemigo', estilo)
+    this.add.text(20, 16, 'Smille God · Etapa 3 — Habilidades', estilo)
       .setScrollFactor(0).setDepth(100);
 
     this.textoDerrotados = this.add.text(20, 46, 'Enemigos derrotados: 0', { ...estilo, color: '#ffffff' })
       .setScrollFactor(0).setDepth(100);
 
-    this.add.text(this.scale.width / 2, this.scale.height - 36,
-      'Pulgar izquierdo: mover · Botón ATQ: atacar (PC: WASD + ESPACIO)', { ...estilo, color: '#ffffff' })
-      .setOrigin(0.5).setScrollFactor(0).setDepth(100);
+    this.add.text(20, this.scale.height - 36,
+      'PC: WASD mover · ESPACIO atacar · K Onda · L Torbellino', { ...estilo, fontSize: '18px' })
+      .setScrollFactor(0).setDepth(100);
   }
 }

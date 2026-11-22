@@ -65,6 +65,11 @@ export default class Heroe {
     this.barra.dibujar(this.cuerpo.x, this.cuerpo.y - this.radio - 14, this.vida / this.config.vidaMax);
   }
 
+  /** Gira al héroe para que mire hacia el punto (x, y) — usado por el auto-apuntado */
+  apuntarA(x, y) {
+    this.mirando.set(x - this.cuerpo.x, y - this.cuerpo.y).normalize();
+  }
+
   /**
    * Ataque básico: un golpe en un círculo justo delante del héroe.
    * Devuelve la zona de impacto { x, y, radio } para que la escena
