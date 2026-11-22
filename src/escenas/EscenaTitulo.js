@@ -7,6 +7,7 @@
 import { crearTexturas } from '../graficos/Texturas.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
 import { mundosSuperados } from '../datos/Progreso.js';
+import { crearEditorNick } from '../ui/EditorNick.js';
 
 export default class EscenaTitulo extends Phaser.Scene {
   constructor() {
@@ -75,6 +76,9 @@ export default class EscenaTitulo extends Phaser.Scene {
     this.add.text(W - 16, H - 12, 'v0.0.11 · prototipo', {
       fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#6b7a90',
     }).setOrigin(1, 1);
+
+    // Nombre del jugador (arriba a la derecha), para los dos modos
+    crearEditorNick(this, W - 24, 20);
 
     // Al tocar: la cámara se funde a negro y empieza la arena
     const empezar = () => {

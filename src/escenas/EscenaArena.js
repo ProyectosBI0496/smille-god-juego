@@ -109,6 +109,9 @@ export default class EscenaArena extends Phaser.Scene {
       this.heroe.nombre = nick() || 'Tú';
       this.heroe.ponerEtiqueta(this.heroe.nombre);
       this.cooperativo = new Cooperativo(this, red);
+    } else if (nick()) {
+      this.heroe.nombre = nick();
+      this.heroe.ponerEtiqueta(nick()); // también jugando solo
     }
 
     // PROYECTILES (Etapa 7): un grupo con física que RECICLA sus objetos.

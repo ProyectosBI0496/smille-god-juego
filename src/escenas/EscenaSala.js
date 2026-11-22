@@ -8,7 +8,8 @@
 
 import { crearTexturas } from '../graficos/Texturas.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
-import { razaElegida, nick, guardarNick } from '../datos/Progreso.js';
+import { razaElegida } from '../datos/Progreso.js';
+import { crearEditorNick } from '../ui/EditorNick.js';
 import Red, { redActual } from '../red/Red.js';
 
 export default class EscenaSala extends Phaser.Scene {
@@ -46,7 +47,7 @@ export default class EscenaSala extends Phaser.Scene {
     });
 
     this.crearMiHeroe(W, H);
-    this.crearMiNick(W);
+    crearEditorNick(this, W - 24, 24);
 
     const red = redActual();
     if (this.esperando && red && red.conectado) {
@@ -60,24 +61,6 @@ export default class EscenaSala extends Phaser.Scene {
 
   decir(texto) {
     this.mensaje.setText(texto);
-  }
-
-  /** Arriba a la derecha: mi nombre (nick). Al tocarlo se puede cambiar. */
-  crearMiNick(W) {
-    const texto = this.add.text(W - 24, 24, '', {
-      fontFamily: FUENTE_TITULO, fontSize: '24px', color: '#ffffff', stroke: '#05070d', strokeThickness: 4,
-    }).setOrigin(1, 0).setInteractive();
-    const mostrar = () => texto.setText(`Tu nombre: ${nick() || '(toca para poner)'} ✎`);
-    mostrar();
-    texto.on('pointerdown', () => {
-      // prompt = cuadro de texto del navegador (simple; en el juego final será un teclado propio)
-      const nuevo = window.prompt('Escribe tu nombre (máximo 12 letras):', nick());
-      if (nuevo === null) return; // canceló
-      guardarNick(nuevo);
-      mostrar();
-      const red = redActual();
-      if (red && red.conectado) red.enviar({ t: 'raza', raza: razaElegida(), nick: nick() });
-    });
   }
 
   /** Abajo a la derecha: mi héroe y el botón para cambiarlo */

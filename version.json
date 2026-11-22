@@ -1,0 +1,29 @@
+{
+  "version": "0.0.11-a",
+  "archivos": [
+    "index.html",
+    "src/controles/BotonHabilidad.js",
+    "src/controles/Joystick.js",
+    "src/datos/Progreso.js",
+    "src/datos/balance.json",
+    "src/entidades/Enemigo.js",
+    "src/entidades/Heroe.js",
+    "src/entidades/Jefe.js",
+    "src/entidades/Tirador.js",
+    "src/escenas/EscenaArena.js",
+    "src/escenas/EscenaHeroe.js",
+    "src/escenas/EscenaMundos.js",
+    "src/escenas/EscenaPausa.js",
+    "src/escenas/EscenaSala.js",
+    "src/escenas/EscenaTitulo.js",
+    "src/graficos/Texturas.js",
+    "src/graficos/TexturasMundo.js",
+    "src/graficos/TexturasRazas.js",
+    "src/main.js",
+    "src/mundo/Mazmorra.js",
+    "src/red/Cooperativo.js",
+    "src/red/Red.js",
+    "src/ui/BarraVida.js",
+    "src/ui/EditorNick.js"
+  ]
+}

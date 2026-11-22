@@ -70,6 +70,26 @@
 
   <!-- 2) Cargamos NUESTRO código. Va después de Phaser porque lo usa.
        type="module" permite dividir el código en varios archivos con import/export. -->
-  <script type="module" src="src/main.js"></script>
+  <!-- 3) Antes de cargar el juego revisamos su VERSIÓN (version.json, nunca desde la caché).
+       Si cambió desde la última vez, volvemos a descargar todos los archivos: así el
+       navegador no mezcla archivos viejos y nuevos (eso causaba errores raros). -->
+  <script>
+    (async () => {
+      try {
+        const respuesta = await fetch('version.json', { cache: 'no-store' });
+        const datos = await respuesta.json();
+        if (localStorage.getItem('smilleGod.version') !== datos.version) {
+          await Promise.all(datos.archivos.map((archivo) => fetch(archivo, { cache: 'reload' })));
+          localStorage.setItem('smilleGod.version', datos.version);
+        }
+      } catch (error) {
+        // sin internet o sin version.json: se juega con lo que haya
+      }
+      const juego = document.createElement('script');
+      juego.type = 'module';
+      juego.src = 'src/main.js';
+      document.body.appendChild(juego);
+    })();
+  </script>
 </body>
 </html>
