@@ -14,6 +14,7 @@ export default class Joystick {
     this.escena = escena;
     this.radioBase = config.radioBase;
     this.zonaMuerta = config.zonaMuerta; // movimientos muy pequeños se ignoran
+    this.seguirDedo = config.seguirDedo;  // true = la base se arrastra con el dedo
 
     // Dirección resultante: un vector con largo entre 0 (quieto) y 1 (a fondo)
     this.direccion = new Phaser.Math.Vector2(0, 0);
@@ -67,6 +68,16 @@ export default class Joystick {
     const dy = puntero.y - this.base.y;
     const distancia = Math.hypot(dx, dy);
     const angulo = Math.atan2(dy, dx);
+
+    // JOYSTICK QUE SIGUE AL DEDO (observación de la prueba con un niño de 9 años):
+    // si el dedo se sale de la base, la base se desplaza detrás de él.
+    // Así el control nunca se "pierde" aunque el dedo se deslice por la pantalla.
+    if (this.seguirDedo && distancia > this.radioBase) {
+      this.base.setPosition(
+        puntero.x - Math.cos(angulo) * this.radioBase,
+        puntero.y - Math.sin(angulo) * this.radioBase
+      );
+    }
 
     // La palanca no puede salir de la base
     const limitada = Math.min(distancia, this.radioBase);

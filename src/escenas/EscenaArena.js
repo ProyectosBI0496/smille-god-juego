@@ -4,7 +4,11 @@
 // Etapa 2: botón de ataque, enemigo que persigue, vida y daño.
 // Etapa 3: auto-apuntado, Botón 2 "Onda", Botón 3 "Torbellino",
 //          varios enemigos a la vez.
+// Etapa 4: oleadas, pantalla de derrota con récord, partículas,
+//          vibración y "object pooling" de los números de daño.
 // =============================================================
+
+const CLAVE_RECORD = 'smilleGod.mejorOleada';
 
 import Heroe from '../entidades/Heroe.js';
 import Enemigo from '../entidades/Enemigo.js';
@@ -51,9 +55,12 @@ export default class EscenaArena extends Phaser.Scene {
     // ---- Enemigos ----
     this.enemigos = [];
     this.derrotados = 0;
-    for (let i = 0; i < this.balance.enemigo.simultaneos; i++) this.crearEnemigo();
+    this.oleada = 0;
+    this.numerosLibres = []; // "pool": números de daño guardados para reutilizar
 
+    this.crearEfectos();
     this.crearTextos();
+    this.iniciarSiguienteOleada();
   }
 
   update() {
@@ -81,6 +88,7 @@ export default class EscenaArena extends Phaser.Scene {
       if (distancia < enemigo.radio + this.heroe.radio) {
         if (this.heroe.recibirDanio(enemigo.config.danioContacto)) {
           this.cameras.main.shake(100, 0.006); // sacudida de cámara
+          this.vibrar(60);                     // vibración del celular
           if (!this.heroe.vivo) this.derrota();
         }
       }
@@ -236,10 +244,47 @@ export default class EscenaArena extends Phaser.Scene {
     });
   }
 
+  /** Empieza la siguiente oleada: más enemigos, más rápidos y resistentes */
+  iniciarSiguienteOleada() {
+    if (!this.heroe.vivo) return;
+    this.oleada += 1;
+    const o = this.balance.oleadas;
+    const base = this.balance.enemigo;
+    const n = this.oleada - 1; // cuántas oleadas se han superado
+
+    // Entre oleadas, el héroe recupera un poco de vida
+    if (n > 0) {
+      this.heroe.vida = Math.min(this.heroe.vida + o.curacionEntreOleadas, this.balance.heroe.vidaMax);
+    }
+
+    // La configuración del enemigo crece con cada oleada.
+    // { ...base } copia todos los datos y luego sobrescribimos los que cambian.
+    const config = {
+      ...base,
+      velocidad: base.velocidad + n * o.aumentoVelocidad,
+      vidaMax: base.vidaMax + n * o.aumentoVida,
+    };
+    const cantidad = o.enemigosIniciales + n * o.enemigosPorOleada;
+    for (let i = 0; i < cantidad; i++) this.crearEnemigo(config);
+
+    this.textoOleada.setText(`Oleada ${this.oleada}`);
+    this.mostrarAnuncio(`Oleada ${this.oleada}`);
+  }
+
+  /** Texto grande en el centro que aparece y se desvanece */
+  mostrarAnuncio(mensaje) {
+    const texto = this.add.text(this.scale.width / 2, this.scale.height / 2 - 120, mensaje, {
+      fontFamily: 'Georgia, serif', fontSize: '56px', color: '#f5c542',
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(150);
+    this.tweens.add({
+      targets: texto, alpha: 0, y: texto.y - 30, delay: 700, duration: 600,
+      onComplete: () => texto.destroy(),
+    });
+  }
+
   /** Crea un enemigo en un punto al azar, lejos del héroe */
-  crearEnemigo() {
+  crearEnemigo(config) {
     const { ancho, alto, grosorMuro } = this.balance.arena;
-    const config = this.balance.enemigo;
     const margen = grosorMuro + config.radio;
     let x;
     let y;
@@ -251,36 +296,109 @@ export default class EscenaArena extends Phaser.Scene {
     this.enemigos.push(new Enemigo(this, x, y, config));
   }
 
-  /** Quita un enemigo derrotado y programa la aparición de otro */
+  /** Quita un enemigo derrotado; si era el último, prepara la siguiente oleada */
   eliminarEnemigo(enemigo) {
+    this.chispas.explode(16, enemigo.cuerpo.x, enemigo.cuerpo.y); // explosión de partículas
+    this.vibrar(25);
     enemigo.destruir();
     this.enemigos = this.enemigos.filter((e) => e !== enemigo);
     this.derrotados += 1;
-    this.textoDerrotados.setText(`Enemigos derrotados: ${this.derrotados}`);
-    this.time.delayedCall(this.balance.enemigo.reaparecerMs, () => {
-      if (this.heroe.vivo) this.crearEnemigo();
-    });
+    this.textoDerrotados.setText(`Derrotados: ${this.derrotados}`);
+
+    if (this.enemigos.length === 0 && this.heroe.vivo) {
+      this.mostrarAnuncio('¡Oleada superada!');
+      this.time.delayedCall(this.balance.oleadas.pausaMs, () => this.iniciarSiguienteOleada());
+    }
   }
 
-  /** Número de daño que sube y se desvanece */
+  /**
+   * Número de daño que sube y se desvanece.
+   * OBJECT POOLING: en vez de crear y destruir un texto en cada golpe
+   * (cientos por partida), guardamos los textos usados en "numerosLibres"
+   * y los reutilizamos. Así el celular no se traba.
+   */
   mostrarNumero(x, y, valor) {
-    const texto = this.add.text(x, y, `-${valor}`, {
-      fontFamily: 'Arial, sans-serif', fontSize: '24px', color: '#ffeb3b', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(60);
+    let texto = this.numerosLibres.pop();
+    if (!texto) {
+      texto = this.add.text(0, 0, '', {
+        fontFamily: 'Arial, sans-serif', fontSize: '24px', color: '#ffeb3b', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(60);
+    }
+    texto.setText(`-${valor}`).setPosition(x, y).setAlpha(1).setVisible(true);
     this.tweens.add({
       targets: texto, y: y - 40, alpha: 0, duration: 600,
-      onComplete: () => texto.destroy(),
+      onComplete: () => {
+        texto.setVisible(false);
+        this.numerosLibres.push(texto); // vuelve al pool
+      },
     });
   }
 
-  /** El héroe cayó: mensaje y reinicio automático */
+  /**
+   * Vibra el celular. Solo si el navegador lo permite (en iPhone no existe)
+   * y si el jugador ya tocó la pantalla: el navegador lo exige.
+   */
+  vibrar(ms) {
+    const yaToco = !navigator.userActivation || navigator.userActivation.hasBeenActive;
+    if (navigator.vibrate && yaToco) navigator.vibrate(ms);
+  }
+
+  /** Prepara las partículas: una textura pequeña dibujada por código */
+  crearEfectos() {
+    if (!this.textures.exists('chispa')) {
+      const g = this.make.graphics({ add: false });
+      g.fillStyle(0xffffff);
+      g.fillCircle(4, 4, 4);
+      g.generateTexture('chispa', 8, 8);
+      g.destroy();
+    }
+    // Un solo emisor reutilizable: "explode" lanza N partículas donde se le diga
+    this.chispas = this.add.particles(0, 0, 'chispa', {
+      speed: { min: 80, max: 260 },
+      lifespan: 450,
+      scale: { start: 1.2, end: 0 },
+      tint: [0xe53935, 0xff8a65, 0xffeb3b],
+      emitting: false,
+    }).setDepth(45);
+  }
+
+  /** El héroe cayó: pantalla de derrota con récord y botón Reintentar */
   derrota() {
     this.heroe.cuerpo.body.setVelocity(0, 0);
     for (const enemigo of this.enemigos) enemigo.cuerpo.body.setVelocity(0, 0);
-    this.add.text(this.scale.width / 2, this.scale.height / 2, 'Has caído', {
-      fontFamily: 'Georgia, serif', fontSize: '64px', color: '#f5c542',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(200);
-    this.time.delayedCall(1800, () => this.scene.restart());
+    this.vibrar(300);
+
+    // Récord guardado en el navegador (localStorage). Puede fallar en modo
+    // incógnito, por eso va dentro de try/catch.
+    let record = 0;
+    try {
+      record = Number(localStorage.getItem(CLAVE_RECORD)) || 0;
+      if (this.oleada > record) {
+        record = this.oleada;
+        localStorage.setItem(CLAVE_RECORD, String(record));
+      }
+    } catch (error) {
+      record = this.oleada;
+    }
+
+    const cx = this.scale.width / 2;
+    const cy = this.scale.height / 2;
+    const fijo = (objeto) => objeto.setScrollFactor(0).setDepth(200);
+
+    fijo(this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.65));
+    fijo(this.add.text(cx, cy - 140, 'Has caído', {
+      fontFamily: 'Georgia, serif', fontSize: '72px', color: '#f5c542',
+    }).setOrigin(0.5));
+    fijo(this.add.text(cx, cy - 50,
+      `Llegaste a la oleada ${this.oleada} · Derrotados: ${this.derrotados}\nRécord: oleada ${record}`, {
+        fontFamily: 'Arial, sans-serif', fontSize: '28px', color: '#ffffff', align: 'center',
+      }).setOrigin(0.5));
+
+    const boton = fijo(this.add.rectangle(cx, cy + 70, 300, 80, 0xf5c542).setInteractive());
+    fijo(this.add.text(cx, cy + 70, 'Reintentar', {
+      fontFamily: 'Arial, sans-serif', fontSize: '32px', color: '#0b0f1a', fontStyle: 'bold',
+    }).setOrigin(0.5));
+    boton.on('pointerdown', () => this.scene.restart());
   }
 
   /** Dibuja el suelo con cuadrícula y los cuatro muros */
@@ -311,10 +429,13 @@ export default class EscenaArena extends Phaser.Scene {
   crearTextos() {
     const estilo = { fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#9fb3c8' };
 
-    this.add.text(20, 16, 'Smille God · Etapa 3 — Habilidades', estilo)
+    this.add.text(20, 16, 'Smille God · Etapa 4 — Oleadas', estilo)
       .setScrollFactor(0).setDepth(100);
 
-    this.textoDerrotados = this.add.text(20, 46, 'Enemigos derrotados: 0', { ...estilo, color: '#ffffff' })
+    this.textoOleada = this.add.text(20, 46, 'Oleada 1', { ...estilo, fontSize: '28px', color: '#f5c542' })
+      .setScrollFactor(0).setDepth(100);
+
+    this.textoDerrotados = this.add.text(20, 82, 'Derrotados: 0', { ...estilo, color: '#ffffff' })
       .setScrollFactor(0).setDepth(100);
 
     this.add.text(20, this.scale.height - 36,

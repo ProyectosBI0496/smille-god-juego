@@ -42,14 +42,21 @@
     "vidaMax": 60,
     "danioContacto": 10,
     "aturdidoMs": 250,
-    "reaparecerMs": 1500,
-    "distanciaMinimaAparicion": 500,
-    "simultaneos": 3
+    "distanciaMinimaAparicion": 500
+  },
+  "oleadas": {
+    "enemigosIniciales": 3,
+    "enemigosPorOleada": 2,
+    "aumentoVelocidad": 12,
+    "aumentoVida": 10,
+    "curacionEntreOleadas": 25,
+    "pausaMs": 2000
   },
   "joystick": {
     "radioBase": 90,
     "radioPalanca": 40,
-    "zonaMuerta": 0.15
+    "zonaMuerta": 0.15,
+    "seguirDedo": true
   },
   "botones": {
     "radio": 70,
