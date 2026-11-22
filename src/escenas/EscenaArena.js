@@ -102,6 +102,7 @@ export default class EscenaArena extends Phaser.Scene {
     this.curas = this.mundo.curas;
     this.numerosLibres = [];     // "pool": números de daño guardados para reutilizar
     this.terminado = false;      // true al ganar el mundo
+    this.caido = false;          // true al perder (hay que reiniciarlo: restart reutiliza la escena)
 
     this.crearBotones();
     this.crearEfectos();
@@ -568,12 +569,17 @@ export default class EscenaArena extends Phaser.Scene {
     // "hidden" lo avisa Phaser cuando la página deja de verse.
     // Al cerrar la escena quitamos el aviso para no acumularlo en cada reinicio.
     this.game.events.on('hidden', this.pausar, this);
-    this.events.once('shutdown', () => this.game.events.off('hidden', this.pausar, this));
+    this.events.once('shutdown', () => {
+      this.game.events.off('hidden', this.pausar, this);
+      // Corrección (sesión 12): si el menú de pausa quedó abierto, se cierra
+      // al salir de esta escena. Si no, quedaba encima y bloqueaba los toques.
+      this.scene.stop('EscenaPausa');
+    });
   }
 
   /** Congela la escena y abre el menú de pausa encima */
   pausar() {
-    if (!this.heroe.vivo || this.terminado || !this.scene.isActive()) return;
+    if (!this.heroe.vivo || this.terminado || this.caido || !this.scene.isActive()) return;
     this.joystick.soltar();             // al volver, el héroe no debe seguir caminando solo
     this.heroe.cuerpo.body.setVelocity(0, 0);
     this.scene.pause();                 // congela update, física, tiempo y animaciones
@@ -582,8 +588,13 @@ export default class EscenaArena extends Phaser.Scene {
 
   /** El héroe cayó: pantalla de derrota con botones Reintentar y Mapa */
   derrota() {
+    if (this.caido) return; // solo una vez, aunque lleguen dos golpes juntos
+    this.caido = true;
+    this.joystick.soltar();
     this.heroe.cuerpo.body.setVelocity(0, 0);
-    for (const enemigo of this.enemigos) enemigo.cuerpo.body.setVelocity(0, 0);
+    for (const enemigo of this.enemigos) {
+      if (enemigo.cuerpo.body) enemigo.cuerpo.body.setVelocity(0, 0);
+    }
     this.vibrar(300);
 
     const detalle = `${this.mundo.nombre} · oleadas ${this.oleadasVencidas}/${this.mundo.oleadas} · jefes ${this.jefesVencidos}/${this.mazmorra.totalJefes}`;
@@ -615,6 +626,9 @@ export default class EscenaArena extends Phaser.Scene {
 
   /** Fondo oscuro, título, texto y 1 o 2 botones (lo usan la derrota y la victoria) */
   pantallaFinal(titulo, texto, botones) {
+    // Por seguridad: ningún menú de pausa encima, y esta escena funcionando
+    this.scene.stop('EscenaPausa');
+    if (this.scene.isPaused()) this.scene.resume();
     const cx = this.scale.width / 2;
     const cy = this.scale.height / 2;
     const fijo = (objeto) => objeto.setScrollFactor(0).setDepth(200);
@@ -638,6 +652,8 @@ export default class EscenaArena extends Phaser.Scene {
       }).setOrigin(0.5));
       fondo.on('pointerdown', b.accion);
     });
+    // En el PC: ENTER = primer botón (Reintentar o Siguiente)
+    this.input.keyboard.once('keydown-ENTER', botones[0].accion);
   }
 
   // =============================================================
