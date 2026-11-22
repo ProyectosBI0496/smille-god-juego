@@ -16,6 +16,27 @@ export function mundosSuperados() {
 }
 
 const CLAVE_RAZA = 'smilleGod.raza';
+const CLAVE_NICK = 'smilleGod.nick';
+
+/** El nombre del jugador (Etapa 9). Vacío si todavía no puso uno. */
+export function nick() {
+  try {
+    return localStorage.getItem(CLAVE_NICK) || '';
+  } catch (error) {
+    return '';
+  }
+}
+
+/** Guarda el nombre: sin espacios de más y con 12 letras como máximo */
+export function guardarNick(texto) {
+  const limpio = String(texto || '').trim().slice(0, 12);
+  try {
+    localStorage.setItem(CLAVE_NICK, limpio);
+  } catch (error) {
+    // sin memoria del navegador
+  }
+  return limpio;
+}
 
 /** La raza que eligió el jugador (Etapa 8); "humano" si todavía no eligió */
 export function razaElegida() {

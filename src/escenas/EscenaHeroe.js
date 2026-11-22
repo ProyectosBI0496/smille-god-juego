@@ -8,7 +8,7 @@
 import { crearTexturas } from '../graficos/Texturas.js';
 import { color } from '../graficos/TexturasMundo.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
-import { mundosSuperados, razaElegida, elegirRaza } from '../datos/Progreso.js';
+import { mundosSuperados, razaElegida, elegirRaza, nick } from '../datos/Progreso.js';
 import { redActual } from '../red/Red.js';
 
 export default class EscenaHeroe extends Phaser.Scene {
@@ -121,7 +121,7 @@ export default class EscenaHeroe extends Phaser.Scene {
       elegirRaza(id);
       // En pareja: el compañero se entera de mi nueva raza
       const red = redActual();
-      if (red && red.conectado) red.enviar({ t: 'raza', raza: id });
+      if (red && red.conectado) red.enviar({ t: 'raza', raza: id, nick: nick() });
       this.tweens.add({ targets: cuerpo, scale: 1.6, duration: 150, yoyo: true });
       this.cameras.main.fadeOut(350);
       this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start(this.volverA, this.datosVolver));

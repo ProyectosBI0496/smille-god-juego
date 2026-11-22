@@ -30,7 +30,7 @@ import BotonHabilidad from '../controles/BotonHabilidad.js';
 import Mazmorra from '../mundo/Mazmorra.js';
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
-import { marcarSuperado, razaElegida, mundosSuperados } from '../datos/Progreso.js';
+import { marcarSuperado, razaElegida, mundosSuperados, nick } from '../datos/Progreso.js';
 import { redActual } from '../red/Red.js';
 import Cooperativo from '../red/Cooperativo.js';
 
@@ -104,7 +104,10 @@ export default class EscenaArena extends Phaser.Scene {
         ...this.balance.heroe, vidaMax: razaOtra.vidaMax, velocidad: razaOtra.velocidad, textura: idOtra, extra: razaOtra.extra,
       });
       this.companero.raza = razaOtra;
-      this.companero.ponerEtiqueta(`Compañero (${razaOtra.nombre})`);
+      this.companero.nombre = red.nickCompanero || 'Compañero';
+      this.companero.ponerEtiqueta(this.companero.nombre);
+      this.heroe.nombre = nick() || 'Tú';
+      this.heroe.ponerEtiqueta(this.heroe.nombre);
       this.cooperativo = new Cooperativo(this, red);
     }
 
@@ -238,7 +241,7 @@ export default class EscenaArena extends Phaser.Scene {
       // En pareja: el caído queda como fantasma hasta que se vence la sala
       // Cada uno ve el mensaje desde su lado
       const paraQuienCayo = '¡Caíste! Tu compañero puede salvarte';
-      const paraElOtro = '¡Tu compañero cayó! Vence la sala';
+      const paraElOtro = `¡${h.nombre || 'Tu compañero'} cayó! Vence la sala`;
       const yo = h === this.heroe;
       this.mostrarAnuncio(yo ? paraQuienCayo : paraElOtro, true);
       if (this.cooperativo) this.cooperativo.enviar({ t: 'anuncio', texto: yo ? paraElOtro : paraQuienCayo });
@@ -343,7 +346,9 @@ export default class EscenaArena extends Phaser.Scene {
     const avance = total > 1 ? (n - 1) / (total - 1) : 1; // de 0 a 1
     const resultado = {};
     for (const [tipo, [min, max]] of Object.entries(this.mundo.enemigos)) {
-      resultado[tipo] = Math.round(min + (max - min) * avance);
+      // En pareja hay más enemigos (balance.json → cooperativo)
+      const extra = this.cooperativo ? this.balance.cooperativo.multCantidad : 1;
+      resultado[tipo] = Math.round((min + (max - min) * avance) * extra);
     }
     return resultado;
   }
@@ -358,7 +363,7 @@ export default class EscenaArena extends Phaser.Scene {
     const fuerza = this.mundo.fuerza;
     return {
       ...base, // "..." copia todos los datos del tipo; luego cambiamos algunos
-      vidaMax: Math.round(base.vidaMax * fuerza * (1 + nivel * d.vidaPorSala)),
+      vidaMax: Math.round(base.vidaMax * fuerza * (1 + nivel * d.vidaPorSala) * (this.cooperativo ? this.balance.cooperativo.multVida : 1)),
       velocidad: Math.round(base.velocidad * (1 + (fuerza - 1) / 2) * (1 + nivel * d.velocidadPorSala)),
       danioContacto: Math.round(base.danioContacto * (1 + nivel * d.danioPorSala)),
       color: this.mundo.colores[tipo],
@@ -373,7 +378,7 @@ export default class EscenaArena extends Phaser.Scene {
     return {
       ...comun,  // comportamiento común (embestida, aviso...)
       ...propio, // tamaño, vida y velocidad de los jefes de ESTE mundo
-      vidaMax: Math.round(propio.vidaMax * (1 + (n - 1) * comun.aumentoVidaPorJefe)),
+      vidaMax: Math.round(propio.vidaMax * (1 + (n - 1) * comun.aumentoVidaPorJefe) * (this.cooperativo ? this.balance.cooperativo.multVidaJefe : 1)),
       radioTextura: 50,
       color: this.mundo.colores.jefe,
     };

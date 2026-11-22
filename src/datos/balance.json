@@ -364,6 +364,11 @@
     "cantidad": 50,
     "recargaMs": 1500
   },
+  "cooperativo": {
+    "multCantidad": 1.6,
+    "multVida": 1.4,
+    "multVidaJefe": 1.8
+  },
   "dificultad": {
     "vidaPorSala": 0.06,
     "velocidadPorSala": 0.02,

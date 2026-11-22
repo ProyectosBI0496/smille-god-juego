@@ -30,6 +30,7 @@ export default class Red extends Phaser.Events.EventEmitter {
     this.con = null;
     this.esAnfitrion = false;
     this.razaCompanero = 'humano';
+    this.nickCompanero = '';
     this.ultimoMensaje = 0; // cuándo llegó el último mensaje (para saber si se cortó)
   }
 
@@ -71,7 +72,10 @@ export default class Red extends Phaser.Events.EventEmitter {
       if (!mensaje || !mensaje.t) return;
       this.ultimoMensaje = performance.now();
       // La raza del compañero se guarda siempre, esté en la escena que esté
-      if (mensaje.t === 'hola' || mensaje.t === 'raza') this.razaCompanero = mensaje.raza;
+      if (mensaje.t === 'hola' || mensaje.t === 'raza') {
+        this.razaCompanero = mensaje.raza;
+        this.nickCompanero = String(mensaje.nick || '').slice(0, 12);
+      }
       this.emit(mensaje.t, mensaje);
     });
     con.on('close', () => this.emit('desconectado'));
