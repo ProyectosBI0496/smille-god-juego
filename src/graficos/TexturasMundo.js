@@ -95,6 +95,29 @@ export function enemigosEtapa6(escena) {
     g.fillCircle(102, 92, 2);
   });
 
+  // Reja de las puertas entre salas (40 × 80; se repite si la puerta es más alta)
+  dibujar(escena, 'reja', 40, 80, (g) => {
+    g.fillStyle(0x2b2b2b);
+    g.fillRect(0, 0, 40, 80);
+    g.fillStyle(0x8d8d8d);
+    for (const x of [4, 16, 28]) g.fillRect(x, 0, 8, 80); // barrotes
+    g.fillRect(0, 20, 40, 6);                            // travesaños
+    g.fillRect(0, 56, 40, 6);
+    g.fillStyle(0xd0d0d0);
+    for (const x of [4, 16, 28]) g.fillRect(x, 0, 2, 80); // brillo del metal
+  });
+
+  // Ícono de la cura: un corazón (dos círculos + un triángulo)
+  dibujar(escena, 'icono-cura', 64, 64, (g) => {
+    g.fillStyle(0xffffff);
+    g.fillCircle(22, 24, 12);
+    g.fillCircle(42, 24, 12);
+    poligono(g, [[11, 29], [53, 29], [32, 54]]);
+    g.fillStyle(0x000000, 0.35);
+    g.fillRect(29, 18, 6, 22); // cruz de curación
+    g.fillRect(21, 26, 22, 6);
+  });
+
   // Hoja que cae (Bosque)
   dibujar(escena, 'hoja', 14, 8, (g) => {
     g.fillStyle(0xffffff);
@@ -163,7 +186,7 @@ export function crearTexturasMundo(escena, mundo) {
     g.fillRect(62, 22, 18, 16);
   });
 
-  for (const deco of mundo.decoracion) decoracion(escena, id, deco.tipo, c);
+  for (const deco of mundo.decoracionPorSala) decoracion(escena, id, deco.tipo, c);
 }
 
 /** Adornos del suelo (vistos desde arriba). No chocan: solo decoran. */

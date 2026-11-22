@@ -1,15 +1,13 @@
 // =============================================================
-// Escena de la arena
+// Escena de juego
 // Etapa 1: arena con muros, héroe con joystick/teclado, cámara.
 // Etapa 2: botón de ataque, enemigo que persigue, vida y daño.
-// Etapa 3: auto-apuntado, Botón 2 "Onda", Botón 3 "Torbellino",
-//          varios enemigos a la vez.
-// Etapa 4: oleadas, pantalla de derrota con récord, partículas,
-//          vibración y "object pooling" de los números de daño.
-// Etapa 5: arte provisional (texturas dibujadas por código), ambiente
-//          con antorchas, brasas y viñeta; efectos de habilidades.
-// Etapa 6: MUNDOS (Bosque, Desierto...) con oleadas fijas, tipos de
-//          enemigo, JEFES al final, victoria y desbloqueo.
+// Etapa 3: auto-apuntado, Botón 2 "Onda", Botón 3 "Torbellino".
+// Etapa 4: oleadas, derrota, partículas, vibración, "object pooling".
+// Etapa 5: arte provisional, ambiente con antorchas y viñeta.
+// Etapa 6: MUNDOS-MAZMORRA (D-025): el héroe camina de sala en sala;
+//          cada sala tiene una oleada y cada cierto número hay un
+//          salón del jefe. Curas (pociones), victoria y desbloqueo.
 // =============================================================
 
 // Tipografía de fantasía (Google Fonts, cargada en index.html).
@@ -18,9 +16,10 @@ export const FUENTE_TITULO = '"Cinzel", Georgia, serif';
 
 import Heroe from '../entidades/Heroe.js';
 import Enemigo from '../entidades/Enemigo.js';
+import Jefe from '../entidades/Jefe.js';
 import Joystick from '../controles/Joystick.js';
 import BotonHabilidad from '../controles/BotonHabilidad.js';
-import Jefe from '../entidades/Jefe.js';
+import Mazmorra from '../mundo/Mazmorra.js';
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
 import { marcarSuperado } from '../datos/Progreso.js';
@@ -49,45 +48,49 @@ export default class EscenaArena extends Phaser.Scene {
     // Todos los números del juego vienen de balance.json
     this.balance = this.cache.json.get('balance');
     this.mundo = this.balance.mundos[this.indiceMundo];
-    const { ancho, alto, grosorMuro, tamanoCuadricula } = this.balance.arena;
 
-    crearTexturas(this);                 // texturas comunes (solo la primera vez)
+    crearTexturas(this);                  // texturas comunes (solo la primera vez)
     crearTexturasMundo(this, this.mundo); // suelo, muro y adornos de ESTE mundo
-    this.dibujarArena(ancho, alto, grosorMuro, tamanoCuadricula);
-    this.cameras.main.fadeIn(400); // la escena aparece desde negro
 
-    // Límites del mundo físico = el interior de la arena (sin los muros)
-    this.physics.world.setBounds(grosorMuro, grosorMuro, ancho - grosorMuro * 2, alto - grosorMuro * 2);
+    // La mazmorra: salas, pasillos, muros y puertas
+    this.mazmorra = new Mazmorra(this, this.mundo, this.balance.mazmorra);
+    const { ancho, alto, salas } = this.mazmorra;
+    this.physics.world.setBounds(0, 0, ancho, alto);
+    this.crearAmbiente();
+    this.cameras.main.fadeIn(400);
 
-    // El héroe aparece en el centro de la arena
-    this.heroe = new Heroe(this, ancho / 2, alto / 2, this.balance.heroe);
+    // El héroe aparece en la sala de entrada
+    const entrada = salas[0];
+    this.heroe = new Heroe(this, entrada.x + 150, entrada.medio, this.balance.heroe);
+    this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.muros);
+    this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.puertas.filter(Boolean));
 
-    // La cámara sigue al héroe con suavidad, sin salirse de la arena
+    // La cámara sigue al héroe con suavidad, sin salirse de la mazmorra
     this.cameras.main.setBounds(0, 0, ancho, alto);
     this.cameras.main.startFollow(this.heroe.cuerpo, true, 0.1, 0.1);
 
     // ---- Controles ----
-    // Teclado (PC): mover con WASD/flechas; ESPACIO/J ataque, K Onda, L Torbellino
-    this.teclas = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,K,L');
-    // Joystick (celular): mitad izquierda
+    // Teclado (PC): WASD/flechas; ESPACIO/J ataque, K Onda, L Torbellino, H cura
+    this.teclas = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,K,L,H');
     this.joystick = new Joystick(this, this.balance.joystick);
-    this.crearBotones();
+    this.direccion = new Phaser.Math.Vector2(); // reutilizable (no crear uno por frame)
 
-    // Vector reutilizable para la dirección (evita crear uno nuevo en cada frame)
-    this.direccion = new Phaser.Math.Vector2();
-
-    // ---- Enemigos ----
+    // ---- Estado de la partida ----
     this.enemigos = [];
     this.derrotados = 0;
-    this.oleada = 0;           // oleada actual (1, 2, 3...)
-    this.fase = 'oleadas';     // 'oleadas' → 'jefes' → 'victoria'
-    this.jefesPorAparecer = 0; // los jefes aparecen de a uno, con un intervalo
-    this.numerosLibres = [];   // "pool": números de daño guardados para reutilizar
+    this.salaActiva = null;      // la sala donde se está peleando ahora
+    this.oleadasVencidas = 0;
+    this.jefesVencidos = 0;
+    this.curas = this.mundo.curas;
+    this.numerosLibres = [];     // "pool": números de daño guardados para reutilizar
+    this.terminado = false;      // true al ganar el mundo
 
+    this.crearBotones();
     this.crearEfectos();
     this.crearTextos();
     this.crearBotonPausa();
-    this.iniciarSiguienteOleada();
+    this.actualizarHud();
+    this.mostrarAnuncio(this.mundo.nombre);
   }
 
   update() {
@@ -101,10 +104,10 @@ export default class EscenaArena extends Phaser.Scene {
     if (recienApretada(this.teclas.SPACE) || recienApretada(this.teclas.J)) this.botonAtaque.usar();
     if (recienApretada(this.teclas.K)) this.botonOnda.usar();
     if (recienApretada(this.teclas.L)) this.botonTorbellino.usar();
+    if (recienApretada(this.teclas.H)) this.botonCura.usar();
+    for (const boton of [this.botonAtaque, this.botonOnda, this.botonTorbellino, this.botonCura]) boton.actualizar();
 
-    this.botonAtaque.actualizar();
-    this.botonOnda.actualizar();
-    this.botonTorbellino.actualizar();
+    this.revisarEntradaASala();
 
     // Enemigos: perseguir y, si tocan al héroe, hacerle daño
     for (const enemigo of this.enemigos) {
@@ -121,7 +124,9 @@ export default class EscenaArena extends Phaser.Scene {
       }
     }
 
-    this.dibujarBarraJefes();
+    this.dibujarBarraJefe();
+    // El clima sigue a la cámara: solo se generan partículas donde se ve
+    for (const emisor of this.climas) emisor.setPosition(this.cameras.main.scrollX, this.cameras.main.scrollY);
   }
 
   /** Arma la dirección de movimiento desde el joystick o el teclado */
@@ -142,7 +147,164 @@ export default class EscenaArena extends Phaser.Scene {
     if (this.direccion.lengthSq() > 0) this.direccion.normalize();
   }
 
-  /** Crea los 3 botones de habilidades en la esquina inferior derecha */
+  // =============================================================
+  // Salas: entrar, pelear, vencer
+  // =============================================================
+
+  /** Si el héroe entra (un poco) a una sala que espera, empieza su combate */
+  revisarEntradaASala() {
+    if (this.salaActiva) return;
+    const { x, y } = this.heroe.cuerpo;
+    const i = this.mazmorra.salaEn(x, y);
+    if (i < 0) return;
+    const sala = this.mazmorra.salas[i];
+    if (sala.estado !== 'esperando' || x < sala.x + this.balance.mazmorra.distanciaActivar) return;
+    this.activarSala(sala, i);
+  }
+
+  activarSala(sala, indice) {
+    sala.estado = 'combate';
+    sala.indice = indice;
+    this.salaActiva = sala;
+
+    if (sala.tipo === 'oleada') {
+      for (const [tipo, cantidad] of Object.entries(this.composicionOleada(sala.numero))) {
+        for (let i = 0; i < cantidad; i++) this.crearEnemigo(this.configEnemigo(tipo), sala);
+      }
+      this.mostrarAnuncio(`Oleada ${sala.numero} de ${this.mundo.oleadas}`);
+    } else {
+      const total = this.mazmorra.totalJefes;
+      this.mostrarAnuncio(total === 1 ? '¡El jefe!' : `¡Jefe ${sala.numero} de ${total}!`);
+      this.cameras.main.shake(400, 0.006);
+      this.time.delayedCall(this.balance.oleadas.retrasoJefeMs, () => {
+        if (this.heroe.vivo) this.crearEnemigo(this.configJefe(sala.numero), sala, Jefe);
+      });
+    }
+    this.actualizarHud();
+  }
+
+  /**
+   * Cuántos enemigos de cada tipo salen en la oleada "n".
+   * balance.json da [mínimo, máximo] por tipo: la primera oleada usa el mínimo,
+   * la última el máximo, y las del medio van creciendo de a poco.
+   */
+  composicionOleada(n) {
+    const total = this.mundo.oleadas;
+    const avance = total > 1 ? (n - 1) / (total - 1) : 1; // de 0 a 1
+    const resultado = {};
+    for (const [tipo, [min, max]] of Object.entries(this.mundo.enemigos)) {
+      resultado[tipo] = Math.round(min + (max - min) * avance);
+    }
+    return resultado;
+  }
+
+  /** Arma la configuración de un enemigo: su tipo + la fuerza y el color del mundo */
+  configEnemigo(tipo) {
+    const base = this.balance.tiposEnemigo[tipo];
+    const fuerza = this.mundo.fuerza;
+    return {
+      ...base, // "..." copia todos los datos del tipo; luego cambiamos algunos
+      vidaMax: Math.round(base.vidaMax * fuerza),
+      velocidad: Math.round(base.velocidad * (1 + (fuerza - 1) / 2)),
+      color: this.mundo.colores[tipo],
+    };
+  }
+
+  /** El jefe número "n" del mundo: cada uno tiene un poco más de vida que el anterior */
+  configJefe(n) {
+    const comun = this.balance.jefe;
+    const propio = this.mundo.jefe;
+    return {
+      ...comun,  // comportamiento común (embestida, aviso...)
+      ...propio, // tamaño, vida y velocidad de los jefes de ESTE mundo
+      vidaMax: Math.round(propio.vidaMax * (1 + (n - 1) * comun.aumentoVidaPorJefe)),
+      radioTextura: 50,
+      color: this.mundo.colores.jefe,
+    };
+  }
+
+  /**
+   * Crea un enemigo (o un jefe) dentro de la sala, lejos del héroe.
+   * "Clase" permite elegir qué crear: Enemigo por defecto, o Jefe.
+   */
+  crearEnemigo(config, sala, Clase = Enemigo) {
+    const margen = config.radio + 20;
+    const minima = this.balance.mazmorra.distanciaMinimaAparicion;
+    let x;
+    let y;
+    let intentos = 0;
+    do {
+      x = Phaser.Math.Between(sala.x + margen, sala.x + sala.ancho - margen);
+      y = Phaser.Math.Between(sala.y + margen, sala.y + sala.alto - margen);
+      intentos += 1;
+    } while (intentos < 30 && Phaser.Math.Distance.Between(x, y, this.heroe.cuerpo.x, this.heroe.cuerpo.y) < minima);
+
+    const enemigo = new Clase(this, x, y, config);
+    // Los enemigos también chocan con los muros y las puertas
+    this.physics.add.collider(enemigo.cuerpo, this.mazmorra.muros);
+    this.physics.add.collider(enemigo.cuerpo, this.mazmorra.puertas.filter(Boolean));
+    this.enemigos.push(enemigo);
+  }
+
+  /** Quita un enemigo derrotado; si la sala quedó vacía, la da por vencida */
+  eliminarEnemigo(enemigo) {
+    const esJefe = enemigo instanceof Jefe; // instanceof: ¿este objeto es de la clase Jefe?
+    this.chispas.explode(esJefe ? 50 : 16, enemigo.cuerpo.x, enemigo.cuerpo.y);
+    const luz = this.add.image(enemigo.cuerpo.x, enemigo.cuerpo.y, 'brillo').setTint(0xff7043)
+      .setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
+    this.tweens.add({ targets: luz, scale: esJefe ? 4 : 1.6, alpha: 0, duration: esJefe ? 600 : 300, onComplete: () => luz.destroy() });
+    if (esJefe) this.cameras.main.shake(250, 0.01);
+    this.vibrar(esJefe ? 120 : 25);
+    enemigo.destruir();
+    this.enemigos = this.enemigos.filter((e) => e !== enemigo);
+    this.derrotados += 1;
+
+    if (this.enemigos.length === 0 && this.salaActiva && this.heroe.vivo) this.salaVencida();
+    this.actualizarHud();
+  }
+
+  /** Sala vencida: un poco de vida, se abre la reja y se sigue caminando */
+  salaVencida() {
+    const sala = this.salaActiva;
+    sala.estado = 'vencida';
+    this.salaActiva = null;
+    if (sala.tipo === 'oleada') this.oleadasVencidas += 1;
+    else this.jefesVencidos += 1;
+
+    const ultima = sala.indice === this.mazmorra.salas.length - 1;
+    if (ultima) {
+      this.terminado = true;
+      this.time.delayedCall(900, () => this.victoria());
+      return;
+    }
+    this.heroe.vida = Math.min(this.heroe.vida + this.balance.oleadas.curacionPorSala, this.balance.heroe.vidaMax);
+    this.mazmorra.abrirPuerta(sala.indice);
+    this.mostrarAnuncio(sala.tipo === 'jefe' ? '¡Jefe vencido! →' : '¡Sigue adelante! →');
+  }
+
+  // =============================================================
+  // Cura (pociones)
+  // =============================================================
+
+  /** Usa una cura si quedan y si el héroe no tiene la vida llena */
+  usarCura() {
+    const max = this.balance.heroe.vidaMax;
+    if (this.curas <= 0 || this.heroe.vida >= max || !this.heroe.vivo) return;
+    this.curas -= 1;
+    this.heroe.vida = Math.min(this.heroe.vida + this.balance.cura.cantidad, max);
+    // Efecto: destello verde y números de curación
+    const { x, y } = this.heroe.cuerpo;
+    const luz = this.add.image(x, y, 'brillo').setTint(0x66bb6a).setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
+    this.tweens.add({ targets: luz, scale: 2.5, alpha: 0, duration: 500, onComplete: () => luz.destroy() });
+    this.mostrarNumero(x, y - 40, `+${this.balance.cura.cantidad}`, '#a5d6a7');
+    this.actualizarHud();
+  }
+
+  // =============================================================
+  // Combate (igual que en etapas anteriores)
+  // =============================================================
+
+  /** Crea los botones: ataque, Onda, Torbellino y cura */
   crearBotones() {
     const { radio, radioPequeno, margen } = this.balance.botones;
     const xAtq = this.scale.width - margen - radio;
@@ -150,30 +312,34 @@ export default class EscenaArena extends Phaser.Scene {
 
     // Botón 1 — ataque básico (el más grande, bajo el pulgar)
     this.botonAtaque = new BotonHabilidad(this, {
-      x: xAtq, y: yAtq, radio,
-      etiqueta: 'ATQ', icono: 'icono-espada',
-      recargaMs: this.balance.ataqueBasico.recargaMs,
-      color: 0xf5c542,
+      x: xAtq, y: yAtq, radio, etiqueta: 'ATQ', icono: 'icono-espada',
+      recargaMs: this.balance.ataqueBasico.recargaMs, color: 0xf5c542,
       alPulsar: () => this.atacar(),
     });
-
-    // Botón 2 — habilidad "Onda": a la izquierda del ataque
+    // Botón 2 — "Onda": a la izquierda del ataque
     this.botonOnda = new BotonHabilidad(this, {
-      x: xAtq - 150, y: yAtq + 25, radio: radioPequeno,
-      etiqueta: 'ONDA', icono: 'icono-onda',
-      recargaMs: this.balance.habilidad.recargaMs,
-      color: 0x4fc3f7,
+      x: xAtq - 150, y: yAtq + 25, radio: radioPequeno, etiqueta: 'ONDA', icono: 'icono-onda',
+      recargaMs: this.balance.habilidad.recargaMs, color: 0x4fc3f7,
       alPulsar: () => this.usarOnda(),
     });
-
-    // Botón 3 — especial "Torbellino": encima del ataque
+    // Botón 3 — "Torbellino": encima del ataque
     this.botonTorbellino = new BotonHabilidad(this, {
-      x: xAtq - 35, y: yAtq - 150, radio: radioPequeno,
-      etiqueta: 'ESP', icono: 'icono-torbellino',
-      recargaMs: this.balance.especial.recargaMs,
-      color: 0xab47bc,
+      x: xAtq - 35, y: yAtq - 150, radio: radioPequeno, etiqueta: 'ESP', icono: 'icono-torbellino',
+      recargaMs: this.balance.especial.recargaMs, color: 0xab47bc,
       alPulsar: () => this.usarTorbellino(),
     });
+    // Botón 4 — cura: más arriba, con el número de curas que quedan
+    const xCura = xAtq - 175;
+    const yCura = yAtq - 120;
+    this.botonCura = new BotonHabilidad(this, {
+      x: xCura, y: yCura, radio: 42, etiqueta: 'CURA', icono: 'icono-cura',
+      recargaMs: this.balance.cura.recargaMs, color: 0x66bb6a,
+      alPulsar: () => this.usarCura(),
+    });
+    this.textoCuras = this.add.text(xCura + 30, yCura + 26, '', {
+      fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
+      stroke: '#05070d', strokeThickness: 5,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(103);
   }
 
   /**
@@ -192,8 +358,8 @@ export default class EscenaArena extends Phaser.Scene {
       direccion.normalize();
 
       enemigo.recibirDanio(danio, direccion, empuje);
-      this.mostrarNumero(enemigo.cuerpo.x, enemigo.cuerpo.y - enemigo.radio, danio);
-      if (!enemigo.vivo) this.eliminarEnemigo(enemigo);
+      this.mostrarNumero(enemigo.cuerpo.x, enemigo.cuerpo.y - enemigo.radio, `-${danio}`);
+      if (enemigo.vida <= 0) this.eliminarEnemigo(enemigo);
     }
   }
 
@@ -217,9 +383,6 @@ export default class EscenaArena extends Phaser.Scene {
   atacar() {
     if (!this.heroe.vivo) return;
     const ataque = this.balance.ataqueBasico;
-
-    // Si hay un enemigo cerca, el héroe se gira hacia él antes de golpear.
-    // Si no hay ninguno, golpea hacia donde está mirando.
     const objetivo = this.enemigoMasCercano(ataque.rangoAutoApuntado);
     if (objetivo) this.heroe.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
 
@@ -234,19 +397,12 @@ export default class EscenaArena extends Phaser.Scene {
     const h = this.balance.habilidad;
     const { x, y } = this.heroe.cuerpo;
 
-    // Efecto visual: un anillo que se expande + un destello de luz azul.
-    // BlendMode ADD = "mezcla aditiva": suma luz a lo que hay debajo, como un foco.
+    // Anillo que se expande + destello azul (BlendMode ADD = suma luz, como un foco)
     const anillo = this.add.circle(x, y, 10).setStrokeStyle(8, 0x4fc3f7).setDepth(40);
-    this.tweens.add({
-      targets: anillo, radius: h.radio, alpha: 0, duration: 250,
-      onComplete: () => anillo.destroy(),
-    });
+    this.tweens.add({ targets: anillo, radius: h.radio, alpha: 0, duration: 250, onComplete: () => anillo.destroy() });
     const luz = this.add.image(x, y, 'brillo').setTint(0x4fc3f7)
       .setBlendMode(Phaser.BlendModes.ADD).setDepth(39).setScale(0.5);
-    this.tweens.add({
-      targets: luz, scale: (h.radio * 2.4) / 128, alpha: 0, duration: 350,
-      onComplete: () => luz.destroy(),
-    });
+    this.tweens.add({ targets: luz, scale: (h.radio * 2.4) / 128, alpha: 0, duration: 350, onComplete: () => luz.destroy() });
     this.cameras.main.shake(120, 0.004);
 
     this.golpearArea(x, y, h.radio, h.danio, h.empuje, x, y);
@@ -257,7 +413,6 @@ export default class EscenaArena extends Phaser.Scene {
     if (!this.heroe.vivo) return;
     const e = this.balance.especial;
 
-    // Efecto visual: un anillo morado que gira y sigue al héroe
     const anillo = this.add.circle(this.heroe.cuerpo.x, this.heroe.cuerpo.y, e.radio)
       .setStrokeStyle(5, 0xab47bc, 0.8).setDepth(40);
     const duracion = e.golpes * e.intervaloMs;
@@ -297,169 +452,35 @@ export default class EscenaArena extends Phaser.Scene {
   }
 
   /**
-   * Empieza la siguiente oleada del mundo. Cada oleada de balance.json dice
-   * cuántos enemigos de cada tipo salen, por ejemplo { "normal": 3, "rapido": 1 }.
+   * Número que sube y se desvanece (daño o curación).
+   * OBJECT POOLING: reutilizamos los textos guardados en "numerosLibres".
    */
-  iniciarSiguienteOleada() {
-    if (!this.heroe.vivo || this.fase !== 'oleadas') return;
-    if (this.oleada >= this.mundo.oleadas.length) return this.iniciarJefes(); // protección: no hay más oleadas
-    this.oleada += 1;
-    this.curarEntreOleadas();
-
-    const oleada = this.mundo.oleadas[this.oleada - 1];
-    // Object.entries convierte { normal: 3, rapido: 1 } en [["normal", 3], ["rapido", 1]]
-    for (const [tipo, cantidad] of Object.entries(oleada)) {
-      for (let i = 0; i < cantidad; i++) this.crearEnemigo(this.configEnemigo(tipo));
-    }
-
-    const total = this.mundo.oleadas.length;
-    this.actualizarHud();
-    this.mostrarAnuncio(`Oleada ${this.oleada} de ${total}`);
-  }
-
-  /** Arma la configuración de un enemigo: su tipo + la fuerza y el color del mundo */
-  configEnemigo(tipo) {
-    const base = this.balance.tiposEnemigo[tipo];
-    const fuerza = this.mundo.fuerza;
-    return {
-      ...base, // "..." copia todos los datos del tipo; luego cambiamos algunos
-      vidaMax: Math.round(base.vidaMax * fuerza),
-      velocidad: Math.round(base.velocidad * (1 + (fuerza - 1) / 2)),
-      color: this.mundo.colores[tipo],
-    };
-  }
-
-  /** Terminaron las oleadas: llegan los jefes, uno tras otro */
-  iniciarJefes() {
-    if (!this.heroe.vivo || this.fase !== 'oleadas') return; // solo una vez
-    this.fase = 'jefes';
-    this.curarEntreOleadas();
-    const j = this.mundo.jefes;
-    const config = {
-      ...this.balance.jefe, // comportamiento común (embestida, aviso...)
-      ...j,                 // tamaño, vida y velocidad de los jefes de ESTE mundo
-      radioTextura: 50,
-      color: this.mundo.colores.jefe,
-    };
-    this.jefesTotal = j.cantidad;
-    this.jefesPorAparecer = j.cantidad;
-    this.actualizarHud();
-    this.mostrarAnuncio(j.cantidad === 1 ? '¡Llega el jefe!' : `¡Llegan ${j.cantidad} jefes!`);
-    this.cameras.main.shake(400, 0.006);
-
-    // time.addEvent con "repeat": un jefe cada intervaloJefesMs
-    this.time.addEvent({
-      delay: this.balance.oleadas.intervaloJefesMs,
-      repeat: j.cantidad - 1,
-      callback: () => {
-        if (!this.heroe.vivo) return;
-        this.jefesPorAparecer -= 1;
-        this.crearEnemigo(config, Jefe);
-      },
-    });
-  }
-
-  curarEntreOleadas() {
-    if (this.oleada > 1 || this.fase === 'jefes') {
-      const o = this.balance.oleadas;
-      this.heroe.vida = Math.min(this.heroe.vida + o.curacionEntreOleadas, this.balance.heroe.vidaMax);
-    }
-  }
-
-  /** Texto grande en el centro que aparece y se desvanece */
-  mostrarAnuncio(mensaje) {
-    const texto = this.add.text(this.scale.width / 2, this.scale.height / 2 - 120, mensaje, {
-      fontFamily: FUENTE_TITULO, fontSize: '60px', color: '#f5c542', fontStyle: 'bold',
-      stroke: '#3a1500', strokeThickness: 8,
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(150);
-    this.tweens.add({
-      targets: texto, alpha: 0, y: texto.y - 30, delay: 900, duration: 600,
-      onComplete: () => texto.destroy(),
-    });
-  }
-
-  /**
-   * Crea un enemigo (o un jefe) en un punto al azar, lejos del héroe.
-   * "Clase" permite elegir qué crear: Enemigo por defecto, o Jefe.
-   */
-  crearEnemigo(config, Clase = Enemigo) {
-    const { ancho, alto, grosorMuro } = this.balance.arena;
-    const margen = grosorMuro + config.radio;
-    const distanciaMinima = this.balance.oleadas.distanciaMinimaAparicion;
-    let x;
-    let y;
-    do {
-      x = Phaser.Math.Between(margen, ancho - margen);
-      y = Phaser.Math.Between(margen, alto - margen);
-    } while (Phaser.Math.Distance.Between(x, y, this.heroe.cuerpo.x, this.heroe.cuerpo.y) < distanciaMinima);
-
-    this.enemigos.push(new Clase(this, x, y, config));
-  }
-
-  /** Quita un enemigo derrotado y decide qué sigue: otra oleada, los jefes o la victoria */
-  eliminarEnemigo(enemigo) {
-    const esJefe = enemigo instanceof Jefe; // instanceof: ¿este objeto es de la clase Jefe?
-    this.chispas.explode(esJefe ? 50 : 16, enemigo.cuerpo.x, enemigo.cuerpo.y); // explosión de partículas
-    const luz = this.add.image(enemigo.cuerpo.x, enemigo.cuerpo.y, 'brillo').setTint(0xff7043)
-      .setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
-    this.tweens.add({ targets: luz, scale: esJefe ? 4 : 1.6, alpha: 0, duration: esJefe ? 600 : 300, onComplete: () => luz.destroy() });
-    if (esJefe) this.cameras.main.shake(250, 0.01);
-    this.vibrar(esJefe ? 120 : 25);
-    enemigo.destruir();
-    this.enemigos = this.enemigos.filter((e) => e !== enemigo);
-    this.derrotados += 1;
-    this.actualizarHud();
-
-    if (this.enemigos.length > 0 || !this.heroe.vivo) return;
-
-    if (this.fase === 'oleadas') {
-      const quedanOleadas = this.oleada < this.mundo.oleadas.length;
-      this.mostrarAnuncio('¡Oleada superada!');
-      this.time.delayedCall(this.balance.oleadas.pausaMs,
-        () => (quedanOleadas ? this.iniciarSiguienteOleada() : this.iniciarJefes()));
-    } else if (this.fase === 'jefes' && this.jefesPorAparecer === 0) {
-      this.fase = 'victoria';
-      this.time.delayedCall(900, () => this.victoria());
-    }
-  }
-
-  /**
-   * Número de daño que sube y se desvanece.
-   * OBJECT POOLING: en vez de crear y destruir un texto en cada golpe
-   * (cientos por partida), guardamos los textos usados en "numerosLibres"
-   * y los reutilizamos. Así el celular no se traba.
-   */
-  mostrarNumero(x, y, valor) {
-    let texto = this.numerosLibres.pop();
-    if (!texto) {
-      texto = this.add.text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif', fontSize: '26px', color: '#ffeb3b', fontStyle: 'bold',
+  mostrarNumero(x, y, texto, colorTexto = '#ffeb3b') {
+    let numero = this.numerosLibres.pop();
+    if (!numero) {
+      numero = this.add.text(0, 0, '', {
+        fontFamily: 'Arial, sans-serif', fontSize: '26px', fontStyle: 'bold',
         stroke: '#3e1a00', strokeThickness: 5, // borde oscuro: se lee sobre cualquier fondo
       }).setOrigin(0.5).setDepth(60);
     }
-    texto.setText(`-${valor}`).setPosition(x, y).setAlpha(1).setVisible(true);
+    numero.setText(texto).setColor(colorTexto).setPosition(x, y).setAlpha(1).setVisible(true);
     this.tweens.add({
-      targets: texto, y: y - 40, alpha: 0, duration: 600,
+      targets: numero, y: y - 40, alpha: 0, duration: 600,
       onComplete: () => {
-        texto.setVisible(false);
-        this.numerosLibres.push(texto); // vuelve al pool
+        numero.setVisible(false);
+        this.numerosLibres.push(numero); // vuelve al pool
       },
     });
   }
 
-  /**
-   * Vibra el celular. Solo si el navegador lo permite (en iPhone no existe)
-   * y si el jugador ya tocó la pantalla: el navegador lo exige.
-   */
+  /** Vibra el celular (si el navegador lo permite y el jugador ya tocó la pantalla) */
   vibrar(ms) {
     const yaToco = !navigator.userActivation || navigator.userActivation.hasBeenActive;
     if (navigator.vibrate && yaToco) navigator.vibrate(ms);
   }
 
-  /** Prepara las partículas: una textura pequeña dibujada por código */
+  /** Un solo emisor de chispas reutilizable: "explode" lanza N partículas donde se le diga */
   crearEfectos() {
-    // (La textura 'chispa' ahora se crea en graficos/Texturas.js)
-    // Un solo emisor reutilizable: "explode" lanza N partículas donde se le diga
     this.chispas = this.add.particles(0, 0, 'chispa', {
       speed: { min: 80, max: 260 },
       lifespan: 450,
@@ -470,6 +491,10 @@ export default class EscenaArena extends Phaser.Scene {
     }).setDepth(45);
   }
 
+  // =============================================================
+  // Pausa, derrota y victoria
+  // =============================================================
+
   /**
    * Botón de pausa (arriba a la derecha) + teclas P y ESC.
    * También pausa solo si el jugador sale de la app o cambia de pestaña.
@@ -479,7 +504,6 @@ export default class EscenaArena extends Phaser.Scene {
     const y = 55;
     const boton = this.add.circle(x, y, 34, 0x0b0f1a, 0.55).setStrokeStyle(3, 0xf5c542, 0.8)
       .setScrollFactor(0).setDepth(100).setInteractive();
-    // Ícono: dos barras verticales
     this.add.rectangle(x - 8, y, 8, 26, 0xf5c542).setScrollFactor(0).setDepth(101);
     this.add.rectangle(x + 8, y, 8, 26, 0xf5c542).setScrollFactor(0).setDepth(101);
     boton.on('pointerdown', () => this.pausar());
@@ -493,9 +517,9 @@ export default class EscenaArena extends Phaser.Scene {
     this.events.once('shutdown', () => this.game.events.off('hidden', this.pausar, this));
   }
 
-  /** Congela la arena y abre el menú de pausa encima */
+  /** Congela la escena y abre el menú de pausa encima */
   pausar() {
-    if (!this.heroe.vivo || !this.scene.isActive()) return; // ya en pausa o en derrota
+    if (!this.heroe.vivo || this.terminado || !this.scene.isActive()) return;
     this.joystick.soltar();             // al volver, el héroe no debe seguir caminando solo
     this.heroe.cuerpo.body.setVelocity(0, 0);
     this.scene.pause();                 // congela update, física, tiempo y animaciones
@@ -508,9 +532,7 @@ export default class EscenaArena extends Phaser.Scene {
     for (const enemigo of this.enemigos) enemigo.cuerpo.body.setVelocity(0, 0);
     this.vibrar(300);
 
-    const detalle = this.fase === 'jefes'
-      ? `${this.mundo.nombre} · caíste ante los jefes`
-      : `${this.mundo.nombre} · oleada ${this.oleada} de ${this.mundo.oleadas.length}`;
+    const detalle = `${this.mundo.nombre} · oleadas ${this.oleadasVencidas}/${this.mundo.oleadas} · jefes ${this.jefesVencidos}/${this.mazmorra.totalJefes}`;
     this.pantallaFinal('Has caído', `${detalle}\nDerrotados: ${this.derrotados}`, [
       { texto: 'Reintentar', principal: true, accion: () => this.scene.restart({ mundo: this.indiceMundo }) },
       { texto: 'Mapa', accion: () => this.scene.start('EscenaMundos') },
@@ -525,9 +547,7 @@ export default class EscenaArena extends Phaser.Scene {
     marcarSuperado(this.indiceMundo);
 
     const siguiente = this.balance.mundos[this.indiceMundo + 1];
-    const mensaje = siguiente
-      ? `Desbloqueaste: ${siguiente.nombre}`
-      : '¡Venciste todos los mundos del prototipo!';
+    const mensaje = siguiente ? `Desbloqueaste: ${siguiente.nombre}` : '¡Venciste todos los mundos del prototipo!';
     const botones = [{ texto: 'Mapa', accion: () => this.scene.start('EscenaMundos') }];
     if (siguiente) {
       botones.unshift({ // unshift: lo agrega al PRINCIPIO de la lista
@@ -545,7 +565,7 @@ export default class EscenaArena extends Phaser.Scene {
     const cy = this.scale.height / 2;
     const fijo = (objeto) => objeto.setScrollFactor(0).setDepth(200);
 
-    fijo(this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.65));
+    fijo(this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.65)).setInteractive();
     fijo(this.add.text(cx, cy - 140, titulo, {
       fontFamily: FUENTE_TITULO, fontSize: '70px', color: '#f5c542', fontStyle: 'bold',
       stroke: '#3a1500', strokeThickness: 8,
@@ -566,92 +586,43 @@ export default class EscenaArena extends Phaser.Scene {
     });
   }
 
-  /**
-   * Dibuja el mundo: suelo, adornos, muros, antorchas, clima y viñeta.
-   * Todo sale de balance.json → mundos[i] (colores, decoracion, clima...).
-   */
-  dibujarArena(ancho, alto, grosorMuro, tamanoCuadricula) {
-    const id = this.mundo.id;
+  // =============================================================
+  // Ambiente y textos
+  // =============================================================
 
-    // SUELO: lo "pintamos" una sola vez sobre una RenderTexture (una imagen
-    // grande en la memoria). Es mucho más liviano que cientos de imágenes.
-    const suelo = this.add.renderTexture(0, 0, ancho, alto).setOrigin(0).setDepth(0);
-    const azar = new Phaser.Math.RandomDataGenerator([id]); // semilla: siempre igual
-    for (let x = 0; x < ancho; x += tamanoCuadricula) {
-      for (let y = 0; y < alto; y += tamanoCuadricula) {
-        const variante = azar.frac() < 0.55 ? 0 : azar.between(1, 3);
-        suelo.draw(`suelo-${id}-${variante}`, x, y);
-      }
-    }
-
-    // ADORNOS sobre el suelo (arbustos, cactus, lava...). La lava además brilla.
-    for (const { tipo, cantidad } of this.mundo.decoracion) {
-      for (let i = 0; i < cantidad; i++) {
-        const x = azar.between(grosorMuro + 20, ancho - grosorMuro - 140);
-        const y = azar.between(grosorMuro + 20, alto - grosorMuro - 100);
-        suelo.draw(`deco-${id}-${tipo}`, x, y);
-        if (tipo === 'lava') {
-          const halo = this.add.image(x + 70, y + 50, 'brillo').setTint(0xff6d00).setScale(2.2)
-            .setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD).setDepth(1);
-          this.tweens.add({ targets: halo, alpha: 0.15, duration: Phaser.Math.Between(600, 1100), yoyo: true, repeat: -1 });
-        }
-      }
-    }
-
-    // MUROS: TileSprite repite una textura para llenar un rectángulo
-    const muro = (x, y, w, h) => this.add.tileSprite(x, y, w, h, `muro-${id}`).setOrigin(0).setDepth(2);
-    muro(0, 0, ancho, grosorMuro);
-    muro(0, alto - grosorMuro, ancho, grosorMuro);
-    muro(0, 0, grosorMuro, alto);
-    muro(ancho - grosorMuro, 0, grosorMuro, alto);
-
-    // ANTORCHAS (solo en los mundos que las tienen)
-    if (this.mundo.antorchas) {
-      for (let x = 300; x < ancho; x += 600) {
-        this.crearAntorcha(x, grosorMuro / 2);
-        this.crearAntorcha(x, alto - grosorMuro / 2);
-      }
-      for (let y = 400; y < alto; y += 800) {
-        this.crearAntorcha(grosorMuro / 2, y);
-        this.crearAntorcha(ancho - grosorMuro / 2, y);
-      }
-    }
-
-    for (const tipo of this.mundo.clima) this.crearClima(tipo, ancho, alto);
-
-    // VIÑETA: fija en la pantalla, encima del mundo y debajo de los controles
-    this.add.image(this.scale.width / 2, this.scale.height / 2, 'vineta')
-      .setScrollFactor(0).setDepth(90);
-  }
-
-  /**
-   * Partículas de ambiente según el mundo. Todas cubren la arena entera;
-   * solo cambian la textura, el color, la dirección y la velocidad.
-   */
-  crearClima(tipo, ancho, alto) {
-    const zona = { x: { min: 0, max: ancho }, y: { min: 0, max: alto } };
+  /** Clima (partículas que siguen a la cámara) y viñeta */
+  crearAmbiente() {
+    const W = this.scale.width;
+    const H = this.scale.height;
+    // Las partículas nacen en un rectángulo del tamaño de la pantalla,
+    // que en update() movemos junto con la cámara.
+    const zona = { x: { min: 0, max: W }, y: { min: 0, max: H } };
     const climas = {
       hojas: { textura: 'hoja', speedY: { min: 20, max: 50 }, speedX: { min: -30, max: 30 }, rotate: { min: 0, max: 360 },
-        tint: [0x9ccc65, 0xffb300, 0xe65100], scale: 1, alpha: { start: 0.9, end: 0 }, lifespan: 5000, frequency: 120 },
+        tint: [0x9ccc65, 0xffb300, 0xe65100], scale: 1, alpha: { start: 0.9, end: 0 }, lifespan: 5000, frequency: 160 },
       luciernagas: { textura: 'brillo', speedY: { min: -15, max: 15 }, speedX: { min: -15, max: 15 },
-        tint: 0xd4e157, scale: { start: 0.12, end: 0.04 }, alpha: { start: 0.9, end: 0 }, lifespan: 3000, frequency: 160, blendMode: 'ADD' },
+        tint: 0xd4e157, scale: { start: 0.12, end: 0.04 }, alpha: { start: 0.9, end: 0 }, lifespan: 3000, frequency: 220, blendMode: 'ADD' },
       polvo: { textura: 'chispa', speedX: { min: 60, max: 140 }, speedY: { min: -10, max: 10 },
-        tint: 0xfff3d6, scale: { start: 0.8, end: 0.2 }, alpha: { start: 0.5, end: 0 }, lifespan: 3500, frequency: 50 },
+        tint: 0xfff3d6, scale: { start: 0.8, end: 0.2 }, alpha: { start: 0.5, end: 0 }, lifespan: 3500, frequency: 70 },
       brasas: { textura: 'chispa', speedY: { min: -40, max: -15 }, speedX: { min: -10, max: 10 },
-        tint: [0xff7043, 0xffb74d], scale: { start: 0.6, end: 0 }, alpha: { start: 0.7, end: 0 }, lifespan: 4000, frequency: 90, blendMode: 'ADD' },
+        tint: [0xff7043, 0xffb74d], scale: { start: 0.6, end: 0 }, alpha: { start: 0.7, end: 0 }, lifespan: 4000, frequency: 120, blendMode: 'ADD' },
       nieve: { textura: 'chispa', speedY: { min: 40, max: 90 }, speedX: { min: 10, max: 40 },
-        tint: 0xffffff, scale: { start: 0.9, end: 0.5 }, alpha: { start: 0.9, end: 0 }, lifespan: 5000, frequency: 25 },
+        tint: 0xffffff, scale: { start: 0.9, end: 0.5 }, alpha: { start: 0.9, end: 0 }, lifespan: 5000, frequency: 40 },
     };
-    const { textura, ...config } = climas[tipo]; // separamos la textura del resto de la configuración
-    this.add.particles(0, 0, textura, { ...zona, ...config }).setDepth(5);
+    this.climas = this.mundo.clima.map((tipo) => {
+      const { textura, ...config } = climas[tipo]; // separamos la textura del resto
+      return this.add.particles(0, 0, textura, { ...zona, ...config }).setDepth(5);
+    });
+
+    // VIÑETA: fija en la pantalla, encima del mundo y debajo de los controles
+    this.add.image(W / 2, H / 2, 'vineta').setScrollFactor(0).setDepth(90);
   }
 
-  /** Una antorcha: llama que tiembla y un halo de luz que parpadea */
+  /** Una antorcha: llama que tiembla y un halo de luz que parpadea (la usa la Mazmorra) */
   crearAntorcha(x, y) {
     const halo = this.add.image(x, y, 'brillo').setTint(0xff8a3d).setAlpha(0.35)
       .setScale(2.6).setBlendMode(Phaser.BlendModes.ADD).setDepth(4);
     const llama = this.add.image(x, y - 6, 'llama').setDepth(4);
-    // Duraciones al azar para que cada antorcha parpadee distinto
     this.tweens.add({
       targets: halo, alpha: 0.2, scale: 2.3, duration: Phaser.Math.Between(180, 320),
       yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
@@ -662,60 +633,65 @@ export default class EscenaArena extends Phaser.Scene {
     });
   }
 
+  /** Texto grande en el centro que aparece y se desvanece */
+  mostrarAnuncio(mensaje) {
+    const texto = this.add.text(this.scale.width / 2, this.scale.height / 2 - 120, mensaje, {
+      fontFamily: FUENTE_TITULO, fontSize: '60px', color: '#f5c542', fontStyle: 'bold',
+      stroke: '#3a1500', strokeThickness: 8,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(150);
+    this.tweens.add({
+      targets: texto, alpha: 0, y: texto.y - 30, delay: 900, duration: 600,
+      onComplete: () => texto.destroy(),
+    });
+  }
+
   /** Textos fijos en pantalla (no se mueven con la cámara) */
   crearTextos() {
     const estilo = {
       fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#ffffff',
       stroke: '#05070d', strokeThickness: 4,
     };
-
     this.add.text(20, 14, `SMILLE GOD · ${this.mundo.nombre.toUpperCase()}`, { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
       .setScrollFactor(0).setDepth(100);
-
-    this.textoOleada = this.add.text(20, 42, '', {
-      ...estilo, fontFamily: FUENTE_TITULO, fontSize: '32px', color: '#f5c542', fontStyle: 'bold',
+    this.textoProgreso = this.add.text(20, 42, '', {
+      ...estilo, fontFamily: FUENTE_TITULO, fontSize: '28px', color: '#f5c542', fontStyle: 'bold',
     }).setScrollFactor(0).setDepth(100);
-
-    this.textoDerrotados = this.add.text(20, 82, '', estilo).setScrollFactor(0).setDepth(100);
-
+    this.textoDerrotados = this.add.text(20, 80, '', estilo).setScrollFactor(0).setDepth(100);
     this.add.text(20, this.scale.height - 36,
-      'PC: WASD mover · ESPACIO atacar · K Onda · L Torbellino · P pausa', { ...estilo, fontSize: '18px', color: '#c8d3e0' })
+      'PC: WASD mover · ESPACIO atacar · K Onda · L Torbellino · H cura · P pausa', { ...estilo, fontSize: '18px', color: '#c8d3e0' })
       .setScrollFactor(0).setDepth(100);
 
-    // Barra grande de vida de los jefes, arriba al centro (se dibuja en update)
-    this.barraJefes = this.add.graphics().setScrollFactor(0).setDepth(100);
-    this.textoJefes = this.add.text(this.scale.width / 2, 22, '', { ...estilo, fontFamily: FUENTE_TITULO, fontSize: '20px', color: '#ffccbc' })
+    // Barra grande de vida del jefe, arriba al centro (se dibuja en update)
+    this.barraJefe = this.add.graphics().setScrollFactor(0).setDepth(100);
+    this.textoJefe = this.add.text(this.scale.width / 2, 22, '', { ...estilo, fontFamily: FUENTE_TITULO, fontSize: '20px', color: '#ffccbc' })
       .setOrigin(0.5, 0).setScrollFactor(0).setDepth(101);
   }
 
-  /** Actualiza los textos de oleada y derrotados */
+  /** Actualiza los textos de progreso, derrotados y curas */
   actualizarHud() {
-    const texto = this.fase === 'oleadas'
-      ? `Oleada ${this.oleada}/${this.mundo.oleadas.length}`
-      : '¡Jefes!';
-    this.textoOleada.setText(texto);
+    this.textoProgreso.setText(`Oleadas ${this.oleadasVencidas}/${this.mundo.oleadas} · Jefes ${this.jefesVencidos}/${this.mazmorra.totalJefes}`);
     this.textoDerrotados.setText(`Derrotados: ${this.derrotados}`);
+    this.textoCuras.setText(`${this.curas}`);
+    this.botonCura.circulo.setAlpha(this.curas > 0 ? 1 : 0.35);
+    this.botonCura.texto.setAlpha(this.curas > 0 ? 1 : 0.35);
   }
 
-  /** Barra con la vida SUMADA de todos los jefes, y cuántos quedan */
-  dibujarBarraJefes() {
-    const g = this.barraJefes;
+  /** Barra con la vida del jefe que se está enfrentando */
+  dibujarBarraJefe() {
+    const g = this.barraJefe;
     g.clear();
-    if (this.fase !== 'jefes') {
-      this.textoJefes.setText('');
+    const jefe = this.enemigos.find((e) => e instanceof Jefe);
+    if (!jefe) {
+      this.textoJefe.setText('');
       return;
     }
-    const jefes = this.enemigos.filter((e) => e instanceof Jefe);
-    const vidaMaxJefe = this.mundo.jefes.vidaMax * this.mundo.fuerza;
-    // reduce: recorre la lista sumando la vida de cada jefe
-    const vida = jefes.reduce((suma, j) => suma + Math.max(j.vida, 0), 0) + this.jefesPorAparecer * vidaMaxJefe;
-    const porcentaje = Phaser.Math.Clamp(vida / (this.jefesTotal * vidaMaxJefe), 0, 1);
+    const porcentaje = Phaser.Math.Clamp(jefe.vida / jefe.config.vidaMax, 0, 1);
     const ancho = 480;
     const x = this.scale.width / 2 - ancho / 2;
     g.fillStyle(0x000000, 0.6).fillRect(x - 3, 50, ancho + 6, 22);
     g.fillStyle(color(this.mundo.colores.jefe)).fillRect(x, 53, ancho * porcentaje, 16);
     g.lineStyle(2, 0xf5c542, 0.8).strokeRect(x - 3, 50, ancho + 6, 22);
-    const quedan = jefes.length + this.jefesPorAparecer;
-    this.textoJefes.setText(this.jefesTotal === 1 ? 'JEFE' : `JEFES: ${quedan} de ${this.jefesTotal}`);
+    const total = this.mazmorra.totalJefes;
+    this.textoJefe.setText(total === 1 ? 'JEFE' : `JEFE ${this.salaActiva ? this.salaActiva.numero : ''} DE ${total}`);
   }
 }

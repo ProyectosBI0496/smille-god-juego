@@ -56,7 +56,7 @@ export default class EscenaMundos extends Phaser.Scene {
 
     // Vista previa: el suelo real del mundo, repetido
     const vista = this.add.tileSprite(x, y - 40, ancho - 20, 200, `suelo-${mundo.id}-1`);
-    const deco = mundo.decoracion[0];
+    const deco = mundo.decoracionPorSala[0];
     const adorno = this.add.image(x, y - 40, `deco-${mundo.id}-${deco.tipo}`).setScale(1.2);
     const jefe = this.add.image(x + 60, y - 60, 'jefe').setScale(0.5).setTint(color(mundo.colores.jefe));
     this.add.rectangle(x, y, ancho, alto).setStrokeStyle(4, bloqueado ? 0x555555 : 0xf5c542);
@@ -65,8 +65,9 @@ export default class EscenaMundos extends Phaser.Scene {
       fontFamily: FUENTE_TITULO, fontSize: '34px', fontStyle: 'bold',
       color: bloqueado ? '#777777' : '#f5c542', stroke: '#05070d', strokeThickness: 5,
     }).setOrigin(0.5);
-    const jefes = mundo.jefes.cantidad;
-    this.add.text(x, y + 132, `${mundo.oleadas.length} oleadas · ${jefes} ${jefes === 1 ? 'jefe' : 'jefes'}`, {
+    const jefes = Math.floor(mundo.oleadas / mundo.oleadasPorJefe);
+    const curas = mundo.curas;
+    this.add.text(x, y + 132, `${mundo.oleadas} oleadas · ${jefes} ${jefes === 1 ? 'jefe' : 'jefes'} · ${curas} ${curas === 1 ? 'cura' : 'curas'}`, {
       fontFamily: 'Arial, sans-serif', fontSize: '20px', color: bloqueado ? '#777777' : '#ffffff',
       stroke: '#05070d', strokeThickness: 3,
     }).setOrigin(0.5);
