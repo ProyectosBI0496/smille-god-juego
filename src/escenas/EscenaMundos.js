@@ -8,6 +8,7 @@ import { crearTexturas } from '../graficos/Texturas.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
 import { mundosSuperados, razaElegida } from '../datos/Progreso.js';
+import { redActual } from '../red/Red.js';
 
 export default class EscenaMundos extends Phaser.Scene {
   constructor() {
@@ -24,6 +25,16 @@ export default class EscenaMundos extends Phaser.Scene {
     this.cameras.main.fadeIn(300);
     this.add.tileSprite(0, 0, W, H, 'baldosa-0').setOrigin(0).setTint(0x6a6a80);
     this.add.image(W / 2, H / 2, 'vineta');
+
+    // En pareja (Etapa 9): solo el anfitrión elige; se le avisa al invitado
+    const red = redActual();
+    this.enPareja = !!(red && red.esAnfitrion && red.conectado);
+    if (this.enPareja) {
+      this.add.text(W / 2, 128, 'Modo pareja ✓ — tu compañero entrará contigo', {
+        fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#a5d6a7', stroke: '#05070d', strokeThickness: 4,
+      }).setOrigin(0.5);
+      red.escuchar(this, 'desconectado', () => { red.cerrar(); this.scene.restart(); });
+    }
 
     this.add.text(W / 2, 70, 'Elige tu mundo', {
       fontFamily: FUENTE_TITULO, fontSize: '60px', color: '#f5c542', fontStyle: 'bold',
@@ -107,7 +118,10 @@ export default class EscenaMundos extends Phaser.Scene {
     const zona = this.add.zone(x, y, ancho, alto).setInteractive();
     zona.on('pointerdown', () => {
       this.cameras.main.fadeOut(300);
-      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaArena', { mundo: indice }));
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        if (this.enPareja) redActual().enviar({ t: 'iniciar', mundo: indice });
+        this.scene.start('EscenaArena', { mundo: indice, coop: this.enPareja });
+      });
     });
   }
 }

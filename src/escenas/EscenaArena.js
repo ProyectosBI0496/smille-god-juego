@@ -12,6 +12,9 @@
 //          ráfaga de los jefes y dificultad que sube sala a sala.
 // Etapa 8: el héroe es de la RAZA elegida (vida, velocidad, fuerza,
 //          recarga y un detalle propio de cada raza).
+// Etapa 9: COOPERATIVO en línea. Hay un segundo héroe ("companero").
+//          El anfitrión calcula todo; el invitado dibuja (ver red/Cooperativo.js).
+//          Si un héroe cae, se levanta al vencer la sala; se pierde si caen los dos.
 // =============================================================
 
 // Tipografía de fantasía (Google Fonts, cargada en index.html).
@@ -28,6 +31,8 @@ import Mazmorra from '../mundo/Mazmorra.js';
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
 import { marcarSuperado, razaElegida, mundosSuperados } from '../datos/Progreso.js';
+import { redActual } from '../red/Red.js';
+import Cooperativo from '../red/Cooperativo.js';
 
 // Qué clase usar para cada tipo de enemigo de balance.json (por defecto, Enemigo)
 const CLASES = { tirador: Tirador };
@@ -41,6 +46,8 @@ export default class EscenaArena extends Phaser.Scene {
   // por ejemplo { mundo: 2 } desde el mapa de mundos.
   init(datos) {
     this.indiceMundo = (datos && datos.mundo) || 0;
+    this.coop = !!(datos && datos.coop);           // ¿se juega en pareja?
+    this.esInvitado = !!(datos && datos.invitado); // ¿somos el invitado?
   }
 
   // preload(): se ejecuta ANTES de create(). Aquí se cargan archivos.
@@ -82,8 +89,24 @@ export default class EscenaArena extends Phaser.Scene {
     // El héroe aparece en la sala de entrada
     const entrada = salas[0];
     this.heroe = new Heroe(this, entrada.x + 150, entrada.medio, configHeroe);
+    this.heroe.raza = this.raza;
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.muros);
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.puertas.filter(Boolean));
+
+    // COOPERATIVO: el héroe del otro jugador, con SU raza
+    this.companero = null;
+    this.cooperativo = null;
+    const red = redActual();
+    if (this.coop && red && red.conectado) {
+      const idOtra = this.balance.razas[red.razaCompanero] ? red.razaCompanero : 'humano';
+      const razaOtra = this.balance.razas[idOtra];
+      this.companero = new Heroe(this, entrada.x + 150, entrada.medio + 70, {
+        ...this.balance.heroe, vidaMax: razaOtra.vidaMax, velocidad: razaOtra.velocidad, textura: idOtra, extra: razaOtra.extra,
+      });
+      this.companero.raza = razaOtra;
+      this.companero.ponerEtiqueta(`Compañero (${razaOtra.nombre})`);
+      this.cooperativo = new Cooperativo(this, red);
+    }
 
     // PROYECTILES (Etapa 7): un grupo con física que RECICLA sus objetos.
     // group.get() devuelve uno apagado si hay (object pooling) o crea uno nuevo.
@@ -91,11 +114,16 @@ export default class EscenaArena extends Phaser.Scene {
     const apagar = (proyectil) => proyectil.disableBody(true, true); // inactivo e invisible
     this.physics.add.collider(this.proyectiles, this.mazmorra.muros, apagar);
     this.physics.add.collider(this.proyectiles, this.mazmorra.puertas.filter(Boolean), apagar);
-    this.physics.add.overlap(this.heroe.cuerpo, this.proyectiles, (cuerpo, proyectil) => {
-      if (!proyectil.active) return;
-      apagar(proyectil);
-      this.danarHeroe(proyectil.danio);
-    });
+    // Solo quien calcula el juego (solo o anfitrión) aplica el daño de los proyectiles
+    if (!this.esInvitado) {
+      for (const h of this.heroes()) {
+        this.physics.add.overlap(h.cuerpo, this.proyectiles, (cuerpo, proyectil) => {
+          if (!proyectil.active) return;
+          apagar(proyectil);
+          this.danarHeroe(proyectil.danio, h);
+        });
+      }
+    }
 
     // La cámara sigue al héroe con suavidad, sin salirse de la mazmorra
     this.cameras.main.setBounds(0, 0, ancho, alto);
@@ -123,32 +151,60 @@ export default class EscenaArena extends Phaser.Scene {
     this.crearTextos();
     this.crearBotonPausa();
     this.actualizarHud();
-    this.mostrarAnuncio(this.mundo.nombre);
+    this.mostrarAnuncio(this.mundo.nombre, true);
+  }
+
+  /** Los héroes en juego: el mío y, en pareja, el del compañero */
+  heroes() {
+    return [this.heroe, this.companero].filter(Boolean);
+  }
+
+  /** El héroe vivo más cercano a (x, y): a ese persiguen los enemigos */
+  heroeMasCercano(x, y) {
+    let elegido = null;
+    let mejor = Infinity;
+    for (const h of this.heroes()) {
+      if (!h.vivo) continue;
+      const d = Phaser.Math.Distance.Between(x, y, h.cuerpo.x, h.cuerpo.y);
+      if (d < mejor) { mejor = d; elegido = h; }
+    }
+    return elegido;
   }
 
   update() {
-    if (!this.heroe.vivo) return;
+    if (this.caido) return; // pantalla de derrota
 
-    this.leerMovimiento();
-    this.heroe.mover(this.direccion);
-
-    // Habilidades con teclado (JustDown = solo en el instante en que se aprieta)
-    const recienApretada = Phaser.Input.Keyboard.JustDown;
-    if (recienApretada(this.teclas.SPACE) || recienApretada(this.teclas.J)) this.botonAtaque.usar();
-    if (recienApretada(this.teclas.K)) this.botonOnda.usar();
-    if (recienApretada(this.teclas.L)) this.botonTorbellino.usar();
-    if (recienApretada(this.teclas.H)) this.botonCura.usar();
+    if (this.heroe.vivo && !this.terminado) {
+      this.leerMovimiento();
+      this.heroe.mover(this.direccion);
+      // Habilidades con teclado (JustDown = solo en el instante en que se aprieta)
+      const recienApretada = Phaser.Input.Keyboard.JustDown;
+      if (recienApretada(this.teclas.SPACE) || recienApretada(this.teclas.J)) this.botonAtaque.usar();
+      if (recienApretada(this.teclas.K)) this.botonOnda.usar();
+      if (recienApretada(this.teclas.L)) this.botonTorbellino.usar();
+      if (recienApretada(this.teclas.H)) this.botonCura.usar();
+    } else {
+      this.direccion.set(0, 0);
+      this.heroe.mover(this.direccion); // caído: quieto (se ve como fantasma)
+    }
     for (const boton of [this.botonAtaque, this.botonOnda, this.botonTorbellino, this.botonCura]) boton.actualizar();
 
-    this.revisarEntradaASala();
+    if (this.cooperativo) this.cooperativo.actualizar();
 
-    // Enemigos: perseguir y, si tocan al héroe, hacerle daño
-    for (const enemigo of this.enemigos) {
-      enemigo.actualizar(this.heroe);
-      const distancia = Phaser.Math.Distance.Between(
-        enemigo.cuerpo.x, enemigo.cuerpo.y, this.heroe.cuerpo.x, this.heroe.cuerpo.y
-      );
-      if (distancia < enemigo.radio + this.heroe.radio) this.danarHeroe(enemigo.config.danioContacto);
+    // El juego en sí lo calcula quien juega solo o el anfitrión (el invitado solo dibuja)
+    if (!this.esInvitado) {
+      this.revisarEntradaASala();
+      // Enemigos: persiguen al héroe más cercano y dañan a quien tocan
+      for (const enemigo of this.enemigos) {
+        const objetivo = this.heroeMasCercano(enemigo.cuerpo.x, enemigo.cuerpo.y);
+        if (!objetivo) break;
+        enemigo.actualizar(objetivo);
+        for (const h of this.heroes()) {
+          if (!h.vivo) continue;
+          const distancia = Phaser.Math.Distance.Between(enemigo.cuerpo.x, enemigo.cuerpo.y, h.cuerpo.x, h.cuerpo.y);
+          if (distancia < enemigo.radio + h.radio) this.danarHeroe(enemigo.config.danioContacto, h);
+        }
+      }
     }
 
     // Proyectiles que ya vivieron su tiempo se apagan (vuelven al "pool")
@@ -162,14 +218,33 @@ export default class EscenaArena extends Phaser.Scene {
     for (const emisor of this.climas) emisor.setPosition(this.cameras.main.scrollX, this.cameras.main.scrollY);
   }
 
-  /** Daño al héroe (por contacto o por proyectil) con sacudida y vibración */
-  danarHeroe(danio) {
-    if (!this.heroe.vivo || this.terminado) return;
-    if (this.heroe.recibirDanio(danio)) {
+  /** Daño a un héroe (por contacto o proyectil). Si caen todos, se pierde. */
+  danarHeroe(danio, h = this.heroe) {
+    if (!h.vivo || this.terminado || this.caido) return;
+    if (!h.recibirDanio(danio)) return;
+    if (h === this.heroe) {
       this.cameras.main.shake(100, 0.006);
       this.vibrar(60);
-      if (!this.heroe.vivo) this.derrota();
     }
+    if (h.vivo) return;
+    if (this.heroes().some((otro) => otro.vivo)) {
+      // En pareja: el caído queda como fantasma hasta que se vence la sala
+      // Cada uno ve el mensaje desde su lado
+      const paraQuienCayo = '¡Caíste! Tu compañero puede salvarte';
+      const paraElOtro = '¡Tu compañero cayó! Vence la sala';
+      const yo = h === this.heroe;
+      this.mostrarAnuncio(yo ? paraQuienCayo : paraElOtro, true);
+      if (this.cooperativo) this.cooperativo.enviar({ t: 'anuncio', texto: yo ? paraElOtro : paraQuienCayo });
+    } else {
+      this.derrota();
+    }
+  }
+
+  /** Invitado: mi vida bajó (lo dice el anfitrión): sacudida, vibración y parpadeo */
+  efectoDanioPropio() {
+    this.cameras.main.shake(100, 0.006);
+    this.vibrar(60);
+    this.tweens.add({ targets: [this.heroe.sprite, this.heroe.alas].filter(Boolean), alpha: 0.3, duration: 100, yoyo: true, repeat: 2 });
   }
 
   /**
@@ -186,6 +261,10 @@ export default class EscenaArena extends Phaser.Scene {
     this.physics.velocityFromRotation(angulo, cfg.velocidad, p.body.velocity);
     p.danio = cfg.danio;
     p.muereEn = this.time.now + cfg.duracionMs;
+    // Anfitrión: el invitado dibuja el mismo proyectil en su celular
+    if (this.cooperativo && !this.esInvitado) {
+      this.cooperativo.enviar({ t: 'disparo', x: Math.round(x), y: Math.round(y), a: +angulo.toFixed(3), v: cfg.velocidad, ms: cfg.duracionMs, c: tinte });
+    }
   }
 
   /** Arma la dirección de movimiento desde el joystick o el teclado */
@@ -213,12 +292,16 @@ export default class EscenaArena extends Phaser.Scene {
   /** Si el héroe entra (un poco) a una sala que espera, empieza su combate */
   revisarEntradaASala() {
     if (this.salaActiva) return;
-    const { x, y } = this.heroe.cuerpo;
-    const i = this.mazmorra.salaEn(x, y);
-    if (i < 0) return;
-    const sala = this.mazmorra.salas[i];
-    if (sala.estado !== 'esperando' || x < sala.x + this.balance.mazmorra.distanciaActivar) return;
-    this.activarSala(sala, i);
+    for (const h of this.heroes()) { // en pareja, basta con que entre uno
+      if (!h.vivo) continue;
+      const { x, y } = h.cuerpo;
+      const i = this.mazmorra.salaEn(x, y);
+      if (i < 0) continue;
+      const sala = this.mazmorra.salas[i];
+      if (sala.estado !== 'esperando' || x < sala.x + this.balance.mazmorra.distanciaActivar) continue;
+      this.activarSala(sala, i);
+      return;
+    }
   }
 
   activarSala(sala, indice) {
@@ -237,7 +320,7 @@ export default class EscenaArena extends Phaser.Scene {
       this.mostrarAnuncio(total === 1 ? '¡El jefe!' : `¡Jefe ${sala.numero} de ${total}!`);
       this.cameras.main.shake(400, 0.006);
       this.time.delayedCall(this.balance.oleadas.retrasoJefeMs, () => {
-        if (this.heroe.vivo) this.crearEnemigo(this.configJefe(sala.numero), sala, Jefe);
+        if (!this.caido) this.crearEnemigo(this.configJefe(sala.numero), sala, Jefe);
       });
     }
     this.actualizarHud();
@@ -313,23 +396,29 @@ export default class EscenaArena extends Phaser.Scene {
     this.physics.add.collider(enemigo.cuerpo, this.mazmorra.muros);
     this.physics.add.collider(enemigo.cuerpo, this.mazmorra.puertas.filter(Boolean));
     this.enemigos.push(enemigo);
+    if (this.cooperativo) this.cooperativo.nace(enemigo, Clase === Jefe); // se lo cuenta al invitado
   }
 
   /** Quita un enemigo derrotado; si la sala quedó vacía, la da por vencida */
   eliminarEnemigo(enemigo) {
     const esJefe = enemigo instanceof Jefe; // instanceof: ¿este objeto es de la clase Jefe?
-    this.chispas.explode(esJefe ? 50 : 16, enemigo.cuerpo.x, enemigo.cuerpo.y);
-    const luz = this.add.image(enemigo.cuerpo.x, enemigo.cuerpo.y, 'brillo').setTint(0xff7043)
-      .setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
-    this.tweens.add({ targets: luz, scale: esJefe ? 4 : 1.6, alpha: 0, duration: esJefe ? 600 : 300, onComplete: () => luz.destroy() });
-    if (esJefe) this.cameras.main.shake(250, 0.01);
-    this.vibrar(esJefe ? 120 : 25);
+    this.efectoMuerte(enemigo.cuerpo.x, enemigo.cuerpo.y, esJefe);
+    if (this.cooperativo) this.cooperativo.enviar({ t: 'muerte', id: enemigo.id });
     enemigo.destruir();
     this.enemigos = this.enemigos.filter((e) => e !== enemigo);
     this.derrotados += 1;
 
-    if (this.enemigos.length === 0 && this.salaActiva && this.heroe.vivo) this.salaVencida();
+    if (this.enemigos.length === 0 && this.salaActiva && !this.caido) this.salaVencida();
     this.actualizarHud();
+  }
+
+  /** Explosión de chispas y luz donde cae un enemigo (la usan anfitrión e invitado) */
+  efectoMuerte(x, y, esJefe) {
+    this.chispas.explode(esJefe ? 50 : 16, x, y);
+    const luz = this.add.image(x, y, 'brillo').setTint(0xff7043).setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
+    this.tweens.add({ targets: luz, scale: esJefe ? 4 : 1.6, alpha: 0, duration: esJefe ? 600 : 300, onComplete: () => luz.destroy() });
+    if (esJefe) this.cameras.main.shake(250, 0.01);
+    this.vibrar(esJefe ? 120 : 25);
   }
 
   /** Sala vencida: un poco de vida, se abre la reja y se sigue caminando */
@@ -346,8 +435,12 @@ export default class EscenaArena extends Phaser.Scene {
       this.time.delayedCall(900, () => this.victoria());
       return;
     }
-    this.heroe.vida = Math.min(this.heroe.vida + this.balance.oleadas.curacionPorSala, this.heroe.config.vidaMax);
+    for (const h of this.heroes()) {
+      if (!h.vivo) h.vida = Math.round(h.config.vidaMax / 2); // en pareja: el caído se levanta
+      else h.vida = Math.min(h.vida + this.balance.oleadas.curacionPorSala, h.config.vidaMax);
+    }
     this.mazmorra.abrirPuerta(sala.indice);
+    if (this.cooperativo) this.cooperativo.enviar({ t: 'puerta', i: sala.indice });
     this.mostrarAnuncio(sala.tipo === 'jefe' ? '¡Jefe vencido! →' : '¡Sigue adelante! →');
   }
 
@@ -356,14 +449,14 @@ export default class EscenaArena extends Phaser.Scene {
   // =============================================================
 
   /** Usa una cura si quedan y si el héroe no tiene la vida llena */
-  usarCura() {
-    const max = this.heroe.config.vidaMax;
-    if (this.curas <= 0 || this.heroe.vida >= max || !this.heroe.vivo) return;
-    this.curas -= 1;
-    const cantidad = Math.round(this.balance.cura.cantidad * (this.raza.cura || 1)); // los Derial curan más
-    this.heroe.vida = Math.min(this.heroe.vida + cantidad, max);
+  usarCura(h = this.heroe) {
+    const max = h.config.vidaMax;
+    if (this.curas <= 0 || h.vida >= max || !h.vivo) return;
+    this.curas -= 1; // en pareja, las curas se comparten
+    const cantidad = Math.round(this.balance.cura.cantidad * (h.raza.cura || 1)); // los Derial curan más
+    h.vida = Math.min(h.vida + cantidad, max);
     // Efecto: destello verde y números de curación
-    const { x, y } = this.heroe.cuerpo;
+    const { x, y } = h.cuerpo;
     const luz = this.add.image(x, y, 'brillo').setTint(0x66bb6a).setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
     this.tweens.add({ targets: luz, scale: 2.5, alpha: 0, duration: 500, onComplete: () => luz.destroy() });
     this.mostrarNumero(x, y - 40, `+${cantidad}`, '#a5d6a7');
@@ -385,19 +478,19 @@ export default class EscenaArena extends Phaser.Scene {
     this.botonAtaque = new BotonHabilidad(this, {
       x: xAtq, y: yAtq, radio, etiqueta: 'ATQ', icono: 'icono-espada',
       recargaMs: this.balance.ataqueBasico.recargaMs * recarga, color: 0xf5c542,
-      alPulsar: () => this.atacar(),
+      alPulsar: () => this.accion('atq'),
     });
     // Botón 2 — "Onda": a la izquierda del ataque
     this.botonOnda = new BotonHabilidad(this, {
       x: xAtq - 150, y: yAtq + 25, radio: radioPequeno, etiqueta: 'ONDA', icono: 'icono-onda',
       recargaMs: this.balance.habilidad.recargaMs * recarga, color: 0x4fc3f7,
-      alPulsar: () => this.usarOnda(),
+      alPulsar: () => this.accion('onda'),
     });
     // Botón 3 — "Torbellino": encima del ataque
     this.botonTorbellino = new BotonHabilidad(this, {
       x: xAtq - 35, y: yAtq - 150, radio: radioPequeno, etiqueta: 'ESP', icono: 'icono-torbellino',
       recargaMs: this.balance.especial.recargaMs * recarga, color: 0xab47bc,
-      alPulsar: () => this.usarTorbellino(),
+      alPulsar: () => this.accion('torb'),
     });
     // Botón 4 — cura: más arriba, con el número de curas que quedan
     const xCura = xAtq - 175;
@@ -405,7 +498,7 @@ export default class EscenaArena extends Phaser.Scene {
     this.botonCura = new BotonHabilidad(this, {
       x: xCura, y: yCura, radio: 42, etiqueta: 'CURA', icono: 'icono-cura',
       recargaMs: this.balance.cura.recargaMs, color: 0x66bb6a,
-      alPulsar: () => this.usarCura(),
+      alPulsar: () => this.accion('cura'),
     });
     this.textoCuras = this.add.text(xCura + 30, yCura + 26, '', {
       fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
@@ -418,10 +511,11 @@ export default class EscenaArena extends Phaser.Scene {
    * El empuje los aleja del punto (origenX, origenY).
    * Lo usan las tres habilidades: así la lógica de daño vive en un solo lugar.
    */
-  golpearArea(x, y, radio, danioBase, empujeBase, origenX, origenY) {
-    // La raza multiplica el daño (Orco, Goruk...) y el empuje (Toro)
-    const danio = Math.round(danioBase * this.raza.danio);
-    const empuje = empujeBase * (this.raza.empuje || 1);
+  golpearArea(x, y, radio, danioBase, empujeBase, origenX, origenY, h = this.heroe) {
+    if (this.esInvitado) return; // el invitado solo dibuja: el daño lo calcula el anfitrión
+    // La raza de quien golpea multiplica el daño (Orco, Goruk...) y el empuje (Toro)
+    const danio = Math.round(danioBase * h.raza.danio);
+    const empuje = empujeBase * (h.raza.empuje || 1);
     const direccion = new Phaser.Math.Vector2();
     for (const enemigo of [...this.enemigos]) {
       const distancia = Phaser.Math.Distance.Between(x, y, enemigo.cuerpo.x, enemigo.cuerpo.y);
@@ -438,12 +532,12 @@ export default class EscenaArena extends Phaser.Scene {
   }
 
   /** Devuelve el enemigo más cercano al héroe dentro de un rango (o null) */
-  enemigoMasCercano(rango) {
+  enemigoMasCercano(rango, h = this.heroe) {
     let elegido = null;
     let mejor = rango;
     for (const enemigo of this.enemigos) {
       const d = Phaser.Math.Distance.Between(
-        this.heroe.cuerpo.x, this.heroe.cuerpo.y, enemigo.cuerpo.x, enemigo.cuerpo.y
+        h.cuerpo.x, h.cuerpo.y, enemigo.cuerpo.x, enemigo.cuerpo.y
       );
       if (d <= mejor) {
         mejor = d;
@@ -453,23 +547,73 @@ export default class EscenaArena extends Phaser.Scene {
     return elegido;
   }
 
-  /** Botón 1 — ataque básico con AUTO-APUNTADO al enemigo más cercano */
-  atacar() {
-    if (!this.heroe.vivo) return;
-    const ataque = this.balance.ataqueBasico;
-    const objetivo = this.enemigoMasCercano(ataque.rangoAutoApuntado * (this.raza.autoApuntado || 1)); // el Elfo apunta más lejos
-    if (objetivo) this.heroe.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
+  /**
+   * Un botón (o tecla) de MI héroe. En pareja, además se avisa al otro:
+   *   - el invitado dibuja su ataque y le pide al anfitrión que lo haga "de verdad" (hab);
+   *   - el anfitrión lo hace y le cuenta al invitado para que lo dibuje (efecto).
+   */
+  accion(tipo) {
+    const h = this.heroe;
+    if (!h.vivo || this.caido || this.terminado) return;
+    if (tipo === 'cura') {
+      if (this.esInvitado) this.cooperativo.enviar({ t: 'hab', h: 'cura' }); // las curas las cuenta el anfitrión
+      else this.usarCura(h);
+      return;
+    }
+    this.ejecutarHabilidad(tipo, h);
+    if (!this.cooperativo) return;
+    const ang = +Math.atan2(h.mirando.y, h.mirando.x).toFixed(3);
+    this.cooperativo.enviar(this.esInvitado ? { t: 'hab', h: tipo } : { t: 'efecto', h: tipo, ang });
+  }
 
-    const zona = this.heroe.atacar(ataque);
-    this.golpearArea(zona.x, zona.y, zona.radio, ataque.danio, ataque.empuje,
-      this.heroe.cuerpo.x, this.heroe.cuerpo.y);
+  ejecutarHabilidad(tipo, h) {
+    if (tipo === 'atq') this.atacar(h);
+    else if (tipo === 'onda') this.usarOnda(h);
+    else if (tipo === 'torb') this.usarTorbellino(h);
+  }
+
+  /** Anfitrión: el invitado usó una habilidad; se hace con SU héroe (aquí sí hace daño) */
+  ejecutarRemota(tipo) {
+    const h = this.companero;
+    if (!h || !h.vivo || this.caido || this.terminado) return;
+    if (tipo === 'cura') this.usarCura(h);
+    else this.ejecutarHabilidad(tipo, h);
+  }
+
+  /** Invitado: el anfitrión usó una habilidad; solo se dibuja */
+  efectoRemoto(m) {
+    const h = this.companero;
+    if (!h) return;
+    if (m.h === 'atq') {
+      h.mirando.set(Math.cos(m.ang), Math.sin(m.ang));
+      h.atacar(this.balance.ataqueBasico); // solo el dibujo del tajo
+    } else {
+      this.ejecutarHabilidad(m.h, h);
+    }
+  }
+
+  /** Botón 1 — ataque básico con AUTO-APUNTADO al enemigo más cercano */
+  atacar(h = this.heroe) {
+    if (!h.vivo) return;
+    const ataque = this.balance.ataqueBasico;
+    const objetivo = this.enemigoMasCercano(ataque.rangoAutoApuntado * (h.raza.autoApuntado || 1), h); // el Elfo apunta más lejos
+    if (objetivo) h.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
+
+    const zona = h.atacar(ataque);
+    // Corrección (sesión 14): si el enemigo está muy pegado (incluso encima del héroe),
+    // el golpe se centra en él; antes salía por delante y no lo tocaba.
+    if (objetivo && Phaser.Math.Distance.Between(h.cuerpo.x, h.cuerpo.y, objetivo.cuerpo.x, objetivo.cuerpo.y) < h.radio + ataque.alcance) {
+      zona.x = objetivo.cuerpo.x;
+      zona.y = objetivo.cuerpo.y;
+    }
+    this.golpearArea(zona.x, zona.y, zona.radio, ataque.danio, ataque.empuje, h.cuerpo.x, h.cuerpo.y, h);
   }
 
   /** Botón 2 — "Onda": empujón en área alrededor del héroe */
-  usarOnda() {
-    if (!this.heroe.vivo) return;
+  usarOnda(heroe = this.heroe) {
+    if (!heroe.vivo) return;
     const h = this.balance.habilidad;
-    const { x, y } = this.heroe.cuerpo;
+    const { x, y } = heroe.cuerpo;
 
     // Anillo que se expande + destello azul (BlendMode ADD = suma luz, como un foco)
     const anillo = this.add.circle(x, y, 10).setStrokeStyle(8, 0x4fc3f7).setDepth(40);
@@ -477,17 +621,17 @@ export default class EscenaArena extends Phaser.Scene {
     const luz = this.add.image(x, y, 'brillo').setTint(0x4fc3f7)
       .setBlendMode(Phaser.BlendModes.ADD).setDepth(39).setScale(0.5);
     this.tweens.add({ targets: luz, scale: (h.radio * 2.4) / 128, alpha: 0, duration: 350, onComplete: () => luz.destroy() });
-    this.cameras.main.shake(120, 0.004);
+    if (heroe === this.heroe) this.cameras.main.shake(120, 0.004);
 
-    this.golpearArea(x, y, h.radio, h.danio, h.empuje, x, y);
+    this.golpearArea(x, y, h.radio, h.danio, h.empuje, x, y, heroe);
   }
 
   /** Botón 3 — "Torbellino": varios golpes giratorios seguidos alrededor del héroe */
-  usarTorbellino() {
-    if (!this.heroe.vivo) return;
+  usarTorbellino(heroe = this.heroe) {
+    if (!heroe.vivo) return;
     const e = this.balance.especial;
 
-    const anillo = this.add.circle(this.heroe.cuerpo.x, this.heroe.cuerpo.y, e.radio)
+    const anillo = this.add.circle(heroe.cuerpo.x, heroe.cuerpo.y, e.radio)
       .setStrokeStyle(5, 0xab47bc, 0.8).setDepth(40);
     const duracion = e.golpes * e.intervaloMs;
     this.tweens.add({ targets: anillo, angle: 360 * 3, duration: duracion });
@@ -499,8 +643,9 @@ export default class EscenaArena extends Phaser.Scene {
     this.tweens.add({ targets: cuchillas, angle: '+=1080', duration: duracion });
     // Cada frame, las cuchillas y el anillo siguen al héroe ("update" es un evento de la escena)
     const seguir = () => {
+      if (!heroe.cuerpo.active) return; // el compañero pudo desconectarse
       for (const objeto of [anillo, ...cuchillas]) {
-        if (objeto.active) objeto.setPosition(this.heroe.cuerpo.x, this.heroe.cuerpo.y);
+        if (objeto.active) objeto.setPosition(heroe.cuerpo.x, heroe.cuerpo.y);
       }
     };
     this.events.on('update', seguir);
@@ -516,11 +661,11 @@ export default class EscenaArena extends Phaser.Scene {
       repeat: e.golpes - 1,
       callback: () => {
         golpesDados += 1;
-        if (!this.heroe.vivo) return;
-        const { x, y } = this.heroe.cuerpo;
-        anillo.setAlpha(0.5 + (golpesDados % 2) * 0.5); // parpadeo en cada golpe
-        this.golpearArea(x, y, e.radio, e.danio, e.empuje, x, y);
         if (golpesDados >= e.golpes) anillo.destroy();
+        if (!heroe.vivo || !heroe.cuerpo.active) return;
+        const { x, y } = heroe.cuerpo;
+        anillo.setAlpha(0.5 + (golpesDados % 2) * 0.5); // parpadeo en cada golpe
+        this.golpearArea(x, y, e.radio, e.danio, e.empuje, x, y, heroe);
       },
     });
   }
@@ -598,6 +743,7 @@ export default class EscenaArena extends Phaser.Scene {
 
   /** Congela la escena y abre el menú de pausa encima */
   pausar() {
+    if (this.cooperativo) return; // en pareja no se pausa: el otro sigue jugando
     if (!this.heroe.vivo || this.terminado || this.caido || !this.scene.isActive()) return;
     this.joystick.soltar();             // al volver, el héroe no debe seguir caminando solo
     this.heroe.cuerpo.body.setVelocity(0, 0);
@@ -617,30 +763,70 @@ export default class EscenaArena extends Phaser.Scene {
     this.vibrar(300);
 
     const detalle = `${this.mundo.nombre} · oleadas ${this.oleadasVencidas}/${this.mundo.oleadas} · jefes ${this.jefesVencidos}/${this.mazmorra.totalJefes}`;
-    this.pantallaFinal('Has caído', `${detalle}\nDerrotados: ${this.derrotados}`, [
-      { texto: 'Reintentar', principal: true, accion: () => this.scene.restart({ mundo: this.indiceMundo }) },
-      { texto: 'Mapa', accion: () => this.scene.start('EscenaMundos') },
+    const titulo = this.cooperativo ? 'Han caído' : 'Has caído';
+    const texto = `${detalle}\nDerrotados: ${this.derrotados}`;
+    if (this.cooperativo) this.cooperativo.enviar({ t: 'fin', tipo: 'derrota', titulo, texto });
+    this.pantallaFinal(titulo, texto, [
+      { texto: 'Reintentar', principal: true, accion: () => this.jugarMundo(this.indiceMundo) },
+      { texto: 'Mapa', accion: () => this.irAlMapa() },
     ]);
+  }
+
+  /** Empieza (o reinicia) un mundo. En pareja, el invitado entra también. */
+  jugarMundo(indice) {
+    if (this.cooperativo) this.cooperativo.enviar({ t: 'iniciar', mundo: indice });
+    this.scene.restart({ mundo: indice, coop: !!this.cooperativo });
+  }
+
+  /** Vuelve al mapa. En pareja, el invitado queda esperando en la sala. */
+  irAlMapa() {
+    if (this.cooperativo) this.cooperativo.enviar({ t: 'esperar' });
+    this.scene.start('EscenaMundos');
+  }
+
+  /** Se cortó la conexión con el compañero */
+  companeroDesconectado() {
+    const red = this.cooperativo && this.cooperativo.red;
+    this.cooperativo = null;
+    if (red) red.cerrar();
+    if (this.esInvitado) {
+      // Sin anfitrión no hay juego: volver al título
+      this.mostrarAnuncio('Se cortó la conexión', true);
+      this.time.delayedCall(1800, () => this.scene.start('EscenaTitulo'));
+      return;
+    }
+    // Anfitrión: sigue solo
+    if (this.companero) {
+      this.companero.destruir();
+      this.companero = null;
+    }
+    this.mostrarAnuncio('Tu compañero se desconectó', true);
+    if (!this.heroe.vivo && !this.terminado) this.derrota();
   }
 
   /** ¡Ganaste el mundo! Se guarda el progreso y se abre el siguiente */
   victoria() {
-    if (!this.heroe.vivo) return;
-    this.heroe.cuerpo.body.setVelocity(0, 0);
-    this.heroe.invulnerableHasta = Infinity; // ya nada puede dañarlo
+    if (this.caido) return;
+    for (const h of this.heroes()) {
+      h.cuerpo.body.setVelocity(0, 0);
+      h.invulnerableHasta = Infinity; // ya nada puede dañarlo
+    }
     marcarSuperado(this.indiceMundo);
 
     const siguiente = this.balance.mundos[this.indiceMundo + 1];
     const mensaje = siguiente ? `Desbloqueaste: ${siguiente.nombre}` : '¡Venciste todos los mundos del prototipo!';
-    const botones = [{ texto: 'Mapa', accion: () => this.scene.start('EscenaMundos') }];
+    const botones = [{ texto: 'Mapa', accion: () => this.irAlMapa() }];
     if (siguiente) {
       botones.unshift({ // unshift: lo agrega al PRINCIPIO de la lista
         texto: 'Siguiente', principal: true,
-        accion: () => this.scene.restart({ mundo: this.indiceMundo + 1 }),
+        accion: () => this.jugarMundo(this.indiceMundo + 1),
       });
     }
     this.chispas.explode(80, this.heroe.cuerpo.x, this.heroe.cuerpo.y);
-    this.pantallaFinal(`¡${this.mundo.nombre} superado!`, `${mensaje}\nDerrotados: ${this.derrotados}`, botones);
+    const titulo = `¡${this.mundo.nombre} superado!`;
+    const texto = `${mensaje}\nDerrotados: ${this.derrotados}`;
+    if (this.cooperativo) this.cooperativo.enviar({ t: 'fin', tipo: 'victoria', titulo, texto });
+    this.pantallaFinal(titulo, texto, botones);
   }
 
   /** Fondo oscuro, título, texto y 1 o 2 botones (lo usan la derrota y la victoria) */
@@ -722,8 +908,12 @@ export default class EscenaArena extends Phaser.Scene {
     });
   }
 
-  /** Texto grande en el centro que aparece y se desvanece */
-  mostrarAnuncio(mensaje) {
+  /**
+   * Texto grande en el centro que aparece y se desvanece.
+   * En pareja, el anfitrión también se lo muestra al invitado (salvo "soloAqui").
+   */
+  mostrarAnuncio(mensaje, soloAqui = false) {
+    if (this.cooperativo && !this.esInvitado && !soloAqui) this.cooperativo.enviar({ t: 'anuncio', texto: mensaje });
     const texto = this.add.text(this.scale.width / 2, this.scale.height / 2 - 120, mensaje, {
       fontFamily: FUENTE_TITULO, fontSize: '60px', color: '#f5c542', fontStyle: 'bold',
       stroke: '#3a1500', strokeThickness: 8,
@@ -740,7 +930,7 @@ export default class EscenaArena extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#ffffff',
       stroke: '#05070d', strokeThickness: 4,
     };
-    this.add.text(20, 14, `${this.mundo.nombre.toUpperCase()} · ${this.raza.nombre.toUpperCase()}`, { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
+    this.add.text(20, 14, `${this.mundo.nombre.toUpperCase()} · ${this.raza.nombre.toUpperCase()}${this.cooperativo ? ' · EN PAREJA' : ''}`, { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
       .setScrollFactor(0).setDepth(100);
     this.textoProgreso = this.add.text(20, 42, '', {
       ...estilo, fontFamily: FUENTE_TITULO, fontSize: '28px', color: '#f5c542', fontStyle: 'bold',
@@ -769,7 +959,7 @@ export default class EscenaArena extends Phaser.Scene {
   dibujarBarraJefe() {
     const g = this.barraJefe;
     g.clear();
-    const jefe = this.enemigos.find((e) => e instanceof Jefe);
+    const jefe = this.enemigos.find((e) => e instanceof Jefe || e.esJefe); // esJefe: dibujado por el invitado
     if (!jefe) {
       this.textoJefe.setText('');
       return;
@@ -781,6 +971,6 @@ export default class EscenaArena extends Phaser.Scene {
     g.fillStyle(color(this.mundo.colores.jefe)).fillRect(x, 53, ancho * porcentaje, 16);
     g.lineStyle(2, 0xf5c542, 0.8).strokeRect(x - 3, 50, ancho + 6, 22);
     const total = this.mazmorra.totalJefes;
-    this.textoJefe.setText(total === 1 ? 'JEFE' : `JEFE ${this.salaActiva ? this.salaActiva.numero : ''} DE ${total}`);
+    this.textoJefe.setText(total === 1 || !this.salaActiva ? 'JEFE' : `JEFE ${this.salaActiva.numero} DE ${total}`);
   }
 }

@@ -84,6 +84,10 @@ export default class Jefe extends Enemigo {
     this.aviso = this.escena.add.rectangle(this.cuerpo.x, this.cuerpo.y, largo, this.radio * 1.6, 0xff1744, 0.25)
       .setOrigin(0, 0.5).setRotation(angulo).setDepth(7);
     this.escena.tweens.add({ targets: this.aviso, alpha: 0.5, duration: 150, yoyo: true, repeat: -1 });
+    // Etapa 9: en pareja, el invitado también tiene que ver la franja para esquivarla
+    if (this.escena.cooperativo) {
+      this.escena.cooperativo.aviso(this.cuerpo.x, this.cuerpo.y, angulo, largo, this.radio * 1.6, this.config.avisoMs);
+    }
   }
 
   empezarEmbestida() {

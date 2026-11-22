@@ -66,13 +66,13 @@ export default class EscenaTitulo extends Phaser.Scene {
     }
 
     // Botón JUGAR que "late"
-    const boton = this.add.rectangle(cx, 610, 320, 86, 0xf5c542).setStrokeStyle(4, 0xfff3c4).setInteractive();
-    const texto = this.add.text(cx, 610, 'JUGAR', {
+    const boton = this.add.rectangle(cx, 585, 320, 86, 0xf5c542).setStrokeStyle(4, 0xfff3c4).setInteractive();
+    const texto = this.add.text(cx, 585, 'JUGAR', {
       fontFamily: FUENTE_TITULO, fontSize: '42px', color: '#1a0f00', fontStyle: 'bold',
     }).setOrigin(0.5);
     this.tweens.add({ targets: [boton, texto], scale: 1.06, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    this.add.text(W - 16, H - 12, 'v0.0.10 · prototipo', {
+    this.add.text(W - 16, H - 12, 'v0.0.11 · prototipo', {
       fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#6b7a90',
     }).setOrigin(1, 1);
 
@@ -83,6 +83,13 @@ export default class EscenaTitulo extends Phaser.Scene {
       this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaHeroe'));
     };
     boton.on('pointerdown', empezar);
+
+    // Etapa 9: jugar en pareja (otra persona, otro celular)
+    const pareja = this.add.text(cx, 670, 'Jugar en pareja', {
+      fontFamily: FUENTE_TITULO, fontSize: '30px', color: '#f5c542', fontStyle: 'bold',
+      stroke: '#05070d', strokeThickness: 5,
+    }).setOrigin(0.5).setInteractive();
+    pareja.on('pointerdown', () => this.scene.start('EscenaSala'));
     this.input.keyboard.once('keydown-SPACE', empezar);
     this.input.keyboard.once('keydown-ENTER', empezar);
   }

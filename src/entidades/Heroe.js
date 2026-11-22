@@ -60,7 +60,21 @@ export default class Heroe {
     if (direccion.lengthSq() > 0) {
       this.mirando.copy(direccion).normalize();
     }
+    this.actualizarDibujo(direccion.lengthSq() > 0);
+  }
 
+  /**
+   * Etapa 9 (cooperativo): coloca al héroe del OTRO jugador donde dice la red.
+   * No usa física: solo lo pone en (x, y) mirando hacia (mx, my).
+   */
+  colocarRemoto(x, y, mx, my, moviendose) {
+    this.cuerpo.body.reset(x, y); // reset: mueve el cuerpo y deja su velocidad en 0
+    if (mx || my) this.mirando.set(mx, my).normalize();
+    this.actualizarDibujo(moviendose);
+  }
+
+  /** Mueve el dibujo (cuerpo, alas o cola, sombra y barra) a donde está el cuerpo físico */
+  actualizarDibujo(moviendose) {
     const { x, y } = this.cuerpo;
     const t = this.escena.time.now;
 
@@ -69,7 +83,6 @@ export default class Heroe {
     const giro = Phaser.Math.Angle.RotateTo(this.sprite.rotation, objetivo, 0.25);
 
     // "Respirar" al moverse y aletear siempre (Math.sin da una onda de -1 a 1)
-    const moviendose = direccion.lengthSq() > 0;
     const paso = moviendose ? 1 + Math.sin(t * 0.025) * 0.05 : 1;
     const aleteo = 0.8 + Math.sin(t * (moviendose ? 0.02 : 0.008)) * 0.2;
 
@@ -79,6 +92,30 @@ export default class Heroe {
     this.sombra.setPosition(x, y + 10);
 
     this.barra.dibujar(x, y - this.radio - 22, this.vida / this.config.vidaMax);
+
+    // Caído (cooperativo): se ve como un fantasma hasta que lo reviven
+    const alfa = this.vivo ? 1 : 0.3;
+    if (this.sprite.alpha !== alfa && !this.escena.tweens.isTweening(this.sprite)) {
+      this.sprite.setAlpha(alfa);
+      if (this.alas) this.alas.setAlpha(alfa);
+    }
+    if (this.etiqueta) this.etiqueta.setPosition(x, y - this.radio - 44);
+  }
+
+  /** Nombre flotante sobre el héroe (para distinguir al compañero) */
+  ponerEtiqueta(texto) {
+    this.etiqueta = this.escena.add.text(0, 0, texto, {
+      fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#ffffff', fontStyle: 'bold',
+      stroke: '#05070d', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(55);
+  }
+
+  /** Quita al héroe de la escena (si el compañero se desconecta) */
+  destruir() {
+    for (const objeto of [this.cuerpo, this.sprite, this.alas, this.sombra, this.etiqueta]) {
+      if (objeto) objeto.destroy();
+    }
+    this.barra.destruir();
   }
 
   /** Gira al héroe para que mire hacia el punto (x, y) — usado por el auto-apuntado */
