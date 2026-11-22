@@ -58,11 +58,14 @@ export default class EscenaMundos extends Phaser.Scene {
     // Héroe elegido (abajo a la derecha) y botón para cambiarlo
     const razas = this.cache.json.get('balance').razas;
     const id = razas[razaElegida()] ? razaElegida() : 'humano';
-    if (razas[id].extra) this.add.image(W - 250, H - 60, `${id}-${razas[id].extra}`).setAngle(-90).setScale(0.8);
-    this.add.image(W - 250, H - 60, `${id}-cuerpo`).setAngle(-90).setScale(0.8);
-    const cambiar = this.add.text(W - 200, H - 60, `${razas[id].nombre} · Cambiar`, {
+    // El texto se alinea al borde derecho (origen 1) y el dibujo va a su izquierda:
+    // así nunca se sale de la pantalla, sea cual sea el largo del nombre.
+    const cambiar = this.add.text(W - 24, H - 60, `${razas[id].nombre} · Cambiar`, {
       fontFamily: FUENTE_TITULO, fontSize: '26px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
-    }).setOrigin(0, 0.5).setInteractive();
+    }).setOrigin(1, 0.5).setInteractive();
+    const xHeroe = cambiar.x - cambiar.width - 45;
+    if (razas[id].extra) this.add.image(xHeroe, H - 60, `${id}-${razas[id].extra}`).setAngle(-90).setScale(0.8);
+    this.add.image(xHeroe, H - 60, `${id}-cuerpo`).setAngle(-90).setScale(0.8);
     cambiar.on('pointerdown', () => this.scene.start('EscenaHeroe'));
 
     // Botón para volver (a la elección de héroe)

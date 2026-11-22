@@ -70,11 +70,12 @@ export default class EscenaSala extends Phaser.Scene {
   crearMiHeroe(W, H) {
     const razas = this.cache.json.get('balance').razas;
     const id = razas[razaElegida()] ? razaElegida() : 'humano';
-    if (razas[id].extra) this.add.image(W - 300, H - 55, `${id}-${razas[id].extra}`).setAngle(-90).setScale(0.8);
-    this.add.image(W - 300, H - 55, `${id}-cuerpo`).setAngle(-90).setScale(0.8);
-    const cambiar = this.add.text(W - 250, H - 55, `${razas[id].nombre} · Cambiar`, {
+    const cambiar = this.add.text(W - 24, H - 55, `${razas[id].nombre} · Cambiar`, {
       fontFamily: FUENTE_TITULO, fontSize: '26px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
-    }).setOrigin(0, 0.5).setInteractive();
+    }).setOrigin(1, 0.5).setInteractive(); // alineado al borde derecho
+    const xHeroe = cambiar.x - cambiar.width - 45;
+    if (razas[id].extra) this.add.image(xHeroe, H - 55, `${id}-${razas[id].extra}`).setAngle(-90).setScale(0.8);
+    this.add.image(xHeroe, H - 55, `${id}-cuerpo`).setAngle(-90).setScale(0.8);
     cambiar.on('pointerdown', () => {
       const red = redActual();
       const conectado = !!(red && red.conectado);
