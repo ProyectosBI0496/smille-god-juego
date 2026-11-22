@@ -38,7 +38,7 @@
   "enemigo": {
     "radio": 24,
     "velocidad": 150,
-    "color": "#e53935",
+    "color": "#b388ff",
     "vidaMax": 60,
     "danioContacto": 10,
     "aturdidoMs": 250,

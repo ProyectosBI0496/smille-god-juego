@@ -6,14 +6,20 @@
 //          varios enemigos a la vez.
 // Etapa 4: oleadas, pantalla de derrota con récord, partículas,
 //          vibración y "object pooling" de los números de daño.
+// Etapa 5: arte provisional (texturas dibujadas por código), ambiente
+//          con antorchas, brasas y viñeta; efectos de habilidades.
 // =============================================================
 
-const CLAVE_RECORD = 'smilleGod.mejorOleada';
+export const CLAVE_RECORD = 'smilleGod.mejorOleada';
+// Tipografía de fantasía (Google Fonts, cargada en index.html).
+// Si no carga, el navegador usa Georgia.
+export const FUENTE_TITULO = '"Cinzel", Georgia, serif';
 
 import Heroe from '../entidades/Heroe.js';
 import Enemigo from '../entidades/Enemigo.js';
 import Joystick from '../controles/Joystick.js';
 import BotonHabilidad from '../controles/BotonHabilidad.js';
+import { crearTexturas } from '../graficos/Texturas.js';
 
 export default class EscenaArena extends Phaser.Scene {
   constructor() {
@@ -22,7 +28,9 @@ export default class EscenaArena extends Phaser.Scene {
 
   // preload(): se ejecuta ANTES de create(). Aquí se cargan archivos.
   preload() {
-    this.load.json('balance', 'src/datos/balance.json');
+    // "?v=..." cambia la dirección en cada carga: así el navegador no usa una
+    // copia vieja guardada (caché) y siempre lee los números más recientes.
+    this.load.json('balance', 'src/datos/balance.json?v=' + Date.now());
   }
 
   create() {
@@ -30,7 +38,9 @@ export default class EscenaArena extends Phaser.Scene {
     this.balance = this.cache.json.get('balance');
     const { ancho, alto, grosorMuro, tamanoCuadricula } = this.balance.arena;
 
+    crearTexturas(this); // dibuja todas las texturas (solo la primera vez)
     this.dibujarArena(ancho, alto, grosorMuro, tamanoCuadricula);
+    this.cameras.main.fadeIn(400); // la escena aparece desde negro
 
     // Límites del mundo físico = el interior de la arena (sin los muros)
     this.physics.world.setBounds(grosorMuro, grosorMuro, ancho - grosorMuro * 2, alto - grosorMuro * 2);
@@ -122,7 +132,7 @@ export default class EscenaArena extends Phaser.Scene {
     // Botón 1 — ataque básico (el más grande, bajo el pulgar)
     this.botonAtaque = new BotonHabilidad(this, {
       x: xAtq, y: yAtq, radio,
-      etiqueta: 'ATQ',
+      etiqueta: 'ATQ', icono: 'icono-espada',
       recargaMs: this.balance.ataqueBasico.recargaMs,
       color: 0xf5c542,
       alPulsar: () => this.atacar(),
@@ -131,7 +141,7 @@ export default class EscenaArena extends Phaser.Scene {
     // Botón 2 — habilidad "Onda": a la izquierda del ataque
     this.botonOnda = new BotonHabilidad(this, {
       x: xAtq - 150, y: yAtq + 25, radio: radioPequeno,
-      etiqueta: 'ONDA',
+      etiqueta: 'ONDA', icono: 'icono-onda',
       recargaMs: this.balance.habilidad.recargaMs,
       color: 0x4fc3f7,
       alPulsar: () => this.usarOnda(),
@@ -140,7 +150,7 @@ export default class EscenaArena extends Phaser.Scene {
     // Botón 3 — especial "Torbellino": encima del ataque
     this.botonTorbellino = new BotonHabilidad(this, {
       x: xAtq - 35, y: yAtq - 150, radio: radioPequeno,
-      etiqueta: 'ESP',
+      etiqueta: 'ESP', icono: 'icono-torbellino',
       recargaMs: this.balance.especial.recargaMs,
       color: 0xab47bc,
       alPulsar: () => this.usarTorbellino(),
@@ -205,11 +215,18 @@ export default class EscenaArena extends Phaser.Scene {
     const h = this.balance.habilidad;
     const { x, y } = this.heroe.cuerpo;
 
-    // Efecto visual: un anillo que se expande
-    const anillo = this.add.circle(x, y, 10).setStrokeStyle(6, 0x4fc3f7).setDepth(40);
+    // Efecto visual: un anillo que se expande + un destello de luz azul.
+    // BlendMode ADD = "mezcla aditiva": suma luz a lo que hay debajo, como un foco.
+    const anillo = this.add.circle(x, y, 10).setStrokeStyle(8, 0x4fc3f7).setDepth(40);
     this.tweens.add({
       targets: anillo, radius: h.radio, alpha: 0, duration: 250,
       onComplete: () => anillo.destroy(),
+    });
+    const luz = this.add.image(x, y, 'brillo').setTint(0x4fc3f7)
+      .setBlendMode(Phaser.BlendModes.ADD).setDepth(39).setScale(0.5);
+    this.tweens.add({
+      targets: luz, scale: (h.radio * 2.4) / 128, alpha: 0, duration: 350,
+      onComplete: () => luz.destroy(),
     });
     this.cameras.main.shake(120, 0.004);
 
@@ -227,6 +244,23 @@ export default class EscenaArena extends Phaser.Scene {
     const duracion = e.golpes * e.intervaloMs;
     this.tweens.add({ targets: anillo, angle: 360 * 3, duration: duracion });
 
+    // Dos "cuchillas" (la textura del tajo) que giran alrededor del héroe
+    const cuchillas = [0, 180].map((inicio) => this.add.image(0, 0, 'tajo')
+      .setTint(0xce93d8).setScale(e.radio / 44).setAngle(inicio)
+      .setBlendMode(Phaser.BlendModes.ADD).setDepth(41));
+    this.tweens.add({ targets: cuchillas, angle: '+=1080', duration: duracion });
+    // Cada frame, las cuchillas y el anillo siguen al héroe ("update" es un evento de la escena)
+    const seguir = () => {
+      for (const objeto of [anillo, ...cuchillas]) {
+        if (objeto.active) objeto.setPosition(this.heroe.cuerpo.x, this.heroe.cuerpo.y);
+      }
+    };
+    this.events.on('update', seguir);
+    this.time.delayedCall(duracion, () => {
+      this.events.off('update', seguir);
+      cuchillas.forEach((c) => c.destroy());
+    });
+
     // Un temporizador que se repite: un golpe cada "intervaloMs"
     let golpesDados = 0;
     this.time.addEvent({
@@ -236,7 +270,6 @@ export default class EscenaArena extends Phaser.Scene {
         golpesDados += 1;
         if (!this.heroe.vivo) return;
         const { x, y } = this.heroe.cuerpo;
-        anillo.setPosition(x, y);
         anillo.setAlpha(0.5 + (golpesDados % 2) * 0.5); // parpadeo en cada golpe
         this.golpearArea(x, y, e.radio, e.danio, e.empuje, x, y);
         if (golpesDados >= e.golpes) anillo.destroy();
@@ -274,7 +307,8 @@ export default class EscenaArena extends Phaser.Scene {
   /** Texto grande en el centro que aparece y se desvanece */
   mostrarAnuncio(mensaje) {
     const texto = this.add.text(this.scale.width / 2, this.scale.height / 2 - 120, mensaje, {
-      fontFamily: 'Georgia, serif', fontSize: '56px', color: '#f5c542',
+      fontFamily: FUENTE_TITULO, fontSize: '60px', color: '#f5c542', fontStyle: 'bold',
+      stroke: '#3a1500', strokeThickness: 8,
     }).setOrigin(0.5).setScrollFactor(0).setDepth(150);
     this.tweens.add({
       targets: texto, alpha: 0, y: texto.y - 30, delay: 700, duration: 600,
@@ -299,6 +333,9 @@ export default class EscenaArena extends Phaser.Scene {
   /** Quita un enemigo derrotado; si era el último, prepara la siguiente oleada */
   eliminarEnemigo(enemigo) {
     this.chispas.explode(16, enemigo.cuerpo.x, enemigo.cuerpo.y); // explosión de partículas
+    const luz = this.add.image(enemigo.cuerpo.x, enemigo.cuerpo.y, 'brillo').setTint(0xff7043)
+      .setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
+    this.tweens.add({ targets: luz, scale: 1.6, alpha: 0, duration: 300, onComplete: () => luz.destroy() });
     this.vibrar(25);
     enemigo.destruir();
     this.enemigos = this.enemigos.filter((e) => e !== enemigo);
@@ -321,7 +358,8 @@ export default class EscenaArena extends Phaser.Scene {
     let texto = this.numerosLibres.pop();
     if (!texto) {
       texto = this.add.text(0, 0, '', {
-        fontFamily: 'Arial, sans-serif', fontSize: '24px', color: '#ffeb3b', fontStyle: 'bold',
+        fontFamily: 'Arial, sans-serif', fontSize: '26px', color: '#ffeb3b', fontStyle: 'bold',
+        stroke: '#3e1a00', strokeThickness: 5, // borde oscuro: se lee sobre cualquier fondo
       }).setOrigin(0.5).setDepth(60);
     }
     texto.setText(`-${valor}`).setPosition(x, y).setAlpha(1).setVisible(true);
@@ -345,19 +383,14 @@ export default class EscenaArena extends Phaser.Scene {
 
   /** Prepara las partículas: una textura pequeña dibujada por código */
   crearEfectos() {
-    if (!this.textures.exists('chispa')) {
-      const g = this.make.graphics({ add: false });
-      g.fillStyle(0xffffff);
-      g.fillCircle(4, 4, 4);
-      g.generateTexture('chispa', 8, 8);
-      g.destroy();
-    }
+    // (La textura 'chispa' ahora se crea en graficos/Texturas.js)
     // Un solo emisor reutilizable: "explode" lanza N partículas donde se le diga
     this.chispas = this.add.particles(0, 0, 'chispa', {
       speed: { min: 80, max: 260 },
       lifespan: 450,
       scale: { start: 1.2, end: 0 },
       tint: [0xe53935, 0xff8a65, 0xffeb3b],
+      blendMode: 'ADD',
       emitting: false,
     }).setDepth(45);
   }
@@ -387,53 +420,115 @@ export default class EscenaArena extends Phaser.Scene {
 
     fijo(this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.65));
     fijo(this.add.text(cx, cy - 140, 'Has caído', {
-      fontFamily: 'Georgia, serif', fontSize: '72px', color: '#f5c542',
+      fontFamily: FUENTE_TITULO, fontSize: '76px', color: '#f5c542', fontStyle: 'bold',
+      stroke: '#3a1500', strokeThickness: 8,
     }).setOrigin(0.5));
     fijo(this.add.text(cx, cy - 50,
       `Llegaste a la oleada ${this.oleada} · Derrotados: ${this.derrotados}\nRécord: oleada ${record}`, {
         fontFamily: 'Arial, sans-serif', fontSize: '28px', color: '#ffffff', align: 'center',
       }).setOrigin(0.5));
 
-    const boton = fijo(this.add.rectangle(cx, cy + 70, 300, 80, 0xf5c542).setInteractive());
-    fijo(this.add.text(cx, cy + 70, 'Reintentar', {
-      fontFamily: 'Arial, sans-serif', fontSize: '32px', color: '#0b0f1a', fontStyle: 'bold',
+    const boton = fijo(this.add.rectangle(cx - 170, cy + 80, 300, 80, 0xf5c542).setInteractive());
+    fijo(this.add.text(cx - 170, cy + 80, 'Reintentar', {
+      fontFamily: FUENTE_TITULO, fontSize: '30px', color: '#0b0f1a', fontStyle: 'bold',
     }).setOrigin(0.5));
     boton.on('pointerdown', () => this.scene.restart());
+
+    const menu = fijo(this.add.rectangle(cx + 170, cy + 80, 300, 80, 0x0b0f1a)
+      .setStrokeStyle(3, 0xf5c542).setInteractive());
+    fijo(this.add.text(cx + 170, cy + 80, 'Menú', {
+      fontFamily: FUENTE_TITULO, fontSize: '30px', color: '#f5c542', fontStyle: 'bold',
+    }).setOrigin(0.5));
+    menu.on('pointerdown', () => this.scene.start('EscenaTitulo'));
   }
 
-  /** Dibuja el suelo con cuadrícula y los cuatro muros */
+  /**
+   * Dibuja la caverna: suelo de baldosas, muros de ladrillo, antorchas,
+   * brasas flotando y una viñeta (bordes oscuros de la pantalla).
+   */
   dibujarArena(ancho, alto, grosorMuro, tamanoCuadricula) {
-    const g = this.add.graphics();
+    // SUELO: en vez de cientos de imágenes sueltas, las "pintamos" una vez sobre
+    // una RenderTexture (una imagen grande en la memoria). Es mucho más liviano.
+    const suelo = this.add.renderTexture(0, 0, ancho, alto).setOrigin(0).setDepth(0);
+    const azar = new Phaser.Math.RandomDataGenerator(['caverna-1']);
+    for (let x = 0; x < ancho; x += tamanoCuadricula) {
+      for (let y = 0; y < alto; y += tamanoCuadricula) {
+        // La mayoría lisas (variante 0), algunas con grietas (1 a 3)
+        const variante = azar.frac() < 0.6 ? 0 : azar.between(1, 3);
+        suelo.draw('baldosa-' + variante, x, y);
+      }
+    }
 
-    g.fillStyle(0x111827);
-    g.fillRect(0, 0, ancho, alto);
-
-    // Cuadrícula: ayuda a notar el movimiento cuando la cámara sigue al héroe
-    g.lineStyle(1, 0x1f2a40);
-    for (let x = 0; x <= ancho; x += tamanoCuadricula) g.lineBetween(x, 0, x, alto);
-    for (let y = 0; y <= alto; y += tamanoCuadricula) g.lineBetween(0, y, ancho, y);
-
-    // Muros (arriba, abajo, izquierda, derecha)
-    g.fillStyle(0x4a3b5c);
-    g.fillRect(0, 0, ancho, grosorMuro);
-    g.fillRect(0, alto - grosorMuro, ancho, grosorMuro);
-    g.fillRect(0, 0, grosorMuro, alto);
-    g.fillRect(ancho - grosorMuro, 0, grosorMuro, alto);
+    // MUROS: TileSprite repite una textura para llenar un rectángulo
+    const muro = (x, y, w, h) => this.add.tileSprite(x, y, w, h, 'muro').setOrigin(0).setDepth(2);
+    muro(0, 0, ancho, grosorMuro);
+    muro(0, alto - grosorMuro, ancho, grosorMuro);
+    muro(0, 0, grosorMuro, alto);
+    muro(ancho - grosorMuro, 0, grosorMuro, alto);
 
     // Borde interior dorado
-    g.lineStyle(3, 0xf5c542, 0.6);
-    g.strokeRect(grosorMuro, grosorMuro, ancho - grosorMuro * 2, alto - grosorMuro * 2);
+    this.add.graphics().setDepth(3)
+      .lineStyle(3, 0xf5c542, 0.45)
+      .strokeRect(grosorMuro, grosorMuro, ancho - grosorMuro * 2, alto - grosorMuro * 2);
+
+    // ANTORCHAS en los cuatro muros
+    for (let x = 300; x < ancho; x += 600) {
+      this.crearAntorcha(x, grosorMuro / 2);
+      this.crearAntorcha(x, alto - grosorMuro / 2);
+    }
+    for (let y = 400; y < alto; y += 800) {
+      this.crearAntorcha(grosorMuro / 2, y);
+      this.crearAntorcha(ancho - grosorMuro / 2, y);
+    }
+
+    // BRASAS: partículas naranjas que suben lentamente por toda la caverna
+    this.add.particles(0, 0, 'chispa', {
+      x: { min: 0, max: ancho },
+      y: { min: 0, max: alto },
+      speedY: { min: -40, max: -15 },
+      speedX: { min: -10, max: 10 },
+      lifespan: 4000,
+      scale: { start: 0.6, end: 0 },
+      alpha: { start: 0.7, end: 0 },
+      tint: [0xff7043, 0xffb74d],
+      frequency: 90,
+      blendMode: 'ADD',
+    }).setDepth(5);
+
+    // VIÑETA: fija en la pantalla, encima del mundo y debajo de los controles
+    this.add.image(this.scale.width / 2, this.scale.height / 2, 'vineta')
+      .setScrollFactor(0).setDepth(90);
+  }
+
+  /** Una antorcha: llama que tiembla y un halo de luz que parpadea */
+  crearAntorcha(x, y) {
+    const halo = this.add.image(x, y, 'brillo').setTint(0xff8a3d).setAlpha(0.35)
+      .setScale(2.6).setBlendMode(Phaser.BlendModes.ADD).setDepth(4);
+    const llama = this.add.image(x, y - 6, 'llama').setDepth(4);
+    // Duraciones al azar para que cada antorcha parpadee distinto
+    this.tweens.add({
+      targets: halo, alpha: 0.2, scale: 2.3, duration: Phaser.Math.Between(180, 320),
+      yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+    });
+    this.tweens.add({
+      targets: llama, scaleY: 1.2, scaleX: 0.85, duration: Phaser.Math.Between(120, 220),
+      yoyo: true, repeat: -1,
+    });
   }
 
   /** Textos fijos en pantalla (no se mueven con la cámara) */
   crearTextos() {
-    const estilo = { fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#9fb3c8' };
+    const estilo = {
+      fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#9fb3c8',
+      stroke: '#05070d', strokeThickness: 4,
+    };
 
-    this.add.text(20, 16, 'Smille God · Etapa 4 — Oleadas', estilo)
+    this.add.text(20, 14, 'SMILLE GOD', { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
       .setScrollFactor(0).setDepth(100);
 
-    this.textoOleada = this.add.text(20, 46, 'Oleada 1', { ...estilo, fontSize: '28px', color: '#f5c542' })
-      .setScrollFactor(0).setDepth(100);
+    this.textoOleada = this.add.text(20, 42, 'Oleada 1', {
+      ...estilo, fontFamily: FUENTE_TITULO, fontSize: '32px', color: '#f5c542', fontStyle: 'bold',
+    }).setScrollFactor(0).setDepth(100);
 
     this.textoDerrotados = this.add.text(20, 82, 'Derrotados: 0', { ...estilo, color: '#ffffff' })
       .setScrollFactor(0).setDepth(100);

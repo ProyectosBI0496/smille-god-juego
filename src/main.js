@@ -10,6 +10,7 @@
 
 // "import" trae una clase de otro archivo (como en Java).
 import EscenaArena from './escenas/EscenaArena.js';
+import EscenaTitulo from './escenas/EscenaTitulo.js';
 
 const config = {
   type: Phaser.AUTO,          // usa WebGL si el equipo lo soporta; si no, Canvas
@@ -27,11 +28,22 @@ const config = {
   input: {
     activePointers: 3,        // hasta 3 dedos a la vez (joystick + botones)
   },
-  scene: [EscenaArena],
+  scene: [EscenaTitulo, EscenaArena], // la primera de la lista es la que arranca
 };
 
 // Arranca el juego. Lo guardamos en window.juego para poder
 // inspeccionarlo desde la consola del navegador (F12) mientras aprendemos.
+// Antes de arrancar esperamos la tipografía "Cinzel" (máximo 2 segundos):
+// si Phaser escribe un texto antes de que llegue, lo dibujaría con otra letra.
+// Promise.race = "lo que termine primero": la fuente o el tiempo límite.
+try {
+  await Promise.race([
+    document.fonts.load('700 40px "Cinzel"'),
+    new Promise((resolver) => setTimeout(resolver, 2000)),
+  ]);
+} catch (error) {
+  // sin la fuente, el juego usa Georgia
+}
 window.juego = new Phaser.Game(config);
 
 // -------------------------------------------------------------
