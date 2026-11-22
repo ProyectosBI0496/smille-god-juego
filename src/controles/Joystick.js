@@ -52,7 +52,7 @@ export default class Joystick {
 
   alTocar(puntero) {
     if (this.activo) return;                                  // ya hay un dedo en el joystick
-    if (puntero.x > this.escena.scale.width / 2) return;      // solo la mitad izquierda
+    if (puntero.x > this.escena.scale.baseSize.width / 2) return;      // solo la mitad izquierda
 
     this.punteroId = puntero.id;
     this.base.setPosition(puntero.x, puntero.y).setVisible(true);

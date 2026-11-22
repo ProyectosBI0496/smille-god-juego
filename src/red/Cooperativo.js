@@ -89,7 +89,7 @@ export default class Cooperativo {
   mostrarEspera(visible) {
     const e = this.escena;
     if (!this.cartel) {
-      this.cartel = e.add.text(e.scale.width / 2, e.scale.height / 2 + 40,
+      this.cartel = e.add.text(e.scale.baseSize.width / 2, e.scale.baseSize.height / 2 + 40,
         'Esperando a tu compañero...\nSu pantalla debe estar encendida y con el juego abierto', {
           fontFamily: 'Arial, sans-serif', fontSize: '26px', color: '#ffffff', align: 'center',
           backgroundColor: '#000000aa', padding: { x: 16, y: 10 },

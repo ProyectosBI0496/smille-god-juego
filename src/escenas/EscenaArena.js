@@ -164,6 +164,34 @@ export default class EscenaArena extends Phaser.Scene {
     this.crearBotonPausa();
     this.actualizarHud();
     this.mostrarAnuncio(this.mundo.nombre, true);
+
+    // Etapa 10: si cambia el tamaño de la pantalla, los controles se reacomodan
+    this.ubicarControles();
+    this.scale.on('resize', this.ubicarControles, this);
+    this.events.once('shutdown', () => this.scale.off('resize', this.ubicarControles, this));
+  }
+
+  /**
+   * Pone los botones, la pausa y los textos según el tamaño ACTUAL de la pantalla
+   * (con el modo EXPAND, el ancho cambia de un celular a otro).
+   */
+  ubicarControles() {
+    const W = this.scale.baseSize.width;
+    const H = this.scale.baseSize.height;
+    const { radio, margen } = this.balance.botones;
+    const xAtq = W - margen - radio;
+    const yAtq = H - margen - radio;
+    this.botonAtaque.mover(xAtq, yAtq);
+    this.botonOnda.mover(xAtq - 150, yAtq + 25);
+    this.botonTorbellino.mover(xAtq - 35, yAtq - 150);
+    this.botonCura.mover(xAtq - 175, yAtq - 120);
+    this.textoCuras.setPosition(xAtq - 175 + 30, yAtq - 120 + 26);
+    for (const [objeto, dx] of this.partesPausa) objeto.setPosition(W - 55 + dx, 55);
+    this.textoFps.setPosition(W - 110, 100);
+    this.textoJefe.setPosition(W / 2, 22);
+    this.textoAyuda.setPosition(20, H - 36);
+    this.vineta.setPosition(W / 2, H / 2).setDisplaySize(W, H);
+    this.cameras.main.setSize(W, H); // la cámara también toma el tamaño nuevo
   }
 
   /** Los héroes en juego: el mío y, en pareja, el del compañero */
@@ -491,8 +519,8 @@ export default class EscenaArena extends Phaser.Scene {
   /** Crea los botones: ataque, Onda, Torbellino y cura */
   crearBotones() {
     const { radio, radioPequeno, margen } = this.balance.botones;
-    const xAtq = this.scale.width - margen - radio;
-    const yAtq = this.scale.height - margen - radio;
+    const xAtq = this.scale.baseSize.width - margen - radio;
+    const yAtq = this.scale.baseSize.height - margen - radio;
     const recarga = this.raza.recarga; // < 1 = la raza recarga más rápido (Humano)
 
     // Botón 1 — ataque básico (el más grande, bajo el pulgar)
@@ -740,12 +768,13 @@ export default class EscenaArena extends Phaser.Scene {
    * También pausa solo si el jugador sale de la app o cambia de pestaña.
    */
   crearBotonPausa() {
-    const x = this.scale.width - 55;
+    const x = this.scale.baseSize.width - 55;
     const y = 55;
     const boton = this.add.circle(x, y, 34, 0x0b0f1a, 0.55).setStrokeStyle(3, 0xf5c542, 0.8)
       .setScrollFactor(0).setDepth(100).setInteractive();
-    this.add.rectangle(x - 8, y, 8, 26, 0xf5c542).setScrollFactor(0).setDepth(101);
-    this.add.rectangle(x + 8, y, 8, 26, 0xf5c542).setScrollFactor(0).setDepth(101);
+    const barra1 = this.add.rectangle(x - 8, y, 8, 26, 0xf5c542).setScrollFactor(0).setDepth(101);
+    const barra2 = this.add.rectangle(x + 8, y, 8, 26, 0xf5c542).setScrollFactor(0).setDepth(101);
+    this.partesPausa = [[boton, 0], [barra1, -8], [barra2, 8]]; // [objeto, desplazamiento en x]
     boton.on('pointerdown', () => this.pausar());
 
     this.input.keyboard.on('keydown-P', () => this.pausar());
@@ -855,11 +884,11 @@ export default class EscenaArena extends Phaser.Scene {
     // Por seguridad: ningún menú de pausa encima, y esta escena funcionando
     this.scene.stop('EscenaPausa');
     if (this.scene.isPaused()) this.scene.resume();
-    const cx = this.scale.width / 2;
-    const cy = this.scale.height / 2;
+    const cx = this.scale.baseSize.width / 2;
+    const cy = this.scale.baseSize.height / 2;
     const fijo = (objeto) => objeto.setScrollFactor(0).setDepth(200);
 
-    fijo(this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.65)).setInteractive();
+    fijo(this.add.rectangle(cx, cy, this.scale.baseSize.width, this.scale.baseSize.height, 0x000000, 0.65)).setInteractive();
     fijo(this.add.text(cx, cy - 140, titulo, {
       fontFamily: FUENTE_TITULO, fontSize: '70px', color: '#f5c542', fontStyle: 'bold',
       stroke: '#3a1500', strokeThickness: 8,
@@ -888,8 +917,8 @@ export default class EscenaArena extends Phaser.Scene {
 
   /** Clima (partículas que siguen a la cámara) y viñeta */
   crearAmbiente() {
-    const W = this.scale.width;
-    const H = this.scale.height;
+    const W = this.scale.baseSize.width;
+    const H = this.scale.baseSize.height;
     // Las partículas nacen en un rectángulo del tamaño de la pantalla,
     // que en update() movemos junto con la cámara.
     const zona = { x: { min: 0, max: W }, y: { min: 0, max: H } };
@@ -914,7 +943,7 @@ export default class EscenaArena extends Phaser.Scene {
     });
 
     // VIÑETA: fija en la pantalla, encima del mundo y debajo de los controles
-    this.add.image(W / 2, H / 2, 'vineta').setScrollFactor(0).setDepth(90);
+    this.vineta = this.add.image(W / 2, H / 2, 'vineta').setDisplaySize(W, H).setScrollFactor(0).setDepth(90);
   }
 
   /** Una antorcha: llama que tiembla y un halo de luz que parpadea (la usa la Mazmorra) */
@@ -938,7 +967,7 @@ export default class EscenaArena extends Phaser.Scene {
    */
   mostrarAnuncio(mensaje, soloAqui = false) {
     if (this.cooperativo && !this.esInvitado && !soloAqui) this.cooperativo.enviar({ t: 'anuncio', texto: mensaje });
-    const texto = this.add.text(this.scale.width / 2, this.scale.height / 2 - 120, mensaje, {
+    const texto = this.add.text(this.scale.baseSize.width / 2, this.scale.baseSize.height / 2 - 120, mensaje, {
       fontFamily: FUENTE_TITULO, fontSize: '60px', color: '#f5c542', fontStyle: 'bold',
       stroke: '#3a1500', strokeThickness: 8,
     }).setOrigin(0.5).setScrollFactor(0).setDepth(150);
@@ -960,17 +989,17 @@ export default class EscenaArena extends Phaser.Scene {
       ...estilo, fontFamily: FUENTE_TITULO, fontSize: '28px', color: '#f5c542', fontStyle: 'bold',
     }).setScrollFactor(0).setDepth(100);
     this.textoDerrotados = this.add.text(20, 80, '', estilo).setScrollFactor(0).setDepth(100);
-    this.add.text(20, this.scale.height - 36,
+    this.textoAyuda = this.add.text(20, this.scale.baseSize.height - 36,
       'PC: WASD mover · ESPACIO atacar · K Onda · L Torbellino · H cura · P pausa', { ...estilo, fontSize: '18px', color: '#c8d3e0' })
       .setScrollFactor(0).setDepth(100);
 
     // FPS = cuadros por segundo. 60 es fluido; menos de 30 se siente lento.
-    this.textoFps = this.add.text(this.scale.width - 110, 100, '', { ...estilo, fontSize: '16px', color: '#9fb3c8' })
+    this.textoFps = this.add.text(this.scale.baseSize.width - 110, 100, '', { ...estilo, fontSize: '16px', color: '#9fb3c8' })
       .setScrollFactor(0).setDepth(100);
 
     // Barra grande de vida del jefe, arriba al centro (se dibuja en update)
     this.barraJefe = this.add.graphics().setScrollFactor(0).setDepth(100);
-    this.textoJefe = this.add.text(this.scale.width / 2, 22, '', { ...estilo, fontFamily: FUENTE_TITULO, fontSize: '20px', color: '#ffccbc' })
+    this.textoJefe = this.add.text(this.scale.baseSize.width / 2, 22, '', { ...estilo, fontFamily: FUENTE_TITULO, fontSize: '20px', color: '#ffccbc' })
       .setOrigin(0.5, 0).setScrollFactor(0).setDepth(101);
   }
 
@@ -994,7 +1023,7 @@ export default class EscenaArena extends Phaser.Scene {
     }
     const porcentaje = Phaser.Math.Clamp(jefe.vida / jefe.config.vidaMax, 0, 1);
     const ancho = 480;
-    const x = this.scale.width / 2 - ancho / 2;
+    const x = this.scale.baseSize.width / 2 - ancho / 2;
     g.fillStyle(0x000000, 0.6).fillRect(x - 3, 50, ancho + 6, 22);
     g.fillStyle(color(this.mundo.colores.jefe)).fillRect(x, 53, ancho * porcentaje, 16);
     g.lineStyle(2, 0xf5c542, 0.8).strokeRect(x - 3, 50, ancho + 6, 22);

@@ -6,6 +6,7 @@
 // =============================================================
 
 import { crearTexturas } from '../graficos/Texturas.js';
+import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { color } from '../graficos/TexturasMundo.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
 import { mundosSuperados, razaElegida, elegirRaza, nick } from '../datos/Progreso.js';
@@ -24,8 +25,8 @@ export default class EscenaHeroe extends Phaser.Scene {
 
   create() {
     crearTexturas(this);
-    const W = this.scale.width;
-    const H = this.scale.height;
+    const W = this.scale.baseSize.width;
+    const H = this.scale.baseSize.height;
     const balance = this.cache.json.get('balance');
     this.razas = balance.razas;
     this.superados = mundosSuperados();
@@ -41,7 +42,8 @@ export default class EscenaHeroe extends Phaser.Scene {
 
     this.cameras.main.fadeIn(300);
     this.add.tileSprite(0, 0, W, H, 'baldosa-2').setOrigin(0).setTint(0x6a6a80);
-    this.add.image(W / 2, H / 2, 'vineta');
+    crearVineta(this);
+    reiniciarAlCambiarTamano(this); // si cambia el tamaño de la pantalla, se rearma
     this.add.text(W / 2, 46, 'Elige tu héroe', {
       fontFamily: FUENTE_TITULO, fontSize: '52px', color: '#f5c542', fontStyle: 'bold',
       stroke: '#3a1500', strokeThickness: 8,

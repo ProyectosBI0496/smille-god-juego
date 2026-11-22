@@ -13,9 +13,10 @@ export default class EscenaPausa extends Phaser.Scene {
   }
 
   create() {
-    const W = this.scale.width;
-    const H = this.scale.height;
+    const W = this.scale.baseSize.width;
+    const H = this.scale.baseSize.height;
     const cx = W / 2;
+    this.cameras.main.setSize(W, H); // tamaño real de la pantalla (modo EXPAND)
     const cy = H / 2;
 
     // Fondo oscuro semitransparente: se ve la arena congelada detrás

@@ -5,6 +5,7 @@
 // =============================================================
 
 import { crearTexturas } from '../graficos/Texturas.js';
+import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
 import { mundosSuperados } from '../datos/Progreso.js';
 import { crearEditorNick } from '../ui/EditorNick.js';
@@ -24,8 +25,8 @@ export default class EscenaTitulo extends Phaser.Scene {
 
   create() {
     crearTexturas(this);
-    const W = this.scale.width;
-    const H = this.scale.height;
+    const W = this.scale.baseSize.width;
+    const H = this.scale.baseSize.height;
     const cx = W / 2;
 
     // Fondo: baldosas oscurecidas, brasas que suben y viñeta
@@ -36,7 +37,11 @@ export default class EscenaTitulo extends Phaser.Scene {
       lifespan: 6000, scale: { start: 0.9, end: 0 }, alpha: { start: 0.8, end: 0 },
       tint: [0xff7043, 0xffb74d], frequency: 60, blendMode: 'ADD',
     });
-    this.add.image(cx, H / 2, 'vineta');
+    crearVineta(this);
+    // Se rearma si cambia el tamaño, salvo si ya se está yendo a otra pantalla
+    // (el primer toque activa la pantalla completa y eso cambia el tamaño)
+    this.saliendo = false;
+    reiniciarAlCambiarTamano(this, () => !this.saliendo);
 
     // Luz detrás del héroe y el héroe "flotando" (mirando hacia arriba)
     this.add.image(cx, 380, 'brillo').setTint(0xff5722).setScale(3.2).setAlpha(0.5)
@@ -83,6 +88,7 @@ export default class EscenaTitulo extends Phaser.Scene {
     // Al tocar: la cámara se funde a negro y empieza la arena
     const empezar = () => {
       boton.disableInteractive();
+      this.saliendo = true;
       this.cameras.main.fadeOut(350, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaHeroe'));
     };

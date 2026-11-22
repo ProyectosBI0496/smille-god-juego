@@ -1,5 +1,5 @@
 {
-  "version": "0.0.11",
+  "version": "0.1.0-d",
   "archivos": [
     "index.html",
     "src/controles/BotonHabilidad.js",
@@ -25,6 +25,7 @@
     "src/red/Cooperativo.js",
     "src/red/Red.js",
     "src/ui/BarraVida.js",
-    "src/ui/EditorNick.js"
+    "src/ui/EditorNick.js",
+    "src/ui/Pantalla.js"
   ]
 }

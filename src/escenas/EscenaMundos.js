@@ -5,6 +5,7 @@
 // =============================================================
 
 import { crearTexturas } from '../graficos/Texturas.js';
+import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
 import { mundosSuperados, razaElegida } from '../datos/Progreso.js';
@@ -17,14 +18,15 @@ export default class EscenaMundos extends Phaser.Scene {
 
   create() {
     crearTexturas(this);
-    const W = this.scale.width;
-    const H = this.scale.height;
+    const W = this.scale.baseSize.width;
+    const H = this.scale.baseSize.height;
     const mundos = this.cache.json.get('balance').mundos;
     const superados = mundosSuperados();
 
     this.cameras.main.fadeIn(300);
     this.add.tileSprite(0, 0, W, H, 'baldosa-0').setOrigin(0).setTint(0x6a6a80);
-    this.add.image(W / 2, H / 2, 'vineta');
+    crearVineta(this);
+    reiniciarAlCambiarTamano(this); // si cambia el tamaño de la pantalla, se rearma
 
     // En pareja (Etapa 9): solo el anfitrión elige; se le avisa al invitado
     const red = redActual();

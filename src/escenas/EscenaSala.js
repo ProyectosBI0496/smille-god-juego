@@ -7,6 +7,7 @@
 // =============================================================
 
 import { crearTexturas } from '../graficos/Texturas.js';
+import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
 import { razaElegida } from '../datos/Progreso.js';
 import { crearEditorNick } from '../ui/EditorNick.js';
@@ -23,11 +24,12 @@ export default class EscenaSala extends Phaser.Scene {
 
   create() {
     crearTexturas(this);
-    const W = this.scale.width;
-    const H = this.scale.height;
+    const W = this.scale.baseSize.width;
+    const H = this.scale.baseSize.height;
     this.cx = W / 2;
     this.add.tileSprite(0, 0, W, H, 'baldosa-1').setOrigin(0).setTint(0x6a6a80);
-    this.add.image(W / 2, H / 2, 'vineta');
+    crearVineta(this);
+    reiniciarAlCambiarTamano(this, () => !redActual()); // con una sala abierta no se rearma
     this.add.text(this.cx, 60, 'Jugar en pareja', {
       fontFamily: FUENTE_TITULO, fontSize: '56px', color: '#f5c542', fontStyle: 'bold',
       stroke: '#3a1500', strokeThickness: 8,

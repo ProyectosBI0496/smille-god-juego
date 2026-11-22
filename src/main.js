@@ -21,7 +21,9 @@ const config = {
   type: Phaser.AUTO,          // usa WebGL si el equipo lo soporta; si no, Canvas
   backgroundColor: '#05070d',
   scale: {
-    mode: Phaser.Scale.FIT,   // se adapta a la pantalla sin deformarse
+    // EXPAND (Etapa 10): llena toda la pantalla sin deformarse. 1280 × 720 es el
+    // tamaño MÍNIMO; en celulares más alargados el juego gana ancho (sin franjas negras).
+    mode: Phaser.Scale.EXPAND,
     autoCenter: Phaser.Scale.CENTER_BOTH,
     width: 1280,              // resolución "lógica" horizontal (celular acostado)
     height: 720,

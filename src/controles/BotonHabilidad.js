@@ -42,6 +42,14 @@ export default class BotonHabilidad {
     this.circulo.on('pointerdown', () => this.usar());
   }
 
+  /** Mueve el botón (cuando cambia el tamaño de la pantalla) */
+  mover(x, y) {
+    this.x = x;
+    this.y = y;
+    this.circulo.setPosition(x, y);
+    this.texto.setPosition(x, y);
+  }
+
   /** true si la habilidad se puede usar ahora */
   get listo() {
     return this.escena.time.now >= this.listoEn;
