@@ -70,6 +70,7 @@ export default class EscenaArena extends Phaser.Scene {
 
     this.crearEfectos();
     this.crearTextos();
+    this.crearBotonPausa();
     this.iniciarSiguienteOleada();
   }
 
@@ -395,6 +396,38 @@ export default class EscenaArena extends Phaser.Scene {
     }).setDepth(45);
   }
 
+  /**
+   * Botón de pausa (arriba a la derecha) + teclas P y ESC.
+   * También pausa solo si el jugador sale de la app o cambia de pestaña.
+   */
+  crearBotonPausa() {
+    const x = this.scale.width - 55;
+    const y = 55;
+    const boton = this.add.circle(x, y, 34, 0x0b0f1a, 0.55).setStrokeStyle(3, 0xf5c542, 0.8)
+      .setScrollFactor(0).setDepth(100).setInteractive();
+    // Ícono: dos barras verticales
+    this.add.rectangle(x - 8, y, 8, 26, 0xf5c542).setScrollFactor(0).setDepth(101);
+    this.add.rectangle(x + 8, y, 8, 26, 0xf5c542).setScrollFactor(0).setDepth(101);
+    boton.on('pointerdown', () => this.pausar());
+
+    this.input.keyboard.on('keydown-P', () => this.pausar());
+    this.input.keyboard.on('keydown-ESC', () => this.pausar());
+
+    // "hidden" lo avisa Phaser cuando la página deja de verse.
+    // Al cerrar la escena quitamos el aviso para no acumularlo en cada reinicio.
+    this.game.events.on('hidden', this.pausar, this);
+    this.events.once('shutdown', () => this.game.events.off('hidden', this.pausar, this));
+  }
+
+  /** Congela la arena y abre el menú de pausa encima */
+  pausar() {
+    if (!this.heroe.vivo || !this.scene.isActive()) return; // ya en pausa o en derrota
+    this.joystick.soltar();             // al volver, el héroe no debe seguir caminando solo
+    this.heroe.cuerpo.body.setVelocity(0, 0);
+    this.scene.pause();                 // congela update, física, tiempo y animaciones
+    this.scene.launch('EscenaPausa');   // "launch" abre otra escena SIN cerrar esta
+  }
+
   /** El héroe cayó: pantalla de derrota con récord y botón Reintentar */
   derrota() {
     this.heroe.cuerpo.body.setVelocity(0, 0);
@@ -534,7 +567,7 @@ export default class EscenaArena extends Phaser.Scene {
       .setScrollFactor(0).setDepth(100);
 
     this.add.text(20, this.scale.height - 36,
-      'PC: WASD mover · ESPACIO atacar · K Onda · L Torbellino', { ...estilo, fontSize: '18px' })
+      'PC: WASD mover · ESPACIO atacar · K Onda · L Torbellino · P pausa', { ...estilo, fontSize: '18px' })
       .setScrollFactor(0).setDepth(100);
   }
 }

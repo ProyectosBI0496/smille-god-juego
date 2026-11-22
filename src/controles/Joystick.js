@@ -97,6 +97,11 @@ export default class Joystick {
 
   alSoltar(puntero) {
     if (puntero.id !== this.punteroId) return;
+    this.soltar();
+  }
+
+  /** Suelta el joystick a la fuerza (por ejemplo, al poner pausa) */
+  soltar() {
     this.punteroId = null;
     this.base.setVisible(false);
     this.palanca.setVisible(false);
