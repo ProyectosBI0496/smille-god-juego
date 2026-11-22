@@ -47,7 +47,8 @@ export default class EscenaSala extends Phaser.Scene {
     });
 
     this.crearMiHeroe(W, H);
-    crearEditorNick(this, W - 24, 24);
+    const red0 = redActual();
+    crearEditorNick(this, W - 24, 24, { esperando: !!(red0 && red0.conectado && !red0.esAnfitrion) });
 
     const red = redActual();
     if (this.esperando && red && red.conectado) {

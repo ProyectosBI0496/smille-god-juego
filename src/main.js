@@ -15,6 +15,7 @@ import EscenaPausa from './escenas/EscenaPausa.js';
 import EscenaMundos from './escenas/EscenaMundos.js';
 import EscenaHeroe from './escenas/EscenaHeroe.js';
 import EscenaSala from './escenas/EscenaSala.js';
+import EscenaNick from './escenas/EscenaNick.js';
 
 const config = {
   type: Phaser.AUTO,          // usa WebGL si el equipo lo soporta; si no, Canvas
@@ -33,9 +34,12 @@ const config = {
     powerPreference: 'high-performance', // pide la tarjeta gráfica más rápida del equipo
   },
   input: {
-    activePointers: 3,        // hasta 3 dedos a la vez (joystick + botones)
+    // Corrección (sesión 14): Phaser usa uno de estos "punteros" para el mouse,
+    // así que con 3 solo quedaban 2 dedos. Si un dedo quedaba "pegado" (al girar
+    // el celular o entrar a pantalla completa), ya no se podía caminar y atacar a la vez.
+    activePointers: 6,
   },
-  scene: [EscenaTitulo, EscenaHeroe, EscenaMundos, EscenaArena, EscenaPausa, EscenaSala], // la primera de la lista es la que arranca
+  scene: [EscenaTitulo, EscenaHeroe, EscenaMundos, EscenaArena, EscenaPausa, EscenaSala, EscenaNick], // la primera de la lista es la que arranca
 };
 
 // Arranca el juego. Lo guardamos en window.juego para poder
