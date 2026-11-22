@@ -9,6 +9,8 @@
 //   perseguir ──(héroe cerca y embestida lista)──▶ aviso
 //   aviso ──(pasó el tiempo de aviso)──▶ embestir
 //   embestir ──(terminó la embestida)──▶ perseguir
+//   perseguir ──(ráfaga lista)──▶ rafaga ──(pasó el aviso: dispara en círculo)──▶ perseguir
+// (Etapa 7: la ráfaga solo la usan los jefes cuyo mundo la incluye en "ataques")
 // =============================================================
 
 import Enemigo from './Enemigo.js';
@@ -21,6 +23,8 @@ export default class Jefe extends Enemigo {
     this.embestidaListaEn = escena.time.now + config.recargaEmbestidaMs;
     this.direccionEmbestida = new Phaser.Math.Vector2();
     this.aviso = null;                                        // la flecha roja de advertencia
+    this.ataques = config.ataques || ['embestida'];
+    this.rafagaListaEn = escena.time.now + (config.rafaga ? config.rafaga.recargaMs * 0.6 : 0);
   }
 
   actualizar(heroe) {
@@ -30,9 +34,19 @@ export default class Jefe extends Enemigo {
     if (this.estado === 'perseguir') {
       super.actualizar(heroe); // persigue como un enemigo normal
       const distancia = Phaser.Math.Distance.Between(x, y, heroe.cuerpo.x, heroe.cuerpo.y);
-      if (ahora >= this.embestidaListaEn && distancia < this.config.distanciaEmbestida) {
+      if (this.ataques.includes('embestida') && ahora >= this.embestidaListaEn && distancia < this.config.distanciaEmbestida) {
         this.empezarAviso(heroe);
+      } else if (this.ataques.includes('rafaga') && ahora >= this.rafagaListaEn && distancia < 700) {
+        this.empezarRafaga();
       }
+      return;
+    }
+
+    if (this.estado === 'rafaga') {
+      // Quieto, brillando en violeta; al terminar el aviso dispara en todas direcciones
+      this.cuerpo.body.setVelocity(0, 0);
+      this.dibujar(x, y);
+      if (ahora >= this.cambioEn) this.dispararRafaga();
       return;
     }
 
@@ -79,6 +93,28 @@ export default class Jefe extends Enemigo {
     this.escena.cameras.main.shake(150, 0.004);
   }
 
+  empezarRafaga() {
+    this.estado = 'rafaga';
+    this.cambioEn = this.escena.time.now + this.config.rafaga.avisoMs;
+    this.sprite.setTint(0xb388ff);
+    this.escena.tweens.add({ targets: this.sprite, scale: this.escalaBase * 1.15, duration: 120, yoyo: true, repeat: 2 });
+  }
+
+  /** Lanza "cantidad" proyectiles repartidos en un círculo completo */
+  dispararRafaga() {
+    const r = this.config.rafaga;
+    const giro = Math.random() * Math.PI * 2; // cada ráfaga empieza en un ángulo distinto
+    for (let i = 0; i < r.cantidad; i++) {
+      const angulo = giro + (i / r.cantidad) * Math.PI * 2;
+      this.escena.dispararProyectil(this.cuerpo.x, this.cuerpo.y, angulo, r, 0xb388ff);
+    }
+    this.estado = 'perseguir';
+    this.sprite.setTint(this.color);
+    const ahora = this.escena.time.now;
+    this.rafagaListaEn = ahora + r.recargaMs;
+    this.embestidaListaEn = Math.max(this.embestidaListaEn, ahora + 1200); // un respiro antes de embestir
+  }
+
   /** Coloca el dibujo (sin perseguir), mirando hacia la embestida */
   dibujar(x, y) {
     const angulo = Math.atan2(this.direccionEmbestida.y, this.direccionEmbestida.x);
@@ -97,7 +133,7 @@ export default class Jefe extends Enemigo {
       return;
     }
     super.recibirDanio(danio, direccion, empuje);
-    if (this.estado === 'aviso') this.escena.time.delayedCall(90, () => { if (this.sprite.active) this.sprite.setTint(0xff5252); });
+    if (this.estado === 'aviso' || this.estado === 'rafaga') this.escena.time.delayedCall(90, () => { if (this.sprite.active) this.sprite.setTint(0xff5252); });
   }
 
   quitarAviso() {

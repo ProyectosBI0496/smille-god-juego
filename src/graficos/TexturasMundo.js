@@ -118,6 +118,36 @@ export function enemigosEtapa6(escena) {
     g.fillRect(21, 26, 22, 6);
   });
 
+  // TIRADOR (Etapa 7): bestia con un gran ojo y tentáculos; dispara de lejos.
+  dibujar(escena, 'enemigo-tirador', 80, 80, (g) => {
+    g.fillStyle(0x7a7a7a);
+    for (const a of [2.3, 2.8, 3.5, 4.0]) { // tentáculos hacia atrás
+      poligono(g, [[40 + Math.cos(a - 0.15) * 16, 40 + Math.sin(a - 0.15) * 16],
+        [40 + Math.cos(a) * 36, 40 + Math.sin(a) * 36],
+        [40 + Math.cos(a + 0.15) * 16, 40 + Math.sin(a + 0.15) * 16]]);
+    }
+    g.fillStyle(0x6a6a6a);
+    g.fillCircle(42, 40, 21);
+    g.fillStyle(0xd6d6d6);
+    g.fillCircle(42, 40, 17);
+    g.fillStyle(0xffffff, 0.6);
+    g.fillCircle(38, 32, 5);
+  });
+  dibujar(escena, 'enemigo-tirador-ojos', 80, 80, (g) => {
+    g.fillStyle(0xffffff); // un solo ojo grande, mirando al frente
+    g.fillCircle(50, 40, 9);
+    g.fillStyle(0x111111);
+    g.fillCircle(54, 40, 5);
+  });
+
+  // Proyectil: esfera brillante (se tiñe con el color del mundo)
+  dibujar(escena, 'proyectil', 24, 24, (g) => {
+    g.fillStyle(0xffffff, 0.35);
+    g.fillCircle(12, 12, 12);
+    g.fillStyle(0xffffff);
+    g.fillCircle(12, 12, 7);
+  });
+
   // Hoja que cae (Bosque)
   dibujar(escena, 'hoja', 14, 8, (g) => {
     g.fillStyle(0xffffff);

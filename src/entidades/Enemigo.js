@@ -54,10 +54,14 @@ export default class Enemigo {
       this.escena.physics.moveToObject(this.cuerpo, heroe.cuerpo, this.config.velocidad);
     }
 
-    const { x, y } = this.cuerpo;
     // Mira hacia donde se mueve (su velocidad)
     const vel = this.cuerpo.body.velocity;
-    const angulo = Math.atan2(vel.y, vel.x);
+    this.colocarDibujo(Math.atan2(vel.y, vel.x));
+  }
+
+  /** Mueve el dibujo (sprite, ojos, sombra y barra) a donde está el cuerpo físico */
+  colocarDibujo(angulo) {
+    const { x, y } = this.cuerpo;
     // Palpita un poco, como si respirara
     const pulso = this.escalaBase * (1 + Math.sin((this.escena.time.now + this.fase) * 0.012) * 0.06);
     if (!this.escena.tweens.isTweening(this.sprite)) {

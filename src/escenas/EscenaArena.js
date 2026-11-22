@@ -8,6 +8,8 @@
 // Etapa 6: MUNDOS-MAZMORRA (D-025): el héroe camina de sala en sala;
 //          cada sala tiene una oleada y cada cierto número hay un
 //          salón del jefe. Curas (pociones), victoria y desbloqueo.
+// Etapa 7: salas con formas, bestias TIRADORAS con proyectiles,
+//          ráfaga de los jefes y dificultad que sube sala a sala.
 // =============================================================
 
 // Tipografía de fantasía (Google Fonts, cargada en index.html).
@@ -17,12 +19,16 @@ export const FUENTE_TITULO = '"Cinzel", Georgia, serif';
 import Heroe from '../entidades/Heroe.js';
 import Enemigo from '../entidades/Enemigo.js';
 import Jefe from '../entidades/Jefe.js';
+import Tirador from '../entidades/Tirador.js';
 import Joystick from '../controles/Joystick.js';
 import BotonHabilidad from '../controles/BotonHabilidad.js';
 import Mazmorra from '../mundo/Mazmorra.js';
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
 import { marcarSuperado } from '../datos/Progreso.js';
+
+// Qué clase usar para cada tipo de enemigo de balance.json (por defecto, Enemigo)
+const CLASES = { tirador: Tirador };
 
 export default class EscenaArena extends Phaser.Scene {
   constructor() {
@@ -64,6 +70,18 @@ export default class EscenaArena extends Phaser.Scene {
     this.heroe = new Heroe(this, entrada.x + 150, entrada.medio, this.balance.heroe);
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.muros);
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.puertas.filter(Boolean));
+
+    // PROYECTILES (Etapa 7): un grupo con física que RECICLA sus objetos.
+    // group.get() devuelve uno apagado si hay (object pooling) o crea uno nuevo.
+    this.proyectiles = this.physics.add.group({ defaultKey: 'proyectil', maxSize: 120 });
+    const apagar = (proyectil) => proyectil.disableBody(true, true); // inactivo e invisible
+    this.physics.add.collider(this.proyectiles, this.mazmorra.muros, apagar);
+    this.physics.add.collider(this.proyectiles, this.mazmorra.puertas.filter(Boolean), apagar);
+    this.physics.add.overlap(this.heroe.cuerpo, this.proyectiles, (cuerpo, proyectil) => {
+      if (!proyectil.active) return;
+      apagar(proyectil);
+      this.danarHeroe(proyectil.danio);
+    });
 
     // La cámara sigue al héroe con suavidad, sin salirse de la mazmorra
     this.cameras.main.setBounds(0, 0, ancho, alto);
@@ -115,18 +133,44 @@ export default class EscenaArena extends Phaser.Scene {
       const distancia = Phaser.Math.Distance.Between(
         enemigo.cuerpo.x, enemigo.cuerpo.y, this.heroe.cuerpo.x, this.heroe.cuerpo.y
       );
-      if (distancia < enemigo.radio + this.heroe.radio) {
-        if (this.heroe.recibirDanio(enemigo.config.danioContacto)) {
-          this.cameras.main.shake(100, 0.006); // sacudida de cámara
-          this.vibrar(60);                     // vibración del celular
-          if (!this.heroe.vivo) this.derrota();
-        }
-      }
+      if (distancia < enemigo.radio + this.heroe.radio) this.danarHeroe(enemigo.config.danioContacto);
+    }
+
+    // Proyectiles que ya vivieron su tiempo se apagan (vuelven al "pool")
+    const ahora = this.time.now;
+    for (const p of this.proyectiles.getChildren()) {
+      if (p.active && ahora >= p.muereEn) p.disableBody(true, true);
     }
 
     this.dibujarBarraJefe();
     // El clima sigue a la cámara: solo se generan partículas donde se ve
     for (const emisor of this.climas) emisor.setPosition(this.cameras.main.scrollX, this.cameras.main.scrollY);
+  }
+
+  /** Daño al héroe (por contacto o por proyectil) con sacudida y vibración */
+  danarHeroe(danio) {
+    if (!this.heroe.vivo || this.terminado) return;
+    if (this.heroe.recibirDanio(danio)) {
+      this.cameras.main.shake(100, 0.006);
+      this.vibrar(60);
+      if (!this.heroe.vivo) this.derrota();
+    }
+  }
+
+  /**
+   * Dispara un proyectil desde (x, y) en la dirección "angulo" (en radianes).
+   * cfg = { velocidad, danio, duracionMs } de balance.json
+   */
+  dispararProyectil(x, y, angulo, cfg, tinte = 0xffffff) {
+    const p = this.proyectiles.get(x, y);
+    if (!p) return; // se llegó al máximo: no dispara
+    p.enableBody(true, x, y, true, true); // lo "revive" en ese punto
+    p.setTint(tinte).setBlendMode(Phaser.BlendModes.ADD).setDepth(30);
+    p.body.setCircle(8, 4, 4); // círculo de choque más chico que el dibujo
+    // velocityFromRotation convierte ángulo + rapidez en velocidad (x, y)
+    this.physics.velocityFromRotation(angulo, cfg.velocidad, p.body.velocity);
+    p.danio = cfg.danio;
+    p.muereEn = this.time.now + cfg.duracionMs;
   }
 
   /** Arma la dirección de movimiento desde el joystick o el teclado */
@@ -168,8 +212,9 @@ export default class EscenaArena extends Phaser.Scene {
     this.salaActiva = sala;
 
     if (sala.tipo === 'oleada') {
+      const nivel = sala.numero - 1; // 0 en la primera sala: cada sala es un poco más dura
       for (const [tipo, cantidad] of Object.entries(this.composicionOleada(sala.numero))) {
-        for (let i = 0; i < cantidad; i++) this.crearEnemigo(this.configEnemigo(tipo), sala);
+        for (let i = 0; i < cantidad; i++) this.crearEnemigo(this.configEnemigo(tipo, nivel), sala, CLASES[tipo]);
       }
       this.mostrarAnuncio(`Oleada ${sala.numero} de ${this.mundo.oleadas}`);
     } else {
@@ -198,15 +243,21 @@ export default class EscenaArena extends Phaser.Scene {
     return resultado;
   }
 
-  /** Arma la configuración de un enemigo: su tipo + la fuerza y el color del mundo */
-  configEnemigo(tipo) {
+  /**
+   * Arma la configuración de un enemigo: su tipo + la fuerza del mundo
+   * + la DIFICULTAD de la sala ("nivel" = cuántas salas van antes).
+   */
+  configEnemigo(tipo, nivel = 0) {
     const base = this.balance.tiposEnemigo[tipo];
+    const d = this.balance.dificultad;
     const fuerza = this.mundo.fuerza;
     return {
       ...base, // "..." copia todos los datos del tipo; luego cambiamos algunos
-      vidaMax: Math.round(base.vidaMax * fuerza),
-      velocidad: Math.round(base.velocidad * (1 + (fuerza - 1) / 2)),
+      vidaMax: Math.round(base.vidaMax * fuerza * (1 + nivel * d.vidaPorSala)),
+      velocidad: Math.round(base.velocidad * (1 + (fuerza - 1) / 2) * (1 + nivel * d.velocidadPorSala)),
+      danioContacto: Math.round(base.danioContacto * (1 + nivel * d.danioPorSala)),
       color: this.mundo.colores[tipo],
+      colorProyectil: color(this.mundo.colores[tipo]),
     };
   }
 
@@ -228,6 +279,7 @@ export default class EscenaArena extends Phaser.Scene {
    * "Clase" permite elegir qué crear: Enemigo por defecto, o Jefe.
    */
   crearEnemigo(config, sala, Clase = Enemigo) {
+    Clase = Clase || Enemigo; // si el tipo no tiene clase propia, es un Enemigo normal
     const margen = config.radio + 20;
     const minima = this.balance.mazmorra.distanciaMinimaAparicion;
     let x;
@@ -237,7 +289,9 @@ export default class EscenaArena extends Phaser.Scene {
       x = Phaser.Math.Between(sala.x + margen, sala.x + sala.ancho - margen);
       y = Phaser.Math.Between(sala.y + margen, sala.y + sala.alto - margen);
       intentos += 1;
-    } while (intentos < 30 && Phaser.Math.Distance.Between(x, y, this.heroe.cuerpo.x, this.heroe.cuerpo.y) < minima);
+    } while (intentos < 40 && (
+      Phaser.Math.Distance.Between(x, y, this.heroe.cuerpo.x, this.heroe.cuerpo.y) < minima ||
+      !this.mazmorra.libre(x, y, config.radio + 10, sala))); // no aparecer dentro de un bloque
 
     const enemigo = new Clase(this, x, y, config);
     // Los enemigos también chocan con los muros y las puertas

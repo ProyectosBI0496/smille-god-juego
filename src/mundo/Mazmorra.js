@@ -6,7 +6,11 @@
 //
 //   [Entrada]═══[Sala 1]═══[Sala 2]═══[Sala 3]═══[ SALÓN DEL JEFE ]═══ ...
 //
-// La escena le pregunta: ¿en qué sala está el héroe?, ¿abre la puerta N?
+// Etapa 7: cada sala tiene un TAMAÑO y una FORMA al azar (con semilla):
+//   rect · columnas · cruz (esquinas tapadas) · esquina (forma de L) · centro (bloque al medio)
+// Las formas se logran poniendo bloques de muro DENTRO del rectángulo.
+//
+// La escena le pregunta: ¿en qué sala está el héroe?, ¿abre la puerta N?, ¿este punto está libre?
 // =============================================================
 
 export default class Mazmorra {
@@ -34,21 +38,23 @@ export default class Mazmorra {
    * cada "oleadasPorJefe" oleadas. También calcula dónde va cada una.
    */
   planificarSalas() {
-    const { salaEntrada, sala, salaJefe, pasilloLargo } = this.cfg;
+    const { salaEntrada, tamanosSala, formas, formasJefe, salaJefe, pasilloLargo } = this.cfg;
     const m = this.mundo;
-    const lista = [{ tipo: 'entrada', tam: salaEntrada }];
+    const lista = [{ tipo: 'entrada', tam: salaEntrada, forma: 'rect' }];
     let jefe = 0;
     for (let n = 1; n <= m.oleadas; n++) {
-      lista.push({ tipo: 'oleada', numero: n, tam: sala });
+      // azar.pick elige un elemento de la lista (siempre el mismo gracias a la semilla)
+      lista.push({ tipo: 'oleada', numero: n, tam: this.azar.pick(tamanosSala), forma: this.azar.pick(formas) });
       if (n % m.oleadasPorJefe === 0) {
         jefe += 1;
-        lista.push({ tipo: 'jefe', numero: jefe, tam: salaJefe });
+        lista.push({ tipo: 'jefe', numero: jefe, tam: salaJefe, forma: this.azar.pick(formasJefe) });
       }
     }
     this.totalJefes = jefe;
 
     // Todas las salas comparten la misma línea central (y = medio)
-    this.alto = salaJefe[1] + this.T * 2 + 200;
+    const altoMaximo = Math.max(salaJefe[1], ...tamanosSala.map((t) => t[1]));
+    this.alto = altoMaximo + this.T * 2 + 200;
     const medio = this.alto / 2;
     let x = this.T + 100;
     this.salas = lista.map((s) => {
@@ -79,12 +85,17 @@ export default class Mazmorra {
       escena.add.image(bx, by, `suelo-${id}-${this.azar.between(1, 3)}`).setOrigin(0).setDepth(0);
     }
 
-    // ADORNOS (los del salón del jefe son el doble)
+    // FORMA: bloques de muro dentro de la sala
+    sala.obstaculos = this.obstaculosDe(sala);
+    for (const o of sala.obstaculos) this.muro(o.x, o.y, o.w, o.h);
+
+    // ADORNOS (los del salón del jefe son el doble); no van encima de los bloques
     const factor = sala.tipo === 'jefe' ? 2 : sala.tipo === 'entrada' ? 0.5 : 1;
     for (const { tipo, cantidad } of this.mundo.decoracionPorSala) {
       for (let k = 0; k < Math.round(cantidad * factor); k++) {
         const dx = this.azar.between(x + 20, x + ancho - 150);
         const dy = this.azar.between(y + 20, y + alto - 110);
+        if (!this.libre(dx + 50, dy + 40, 80, sala)) continue;
         escena.add.image(dx, dy, `deco-${id}-${tipo}`).setOrigin(0).setDepth(1);
         if (tipo === 'lava') {
           const halo = escena.add.image(dx + 70, dy + 50, 'brillo').setTint(0xff6d00).setScale(2.2)
@@ -123,6 +134,56 @@ export default class Mazmorra {
         escena.crearAntorcha(ax, y + alto + T / 2);
       }
     }
+  }
+
+  /**
+   * Los bloques que le dan forma a la sala, como rectángulos { x, y, w, h }.
+   * Siempre dejan libre la franja del medio (por donde se entra y se sale),
+   * salvo "centro", que pone un bloque al medio que hay que rodear.
+   */
+  obstaculosDe(sala) {
+    const { x, y, ancho, alto, medio } = sala;
+    const pa = this.cfg.pasilloAncho;
+    const libreMedio = alto / 2 - pa / 2 - 30; // alto máximo de un bloque pegado arriba o abajo
+    const B = [];
+    switch (sala.forma) {
+      case 'columnas': {
+        const lado = sala.tipo === 'jefe' ? 110 : 80;
+        for (const fx of [0.28, 0.72]) {
+          for (const fy of [0.28, 0.72]) B.push({ x: x + ancho * fx - lado / 2, y: y + alto * fy - lado / 2, w: lado, h: lado });
+        }
+        break;
+      }
+      case 'cruz': { // las 4 esquinas tapadas
+        const w = ancho * 0.28;
+        const h = Math.min(alto * 0.32, libreMedio);
+        B.push({ x, y, w, h }, { x: x + ancho - w, y, w, h }, { x, y: y + alto - h, w, h }, { x: x + ancho - w, y: y + alto - h, w, h });
+        break;
+      }
+      case 'esquina': { // una esquina grande tapada: la sala queda en forma de L
+        const w = ancho * 0.45;
+        const h = Math.min(alto * 0.45, libreMedio);
+        const derecha = this.azar.frac() < 0.5;
+        const arriba = this.azar.frac() < 0.5;
+        B.push({ x: derecha ? x + ancho - w : x, y: arriba ? y : y + alto - h, w, h });
+        break;
+      }
+      case 'centro': { // un bloque grande al medio: hay que rodearlo
+        const w = ancho * 0.26;
+        const h = alto * 0.3;
+        B.push({ x: x + ancho / 2 - w / 2, y: medio - h / 2, w, h });
+        break;
+      }
+      default: // 'rect': sin bloques
+        break;
+    }
+    return B;
+  }
+
+  /** true si un círculo (x, y, radio) dentro de la sala no toca ningún bloque */
+  libre(x, y, radio, sala) {
+    return (sala.obstaculos || []).every((o) =>
+      x + radio < o.x || x - radio > o.x + o.w || y + radio < o.y || y - radio > o.y + o.h);
   }
 
   /** Un bloque de muro: se ve (TileSprite con la textura del muro) y choca (cuerpo estático) */
