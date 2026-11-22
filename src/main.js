@@ -1,5 +1,5 @@
 // =============================================================
-// AetherClash — Prototipo web · Etapa 0
+// Smille God — Prototipo web · Etapa 0
 // Objetivo: comprobar que Phaser funciona en el PC y en el celular.
 // Toca (o haz clic) en cualquier parte: el héroe se mueve hacia ahí.
 // =============================================================
@@ -19,7 +19,7 @@ class EscenaPrueba extends Phaser.Scene {
     const alto = this.scale.height;
 
     // Título del juego, centrado arriba
-    this.add.text(ancho / 2, 80, 'AetherClash', {
+    this.add.text(ancho / 2, 80, 'Smille God', {
       fontFamily: 'Georgia, serif',
       fontSize: '64px',
       color: '#f5c542', // dorado, como el Inty
