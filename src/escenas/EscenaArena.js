@@ -117,7 +117,13 @@ export default class EscenaArena extends Phaser.Scene {
     // PROYECTILES (Etapa 7): un grupo con física que RECICLA sus objetos.
     // group.get() devuelve uno apagado si hay (object pooling) o crea uno nuevo.
     this.proyectiles = this.physics.add.group({ defaultKey: 'proyectil', maxSize: 120 });
-    const apagar = (proyectil) => proyectil.disableBody(true, true); // inactivo e invisible
+    // Corrección (sesión 14): al chocar con una REJA, Phaser entrega los objetos en
+    // orden inverso (reja, proyectil). Por eso buscamos cuál de los dos es el proyectil.
+    // Antes se intentaba "apagar" la reja, fallaba en cada cuadro y el juego se congelaba.
+    const apagar = (a, b) => {
+      const proyectil = a.disableBody ? a : b;
+      proyectil.disableBody(true, true); // inactivo e invisible
+    };
     this.physics.add.collider(this.proyectiles, this.mazmorra.muros, apagar);
     this.physics.add.collider(this.proyectiles, this.mazmorra.puertas.filter(Boolean), apagar);
     // Solo quien calcula el juego (solo o anfitrión) aplica el daño de los proyectiles
