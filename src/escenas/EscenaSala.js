@@ -45,6 +45,8 @@ export default class EscenaSala extends Phaser.Scene {
       this.scene.start('EscenaTitulo');
     });
 
+    this.crearMiHeroe(W, H);
+
     const red = redActual();
     if (this.esperando && red && red.conectado) {
       this.escucharPartida(red);
@@ -57,6 +59,23 @@ export default class EscenaSala extends Phaser.Scene {
 
   decir(texto) {
     this.mensaje.setText(texto);
+  }
+
+  /** Abajo a la derecha: mi héroe y el botón para cambiarlo */
+  crearMiHeroe(W, H) {
+    const razas = this.cache.json.get('balance').razas;
+    const id = razas[razaElegida()] ? razaElegida() : 'humano';
+    if (razas[id].extra) this.add.image(W - 300, H - 55, `${id}-${razas[id].extra}`).setAngle(-90).setScale(0.8);
+    this.add.image(W - 300, H - 55, `${id}-cuerpo`).setAngle(-90).setScale(0.8);
+    const cambiar = this.add.text(W - 250, H - 55, `${razas[id].nombre} · Cambiar`, {
+      fontFamily: FUENTE_TITULO, fontSize: '26px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
+    }).setOrigin(0, 0.5).setInteractive();
+    cambiar.on('pointerdown', () => {
+      const red = redActual();
+      const conectado = !!(red && red.conectado);
+      // Si ya está conectado como invitado, vuelve a esperar; si no, vuelve a la sala desde cero
+      this.scene.start('EscenaHeroe', { volverA: 'EscenaSala', datosVolver: { esperando: conectado && !red.esAnfitrion } });
+    });
   }
 
   /** Botón grande reutilizable; lo agrega a la capa actual */

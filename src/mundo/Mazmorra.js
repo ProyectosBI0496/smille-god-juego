@@ -71,6 +71,8 @@ export default class Mazmorra {
   /** Suelo, adornos, muros (con huecos para las puertas), pasillo y antorchas */
   construirSala(sala, i) {
     const { escena, T } = this;
+    // Para el "recorte" (ver recortar): anotamos cuántos objetos había antes de esta sala
+    const antes = escena.children.list.length;
     const id = this.mundo.id;
     const ultima = i === this.salas.length - 1;
     const pa = this.cfg.pasilloAncho;
@@ -133,6 +135,26 @@ export default class Mazmorra {
         escena.crearAntorcha(ax, y - T / 2);
         escena.crearAntorcha(ax, y + alto + T / 2);
       }
+    }
+
+    // Todo lo que se creó para esta sala (menos la reja, que se maneja aparte)
+    sala.objetos = escena.children.list.slice(antes).filter((o) => o !== this.puertas[i]);
+    sala.visible = true;
+  }
+
+  /**
+   * RECORTE (optimización, sesión 14): solo se dibujan las salas cerca de la cámara.
+   * Una mazmorra del Nevado tiene más de 1.000 objetos; el celular dibujaba
+   * todos en cada frame aunque no se vieran. Ahora oculta los que están lejos.
+   */
+  recortar(camara) {
+    const v = camara.worldView;
+    const margen = this.cfg.pasilloLargo + 300;
+    for (const sala of this.salas) {
+      const visible = sala.x - margen < v.right && sala.x + sala.ancho + margen > v.x;
+      if (visible === sala.visible) continue; // no cambió: no hacemos nada
+      sala.visible = visible;
+      for (const objeto of sala.objetos) objeto.setVisible(visible);
     }
   }
 

@@ -1,5 +1,8 @@
 // =============================================================
 // Barra de vida que flota sobre un personaje
+// Optimización (sesión 14): antes se usaba "Graphics" y se BORRABA y
+// redibujaba en cada frame (lento en celulares). Ahora son dos
+// rectángulos que solo se mueven y cambian de ancho: mucho más liviano.
 // =============================================================
 
 export default class BarraVida {
@@ -11,22 +14,21 @@ export default class BarraVida {
   constructor(escena, ancho, color) {
     this.ancho = ancho;
     this.alto = 6;
-    this.color = color;
-    this.grafico = escena.add.graphics().setDepth(50);
+    this.fondo = escena.add.rectangle(0, 0, ancho + 2, this.alto + 2, 0x000000, 0.6).setOrigin(0).setDepth(50);
+    this.relleno = escena.add.rectangle(0, 0, ancho, this.alto, color).setOrigin(0).setDepth(50);
   }
 
-  /** Redibuja la barra encima de (x, y) con el porcentaje de vida (0 a 1) */
+  /** Coloca la barra encima de (x, y) con el porcentaje de vida (0 a 1) */
   dibujar(x, y, porcentaje) {
-    const g = this.grafico;
     const izquierda = x - this.ancho / 2;
-    g.clear();
-    g.fillStyle(0x000000, 0.6);                       // fondo oscuro
-    g.fillRect(izquierda - 1, y - 1, this.ancho + 2, this.alto + 2);
-    g.fillStyle(this.color);                          // vida restante
-    g.fillRect(izquierda, y, this.ancho * Math.max(porcentaje, 0), this.alto);
+    this.fondo.setPosition(izquierda - 1, y - 1);
+    this.relleno.setPosition(izquierda, y);
+    const nuevoAncho = this.ancho * Phaser.Math.Clamp(porcentaje, 0, 1);
+    if (nuevoAncho !== this.relleno.width) this.relleno.setSize(nuevoAncho, this.alto); // solo si cambió
   }
 
   destruir() {
-    this.grafico.destroy();
+    this.fondo.destroy();
+    this.relleno.destroy();
   }
 }

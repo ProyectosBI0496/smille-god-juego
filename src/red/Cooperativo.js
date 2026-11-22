@@ -68,6 +68,10 @@ export default class Cooperativo {
       return;
     }
 
+    // INVITADO: si hace rato no llega nada del anfitrión, se avisa en pantalla
+    const silencio = performance.now() - this.red.ultimoMensaje;
+    this.mostrarEspera(silencio > 1500);
+
     // INVITADO: envía su posición y aplica la última foto
     if (ahora >= this.proximoEnvio) {
       this.proximoEnvio = ahora + ENVIO_INVITADO_MS;
@@ -76,6 +80,22 @@ export default class Cooperativo {
       this.enviar({ t: 'yo', x: Math.round(h.cuerpo.x), y: Math.round(h.cuerpo.y), mx: +h.mirando.x.toFixed(2), my: +h.mirando.y.toFixed(2), mov });
     }
     if (this.ultimoEstado) this.aplicarFoto(this.ultimoEstado);
+  }
+
+  /**
+   * Cartel "Esperando a tu compañero": aparece si el juego del anfitrión se detuvo
+   * (por ejemplo, porque apagó la pantalla o cambió de app: el navegador lo pausa).
+   */
+  mostrarEspera(visible) {
+    const e = this.escena;
+    if (!this.cartel) {
+      this.cartel = e.add.text(e.scale.width / 2, e.scale.height / 2 + 40,
+        'Esperando a tu compañero...\nSu pantalla debe estar encendida y con el juego abierto', {
+          fontFamily: 'Arial, sans-serif', fontSize: '26px', color: '#ffffff', align: 'center',
+          backgroundColor: '#000000aa', padding: { x: 16, y: 10 },
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(180).setVisible(false);
+    }
+    if (this.cartel.visible !== visible && !e.terminado) this.cartel.setVisible(visible);
   }
 
   /** ANFITRIÓN: la "foto" del juego en este momento (números redondeados = mensaje más chico) */

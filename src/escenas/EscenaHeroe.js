@@ -9,10 +9,17 @@ import { crearTexturas } from '../graficos/Texturas.js';
 import { color } from '../graficos/TexturasMundo.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
 import { mundosSuperados, razaElegida, elegirRaza } from '../datos/Progreso.js';
+import { redActual } from '../red/Red.js';
 
 export default class EscenaHeroe extends Phaser.Scene {
   constructor() {
     super('EscenaHeroe');
+  }
+
+  // Desde la sala de pareja se vuelve a la sala; si no, al mapa de mundos
+  init(datos) {
+    this.volverA = (datos && datos.volverA) || 'EscenaMundos';
+    this.datosVolver = (datos && datos.datosVolver) || {};
   }
 
   create() {
@@ -45,7 +52,7 @@ export default class EscenaHeroe extends Phaser.Scene {
     const volver = this.add.text(24, H - 20, '← Volver', {
       fontFamily: FUENTE_TITULO, fontSize: '26px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
     }).setOrigin(0, 1).setInteractive();
-    volver.on('pointerdown', () => this.scene.start('EscenaTitulo'));
+    volver.on('pointerdown', () => this.scene.start(this.volverA === 'EscenaSala' ? 'EscenaSala' : 'EscenaTitulo', this.datosVolver));
   }
 
   /** Encabezado del bando y sus 3 tarjetas de raza */
@@ -112,9 +119,12 @@ export default class EscenaHeroe extends Phaser.Scene {
     const zona = this.add.zone(x, y, ancho, alto).setInteractive();
     zona.on('pointerdown', () => {
       elegirRaza(id);
+      // En pareja: el compañero se entera de mi nueva raza
+      const red = redActual();
+      if (red && red.conectado) red.enviar({ t: 'raza', raza: id });
       this.tweens.add({ targets: cuerpo, scale: 1.6, duration: 150, yoyo: true });
       this.cameras.main.fadeOut(350);
-      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaMundos'));
+      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start(this.volverA, this.datosVolver));
     });
   }
 }

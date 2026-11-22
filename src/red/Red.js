@@ -30,6 +30,7 @@ export default class Red extends Phaser.Events.EventEmitter {
     this.con = null;
     this.esAnfitrion = false;
     this.razaCompanero = 'humano';
+    this.ultimoMensaje = 0; // cuándo llegó el último mensaje (para saber si se cortó)
   }
 
   /** ANFITRIÓN: crea la sala. alListo(codigo) se llama cuando ya se puede compartir el código */
@@ -67,7 +68,11 @@ export default class Red extends Phaser.Events.EventEmitter {
     this.con = con;
     con.on('open', () => this.emit('conectado'));
     con.on('data', (mensaje) => {
-      if (mensaje && mensaje.t) this.emit(mensaje.t, mensaje);
+      if (!mensaje || !mensaje.t) return;
+      this.ultimoMensaje = performance.now();
+      // La raza del compañero se guarda siempre, esté en la escena que esté
+      if (mensaje.t === 'hola' || mensaje.t === 'raza') this.razaCompanero = mensaje.raza;
+      this.emit(mensaje.t, mensaje);
     });
     con.on('close', () => this.emit('desconectado'));
   }
@@ -91,7 +96,7 @@ export default class Red extends Phaser.Events.EventEmitter {
 
   cerrar() {
     if (this.con) this.con.close();
-    if (this.peer) this.peer.destroy();
+    if (this.peer && !this.peer.destroyed) this.peer.destroy();
     this.removeAllListeners();
     if (actual === this) actual = null;
   }

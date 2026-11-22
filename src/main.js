@@ -29,6 +29,9 @@ const config = {
     default: 'arcade',        // física simple y rápida: velocidad y choques
     arcade: { debug: false }, // true = dibuja los cuerpos físicos (útil para depurar)
   },
+  render: {
+    powerPreference: 'high-performance', // pide la tarjeta gráfica más rápida del equipo
+  },
   input: {
     activePointers: 3,        // hasta 3 dedos a la vez (joystick + botones)
   },

@@ -214,6 +214,13 @@ export default class EscenaArena extends Phaser.Scene {
     }
 
     this.dibujarBarraJefe();
+
+    // Cada 200 ms: ocultar salas lejanas y actualizar el contador de FPS
+    if (this.time.now >= (this.proximoRecorte || 0)) {
+      this.proximoRecorte = this.time.now + 200;
+      this.mazmorra.recortar(this.cameras.main);
+      this.textoFps.setText(`${Math.round(this.game.loop.actualFps)} FPS`);
+    }
     // El clima sigue a la cámara: solo se generan partículas donde se ve
     for (const emisor of this.climas) emisor.setPosition(this.cameras.main.scrollX, this.cameras.main.scrollY);
   }
@@ -884,8 +891,11 @@ export default class EscenaArena extends Phaser.Scene {
       nieve: { textura: 'chispa', speedY: { min: 40, max: 90 }, speedX: { min: 10, max: 40 },
         tint: 0xffffff, scale: { start: 0.9, end: 0.5 }, alpha: { start: 0.9, end: 0 }, lifespan: 5000, frequency: 40 },
     };
+    // En celular, la mitad de partículas (optimización): "frequency" más alta = menos seguido
+    const factor = this.sys.game.device.os.desktop ? 1 : 2;
     this.climas = this.mundo.clima.map((tipo) => {
       const { textura, ...config } = climas[tipo]; // separamos la textura del resto
+      config.frequency *= factor;
       return this.add.particles(0, 0, textura, { ...zona, ...config }).setDepth(5);
     });
 
@@ -938,6 +948,10 @@ export default class EscenaArena extends Phaser.Scene {
     this.textoDerrotados = this.add.text(20, 80, '', estilo).setScrollFactor(0).setDepth(100);
     this.add.text(20, this.scale.height - 36,
       'PC: WASD mover · ESPACIO atacar · K Onda · L Torbellino · H cura · P pausa', { ...estilo, fontSize: '18px', color: '#c8d3e0' })
+      .setScrollFactor(0).setDepth(100);
+
+    // FPS = cuadros por segundo. 60 es fluido; menos de 30 se siente lento.
+    this.textoFps = this.add.text(this.scale.width - 110, 100, '', { ...estilo, fontSize: '16px', color: '#9fb3c8' })
       .setScrollFactor(0).setDepth(100);
 
     // Barra grande de vida del jefe, arriba al centro (se dibuja en update)
