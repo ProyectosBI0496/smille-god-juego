@@ -78,7 +78,7 @@ export default class EscenaTitulo extends Phaser.Scene {
     }).setOrigin(0.5);
     this.tweens.add({ targets: [boton, texto], scale: 1.06, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    this.add.text(W - 16, H - 12, 'v0.0.11 · prototipo', {
+    this.add.text(W - 16, H - 12, 'v0.1.0 · prototipo', {
       fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#6b7a90',
     }).setOrigin(1, 1);
 
