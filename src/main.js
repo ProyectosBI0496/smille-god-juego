@@ -92,3 +92,30 @@ const config = {
 
 // Esta línea arranca el juego
 new Phaser.Game(config);
+
+// -------------------------------------------------------------
+// Pantalla completa y orientación horizontal
+// -------------------------------------------------------------
+// Los navegadores solo permiten la pantalla completa como respuesta
+// a un toque del jugador; por eso se pide desde un botón o un toque.
+// "async" permite esperar (await) a que el navegador responda.
+async function pedirPantallaCompleta() {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    }
+    // Fijar en horizontal: funciona en Android (Chrome), no en iPhone.
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock('landscape');
+    }
+  } catch (error) {
+    // Si el navegador no lo permite, el juego sigue funcionando igual.
+    console.log('Pantalla completa no disponible:', error.message);
+  }
+}
+
+// Botón del aviso "Gira tu celular"
+document.getElementById('boton-jugar').addEventListener('click', pedirPantallaCompleta);
+
+// Si el jugador giró el celular a mano, el primer toque también activa la pantalla completa
+document.addEventListener('pointerup', pedirPantallaCompleta, { once: true });
