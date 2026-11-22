@@ -1,0 +1,18 @@
+{
+  "arena": {
+    "ancho": 2400,
+    "alto": 1600,
+    "grosorMuro": 40,
+    "tamanoCuadricula": 100
+  },
+  "heroe": {
+    "radio": 28,
+    "velocidad": 320,
+    "color": "#4fc3f7"
+  },
+  "joystick": {
+    "radioBase": 90,
+    "radioPalanca": 40,
+    "zonaMuerta": 0.15
+  }
+}
