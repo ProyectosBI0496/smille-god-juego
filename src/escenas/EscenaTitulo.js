@@ -72,7 +72,7 @@ export default class EscenaTitulo extends Phaser.Scene {
     }).setOrigin(0.5);
     this.tweens.add({ targets: [boton, texto], scale: 1.06, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    this.add.text(W - 16, H - 12, 'v0.0.9 · prototipo', {
+    this.add.text(W - 16, H - 12, 'v0.0.10 · prototipo', {
       fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#6b7a90',
     }).setOrigin(1, 1);
 
@@ -80,7 +80,7 @@ export default class EscenaTitulo extends Phaser.Scene {
     const empezar = () => {
       boton.disableInteractive();
       this.cameras.main.fadeOut(350, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaMundos'));
+      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaHeroe'));
     };
     boton.on('pointerdown', empezar);
     this.input.keyboard.once('keydown-SPACE', empezar);

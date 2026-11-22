@@ -18,6 +18,87 @@
     "vidaMax": 100,
     "invulnerableMs": 600
   },
+  "bandos": [
+    {
+      "id": "pacto",
+      "nombre": "Pacto de Ceniza",
+      "lema": "Fuego, ceniza y poder",
+      "color": "#ff7043",
+      "razas": ["orco", "toro", "goruk"]
+    },
+    {
+      "id": "liga",
+      "nombre": "Liga del Alba",
+      "lema": "Luz, orden y mar",
+      "color": "#4fc3f7",
+      "razas": ["humano", "elfo", "derial"]
+    }
+  ],
+  "razas": {
+    "orco": {
+      "nombre": "Orco",
+      "descripcion": "Fuerte y resistente",
+      "vidaMax": 130,
+      "velocidad": 290,
+      "danio": 1.15,
+      "recarga": 1.0,
+      "extra": null,
+      "desbloqueo": 0
+    },
+    "toro": {
+      "nombre": "Toro",
+      "descripcion": "Golpes que empujan",
+      "vidaMax": 120,
+      "velocidad": 300,
+      "danio": 1.1,
+      "recarga": 1.0,
+      "extra": null,
+      "desbloqueo": 0,
+      "empuje": 1.4
+    },
+    "goruk": {
+      "nombre": "Goruk",
+      "descripcion": "Demonio alado",
+      "vidaMax": 110,
+      "velocidad": 335,
+      "danio": 1.2,
+      "recarga": 0.95,
+      "extra": "alas",
+      "desbloqueo": 2
+    },
+    "humano": {
+      "nombre": "Humano",
+      "descripcion": "Equilibrado; recarga rápido",
+      "vidaMax": 100,
+      "velocidad": 320,
+      "danio": 1.0,
+      "recarga": 0.85,
+      "extra": null,
+      "desbloqueo": 0
+    },
+    "elfo": {
+      "nombre": "Elfo",
+      "descripcion": "Muy veloz y certero",
+      "vidaMax": 85,
+      "velocidad": 365,
+      "danio": 1.0,
+      "recarga": 0.95,
+      "extra": null,
+      "desbloqueo": 0,
+      "autoApuntado": 1.3
+    },
+    "derial": {
+      "nombre": "Derial",
+      "descripcion": "Hijo del mar; sus curas rinden más",
+      "vidaMax": 105,
+      "velocidad": 340,
+      "danio": 1.1,
+      "recarga": 0.95,
+      "extra": "cola",
+      "desbloqueo": 4,
+      "cura": 1.5
+    }
+  },
   "ataqueBasico": {
     "danio": 25,
     "alcance": 70,

@@ -11,6 +11,7 @@
 // =============================================================
 
 import { enemigosEtapa6 } from './TexturasMundo.js';
+import { crearTexturasRazas } from './TexturasRazas.js';
 
 /** Crea todas las texturas, solo si aún no existen (sirve al reiniciar la escena) */
 export function crearTexturas(escena) {
@@ -23,6 +24,7 @@ export function crearTexturas(escena) {
   heroeGoruk(escena);
   enemigoSombra(escena);
   enemigosEtapa6(escena);
+  crearTexturasRazas(escena);
   suelo(escena, azar);
   muro(escena);
   efectos(escena);

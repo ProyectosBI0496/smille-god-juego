@@ -7,7 +7,7 @@
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
-import { mundosSuperados } from '../datos/Progreso.js';
+import { mundosSuperados, razaElegida } from '../datos/Progreso.js';
 
 export default class EscenaMundos extends Phaser.Scene {
   constructor() {
@@ -42,11 +42,21 @@ export default class EscenaMundos extends Phaser.Scene {
       this.crearTarjeta(x0 + i * (anchoTarjeta + separacion), 370, anchoTarjeta, mundo, i, estado);
     });
 
-    // Botón para volver al título
+    // Héroe elegido (abajo a la derecha) y botón para cambiarlo
+    const razas = this.cache.json.get('balance').razas;
+    const id = razas[razaElegida()] ? razaElegida() : 'humano';
+    if (razas[id].extra) this.add.image(W - 250, H - 60, `${id}-${razas[id].extra}`).setAngle(-90).setScale(0.8);
+    this.add.image(W - 250, H - 60, `${id}-cuerpo`).setAngle(-90).setScale(0.8);
+    const cambiar = this.add.text(W - 200, H - 60, `${razas[id].nombre} · Cambiar`, {
+      fontFamily: FUENTE_TITULO, fontSize: '26px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
+    }).setOrigin(0, 0.5).setInteractive();
+    cambiar.on('pointerdown', () => this.scene.start('EscenaHeroe'));
+
+    // Botón para volver (a la elección de héroe)
     const volver = this.add.text(30, H - 30, '← Volver', {
       fontFamily: FUENTE_TITULO, fontSize: '28px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
     }).setOrigin(0, 1).setInteractive();
-    volver.on('pointerdown', () => this.scene.start('EscenaTitulo'));
+    volver.on('pointerdown', () => this.scene.start('EscenaHeroe'));
   }
 
   /** Una tarjeta: vista del suelo del mundo, nombre, jefes y su estado */

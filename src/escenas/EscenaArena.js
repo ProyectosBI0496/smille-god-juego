@@ -10,6 +10,8 @@
 //          salón del jefe. Curas (pociones), victoria y desbloqueo.
 // Etapa 7: salas con formas, bestias TIRADORAS con proyectiles,
 //          ráfaga de los jefes y dificultad que sube sala a sala.
+// Etapa 8: el héroe es de la RAZA elegida (vida, velocidad, fuerza,
+//          recarga y un detalle propio de cada raza).
 // =============================================================
 
 // Tipografía de fantasía (Google Fonts, cargada en index.html).
@@ -25,7 +27,7 @@ import BotonHabilidad from '../controles/BotonHabilidad.js';
 import Mazmorra from '../mundo/Mazmorra.js';
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
-import { marcarSuperado } from '../datos/Progreso.js';
+import { marcarSuperado, razaElegida, mundosSuperados } from '../datos/Progreso.js';
 
 // Qué clase usar para cada tipo de enemigo de balance.json (por defecto, Enemigo)
 const CLASES = { tirador: Tirador };
@@ -65,9 +67,21 @@ export default class EscenaArena extends Phaser.Scene {
     this.crearAmbiente();
     this.cameras.main.fadeIn(400);
 
+    // La RAZA elegida cambia los números del héroe (si está bloqueada, se usa Humano)
+    let idRaza = razaElegida();
+    if (!this.balance.razas[idRaza] || this.balance.razas[idRaza].desbloqueo > mundosSuperados()) idRaza = 'humano';
+    this.raza = this.balance.razas[idRaza];
+    const configHeroe = {
+      ...this.balance.heroe,
+      vidaMax: this.raza.vidaMax,
+      velocidad: this.raza.velocidad,
+      textura: idRaza,
+      extra: this.raza.extra,
+    };
+
     // El héroe aparece en la sala de entrada
     const entrada = salas[0];
-    this.heroe = new Heroe(this, entrada.x + 150, entrada.medio, this.balance.heroe);
+    this.heroe = new Heroe(this, entrada.x + 150, entrada.medio, configHeroe);
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.muros);
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.puertas.filter(Boolean));
 
@@ -332,7 +346,7 @@ export default class EscenaArena extends Phaser.Scene {
       this.time.delayedCall(900, () => this.victoria());
       return;
     }
-    this.heroe.vida = Math.min(this.heroe.vida + this.balance.oleadas.curacionPorSala, this.balance.heroe.vidaMax);
+    this.heroe.vida = Math.min(this.heroe.vida + this.balance.oleadas.curacionPorSala, this.heroe.config.vidaMax);
     this.mazmorra.abrirPuerta(sala.indice);
     this.mostrarAnuncio(sala.tipo === 'jefe' ? '¡Jefe vencido! →' : '¡Sigue adelante! →');
   }
@@ -343,15 +357,16 @@ export default class EscenaArena extends Phaser.Scene {
 
   /** Usa una cura si quedan y si el héroe no tiene la vida llena */
   usarCura() {
-    const max = this.balance.heroe.vidaMax;
+    const max = this.heroe.config.vidaMax;
     if (this.curas <= 0 || this.heroe.vida >= max || !this.heroe.vivo) return;
     this.curas -= 1;
-    this.heroe.vida = Math.min(this.heroe.vida + this.balance.cura.cantidad, max);
+    const cantidad = Math.round(this.balance.cura.cantidad * (this.raza.cura || 1)); // los Derial curan más
+    this.heroe.vida = Math.min(this.heroe.vida + cantidad, max);
     // Efecto: destello verde y números de curación
     const { x, y } = this.heroe.cuerpo;
     const luz = this.add.image(x, y, 'brillo').setTint(0x66bb6a).setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
     this.tweens.add({ targets: luz, scale: 2.5, alpha: 0, duration: 500, onComplete: () => luz.destroy() });
-    this.mostrarNumero(x, y - 40, `+${this.balance.cura.cantidad}`, '#a5d6a7');
+    this.mostrarNumero(x, y - 40, `+${cantidad}`, '#a5d6a7');
     this.actualizarHud();
   }
 
@@ -364,23 +379,24 @@ export default class EscenaArena extends Phaser.Scene {
     const { radio, radioPequeno, margen } = this.balance.botones;
     const xAtq = this.scale.width - margen - radio;
     const yAtq = this.scale.height - margen - radio;
+    const recarga = this.raza.recarga; // < 1 = la raza recarga más rápido (Humano)
 
     // Botón 1 — ataque básico (el más grande, bajo el pulgar)
     this.botonAtaque = new BotonHabilidad(this, {
       x: xAtq, y: yAtq, radio, etiqueta: 'ATQ', icono: 'icono-espada',
-      recargaMs: this.balance.ataqueBasico.recargaMs, color: 0xf5c542,
+      recargaMs: this.balance.ataqueBasico.recargaMs * recarga, color: 0xf5c542,
       alPulsar: () => this.atacar(),
     });
     // Botón 2 — "Onda": a la izquierda del ataque
     this.botonOnda = new BotonHabilidad(this, {
       x: xAtq - 150, y: yAtq + 25, radio: radioPequeno, etiqueta: 'ONDA', icono: 'icono-onda',
-      recargaMs: this.balance.habilidad.recargaMs, color: 0x4fc3f7,
+      recargaMs: this.balance.habilidad.recargaMs * recarga, color: 0x4fc3f7,
       alPulsar: () => this.usarOnda(),
     });
     // Botón 3 — "Torbellino": encima del ataque
     this.botonTorbellino = new BotonHabilidad(this, {
       x: xAtq - 35, y: yAtq - 150, radio: radioPequeno, etiqueta: 'ESP', icono: 'icono-torbellino',
-      recargaMs: this.balance.especial.recargaMs, color: 0xab47bc,
+      recargaMs: this.balance.especial.recargaMs * recarga, color: 0xab47bc,
       alPulsar: () => this.usarTorbellino(),
     });
     // Botón 4 — cura: más arriba, con el número de curas que quedan
@@ -402,7 +418,10 @@ export default class EscenaArena extends Phaser.Scene {
    * El empuje los aleja del punto (origenX, origenY).
    * Lo usan las tres habilidades: así la lógica de daño vive en un solo lugar.
    */
-  golpearArea(x, y, radio, danio, empuje, origenX, origenY) {
+  golpearArea(x, y, radio, danioBase, empujeBase, origenX, origenY) {
+    // La raza multiplica el daño (Orco, Goruk...) y el empuje (Toro)
+    const danio = Math.round(danioBase * this.raza.danio);
+    const empuje = empujeBase * (this.raza.empuje || 1);
     const direccion = new Phaser.Math.Vector2();
     for (const enemigo of [...this.enemigos]) {
       const distancia = Phaser.Math.Distance.Between(x, y, enemigo.cuerpo.x, enemigo.cuerpo.y);
@@ -438,7 +457,7 @@ export default class EscenaArena extends Phaser.Scene {
   atacar() {
     if (!this.heroe.vivo) return;
     const ataque = this.balance.ataqueBasico;
-    const objetivo = this.enemigoMasCercano(ataque.rangoAutoApuntado);
+    const objetivo = this.enemigoMasCercano(ataque.rangoAutoApuntado * (this.raza.autoApuntado || 1)); // el Elfo apunta más lejos
     if (objetivo) this.heroe.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
 
     const zona = this.heroe.atacar(ataque);
@@ -721,7 +740,7 @@ export default class EscenaArena extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#ffffff',
       stroke: '#05070d', strokeThickness: 4,
     };
-    this.add.text(20, 14, `SMILLE GOD · ${this.mundo.nombre.toUpperCase()}`, { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
+    this.add.text(20, 14, `${this.mundo.nombre.toUpperCase()} · ${this.raza.nombre.toUpperCase()}`, { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
       .setScrollFactor(0).setDepth(100);
     this.textoProgreso = this.add.text(20, 42, '', {
       ...estilo, fontFamily: FUENTE_TITULO, fontSize: '28px', color: '#f5c542', fontStyle: 'bold',

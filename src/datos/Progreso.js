@@ -15,6 +15,25 @@ export function mundosSuperados() {
   }
 }
 
+const CLAVE_RAZA = 'smilleGod.raza';
+
+/** La raza que eligió el jugador (Etapa 8); "humano" si todavía no eligió */
+export function razaElegida() {
+  try {
+    return localStorage.getItem(CLAVE_RAZA) || 'humano';
+  } catch (error) {
+    return 'humano';
+  }
+}
+
+export function elegirRaza(id) {
+  try {
+    localStorage.setItem(CLAVE_RAZA, id);
+  } catch (error) {
+    // sin memoria del navegador: la elección dura solo esta partida
+  }
+}
+
 /** Marca como superado el mundo número "indice" (0 = el primero) */
 export function marcarSuperado(indice) {
   try {

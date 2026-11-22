@@ -4,6 +4,8 @@
 //   - "cuerpo": un círculo invisible que se mueve y choca (la física).
 //   - "sprite" y "alas": las imágenes que vemos, que siguen al cuerpo.
 // Así podemos cambiar el arte sin tocar cómo se mueve o choca.
+// Etapa 8: el dibujo depende de la RAZA (config.textura: "orco", "elfo"...).
+//   Algunas razas tienen una parte extra animada: alas (aletean) o cola (se menea).
 // =============================================================
 
 import BarraVida from '../ui/BarraVida.js';
@@ -29,10 +31,12 @@ export default class Heroe {
     this.cuerpo.body.setCircle(config.radio);
     this.cuerpo.body.setCollideWorldBounds(true);
 
-    // DIBUJO: sombra en el suelo, alas y cuerpo. "depth" = capa (mayor = más arriba)
+    // DIBUJO: sombra en el suelo, parte extra (alas o cola) y cuerpo. "depth" = capa
+    const textura = config.textura || 'goruk';
+    this.tipoExtra = config.extra; // 'alas', 'cola' o null
     this.sombra = escena.add.image(x, y + 8, 'sombra').setAlpha(0.35).setScale(1.1, 0.8).setDepth(9);
-    this.alas = escena.add.image(x, y, 'goruk-alas').setDepth(10);
-    this.sprite = escena.add.image(x, y, 'goruk-cuerpo').setDepth(11);
+    this.alas = this.tipoExtra ? escena.add.image(x, y, `${textura}-${this.tipoExtra}`).setDepth(10) : null;
+    this.sprite = escena.add.image(x, y, `${textura}-cuerpo`).setDepth(11);
 
     // Dirección en la que mira (vector de largo 1). Empieza mirando a la derecha.
     this.mirando = new Phaser.Math.Vector2(1, 0);
@@ -70,7 +74,8 @@ export default class Heroe {
     const aleteo = 0.8 + Math.sin(t * (moviendose ? 0.02 : 0.008)) * 0.2;
 
     this.sprite.setPosition(x, y).setRotation(giro).setScale(paso);
-    this.alas.setPosition(x, y).setRotation(giro).setScale(1, aleteo);
+    if (this.tipoExtra === 'alas') this.alas.setPosition(x, y).setRotation(giro).setScale(1, aleteo);
+    if (this.tipoExtra === 'cola') this.alas.setPosition(x, y).setRotation(giro + Math.sin(t * 0.012) * 0.25);
     this.sombra.setPosition(x, y + 10);
 
     this.barra.dibujar(x, y - this.radio - 22, this.vida / this.config.vidaMax);
@@ -119,7 +124,7 @@ export default class Heroe {
 
     // Parpadeo mientras es invulnerable
     this.escena.tweens.add({
-      targets: [this.sprite, this.alas], alpha: 0.3, duration: 100, yoyo: true, repeat: 2,
+      targets: [this.sprite, this.alas].filter(Boolean), alpha: 0.3, duration: 100, yoyo: true, repeat: 2,
     });
     return true;
   }
