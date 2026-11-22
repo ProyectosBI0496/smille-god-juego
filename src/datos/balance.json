@@ -35,23 +35,130 @@
     "empuje": 250,
     "recargaMs": 10000
   },
-  "enemigo": {
-    "radio": 24,
-    "velocidad": 150,
-    "color": "#b388ff",
-    "vidaMax": 60,
-    "danioContacto": 10,
-    "aturdidoMs": 250,
-    "distanciaMinimaAparicion": 500
+  "tiposEnemigo": {
+    "normal": {
+      "textura": "enemigo",
+      "radio": 24,
+      "velocidad": 150,
+      "vidaMax": 60,
+      "danioContacto": 10,
+      "aturdidoMs": 250
+    },
+    "rapido": {
+      "textura": "enemigo-rapido",
+      "radio": 18,
+      "velocidad": 235,
+      "vidaMax": 35,
+      "danioContacto": 6,
+      "aturdidoMs": 300
+    },
+    "resistente": {
+      "textura": "enemigo-resistente",
+      "radio": 32,
+      "velocidad": 100,
+      "vidaMax": 150,
+      "danioContacto": 15,
+      "aturdidoMs": 150
+    }
+  },
+  "jefe": {
+    "textura": "jefe",
+    "aturdidoMs": 60,
+    "resistenciaEmpuje": 0.2,
+    "distanciaEmbestida": 480,
+    "avisoMs": 700,
+    "velocidadEmbestida": 560,
+    "duracionEmbestidaMs": 650,
+    "recargaEmbestidaMs": 3500
   },
   "oleadas": {
-    "enemigosIniciales": 3,
-    "enemigosPorOleada": 2,
-    "aumentoVelocidad": 12,
-    "aumentoVida": 10,
     "curacionEntreOleadas": 25,
-    "pausaMs": 2000
+    "pausaMs": 2000,
+    "intervaloJefesMs": 1200,
+    "distanciaMinimaAparicion": 500
   },
+  "mundos": [
+    {
+      "id": "bosque",
+      "nombre": "Bosque",
+      "fuerza": 1,
+      "oleadas": [
+        { "normal": 3 },
+        { "normal": 4, "rapido": 1 }
+      ],
+      "jefes": { "cantidad": 1, "radio": 60, "vidaMax": 500, "velocidad": 105, "danioContacto": 20 },
+      "colores": {
+        "estilo": "natural",
+        "suelo": "#2f5a2e", "manchas": ["#386b37", "#264a26"], "detalle": "#4f8a45",
+        "muro": "#3b2a1a", "piedra": "#5d4630",
+        "normal": "#8bc34a", "rapido": "#cddc39", "resistente": "#6d4c41", "jefe": "#33691e"
+      },
+      "antorchas": false,
+      "clima": ["hojas", "luciernagas"],
+      "decoracion": [{ "tipo": "arbusto", "cantidad": 45 }, { "tipo": "flores", "cantidad": 40 }, { "tipo": "roca", "cantidad": 12 }]
+    },
+    {
+      "id": "desierto",
+      "nombre": "Desierto",
+      "fuerza": 1.15,
+      "oleadas": [
+        { "normal": 3, "rapido": 2 },
+        { "normal": 3, "resistente": 1 },
+        { "rapido": 4, "resistente": 1 }
+      ],
+      "jefes": { "cantidad": 3, "radio": 52, "vidaMax": 280, "velocidad": 110, "danioContacto": 18 },
+      "colores": {
+        "estilo": "natural",
+        "suelo": "#c9a463", "manchas": ["#b8924f", "#d8b878"], "detalle": "#a8864a",
+        "muro": "#7a5a32", "piedra": "#a8814f",
+        "normal": "#ff8f00", "rapido": "#ffd54f", "resistente": "#795548", "jefe": "#bf360c"
+      },
+      "antorchas": true,
+      "clima": ["polvo"],
+      "decoracion": [{ "tipo": "cactus", "cantidad": 30 }, { "tipo": "roca", "cantidad": 30 }]
+    },
+    {
+      "id": "infierno",
+      "nombre": "Infierno",
+      "fuerza": 1.3,
+      "oleadas": [
+        { "normal": 4, "rapido": 2 },
+        { "rapido": 3, "resistente": 2 },
+        { "normal": 4, "rapido": 2, "resistente": 2 }
+      ],
+      "jefes": { "cantidad": 5, "radio": 48, "vidaMax": 200, "velocidad": 115, "danioContacto": 16 },
+      "colores": {
+        "estilo": "baldosa",
+        "suelo": "#2a1414", "manchas": ["#1c0c0c", "#361a1a"], "detalle": "#ff5722",
+        "muro": "#2e0d0d", "piedra": "#5a1c1c",
+        "normal": "#b388ff", "rapido": "#ff8a80", "resistente": "#7e57c2", "jefe": "#ff6d00"
+      },
+      "antorchas": true,
+      "clima": ["brasas"],
+      "decoracion": [{ "tipo": "lava", "cantidad": 10 }, { "tipo": "roca", "cantidad": 20 }]
+    },
+    {
+      "id": "nevado",
+      "nombre": "Nevado",
+      "fuerza": 1.45,
+      "oleadas": [
+        { "normal": 5, "rapido": 2 },
+        { "rapido": 5, "resistente": 1 },
+        { "normal": 4, "resistente": 3 },
+        { "normal": 5, "rapido": 3, "resistente": 2 }
+      ],
+      "jefes": { "cantidad": 10, "radio": 42, "vidaMax": 130, "velocidad": 115, "danioContacto": 14 },
+      "colores": {
+        "estilo": "natural",
+        "suelo": "#dfe9f1", "manchas": ["#cbd9e5", "#f1f6fa"], "detalle": "#a9c7de",
+        "muro": "#4f6f8f", "piedra": "#86a8c8",
+        "normal": "#0288d1", "rapido": "#00acc1", "resistente": "#3949ab", "jefe": "#1a237e"
+      },
+      "antorchas": true,
+      "clima": ["nieve"],
+      "decoracion": [{ "tipo": "hielo", "cantidad": 14 }, { "tipo": "roca", "cantidad": 18 }]
+    }
+  ],
   "joystick": {
     "radioBase": 90,
     "radioPalanca": 40,

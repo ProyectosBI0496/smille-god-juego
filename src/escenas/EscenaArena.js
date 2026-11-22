@@ -8,9 +8,10 @@
 //          vibración y "object pooling" de los números de daño.
 // Etapa 5: arte provisional (texturas dibujadas por código), ambiente
 //          con antorchas, brasas y viñeta; efectos de habilidades.
+// Etapa 6: MUNDOS (Bosque, Desierto...) con oleadas fijas, tipos de
+//          enemigo, JEFES al final, victoria y desbloqueo.
 // =============================================================
 
-export const CLAVE_RECORD = 'smilleGod.mejorOleada';
 // Tipografía de fantasía (Google Fonts, cargada en index.html).
 // Si no carga, el navegador usa Georgia.
 export const FUENTE_TITULO = '"Cinzel", Georgia, serif';
@@ -19,26 +20,39 @@ import Heroe from '../entidades/Heroe.js';
 import Enemigo from '../entidades/Enemigo.js';
 import Joystick from '../controles/Joystick.js';
 import BotonHabilidad from '../controles/BotonHabilidad.js';
+import Jefe from '../entidades/Jefe.js';
 import { crearTexturas } from '../graficos/Texturas.js';
+import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
+import { marcarSuperado } from '../datos/Progreso.js';
 
 export default class EscenaArena extends Phaser.Scene {
   constructor() {
     super('EscenaArena');
   }
 
+  // init(): recibe los datos con los que se abrió la escena,
+  // por ejemplo { mundo: 2 } desde el mapa de mundos.
+  init(datos) {
+    this.indiceMundo = (datos && datos.mundo) || 0;
+  }
+
   // preload(): se ejecuta ANTES de create(). Aquí se cargan archivos.
   preload() {
-    // "?v=..." cambia la dirección en cada carga: así el navegador no usa una
-    // copia vieja guardada (caché) y siempre lee los números más recientes.
-    this.load.json('balance', 'src/datos/balance.json?v=' + Date.now());
+    // Normalmente ya lo cargó la pantalla de título; si no, lo cargamos aquí.
+    // "?v=..." evita que el navegador use una copia vieja guardada (caché).
+    if (!this.cache.json.exists('balance')) {
+      this.load.json('balance', 'src/datos/balance.json?v=' + Date.now());
+    }
   }
 
   create() {
     // Todos los números del juego vienen de balance.json
     this.balance = this.cache.json.get('balance');
+    this.mundo = this.balance.mundos[this.indiceMundo];
     const { ancho, alto, grosorMuro, tamanoCuadricula } = this.balance.arena;
 
-    crearTexturas(this); // dibuja todas las texturas (solo la primera vez)
+    crearTexturas(this);                 // texturas comunes (solo la primera vez)
+    crearTexturasMundo(this, this.mundo); // suelo, muro y adornos de ESTE mundo
     this.dibujarArena(ancho, alto, grosorMuro, tamanoCuadricula);
     this.cameras.main.fadeIn(400); // la escena aparece desde negro
 
@@ -65,8 +79,10 @@ export default class EscenaArena extends Phaser.Scene {
     // ---- Enemigos ----
     this.enemigos = [];
     this.derrotados = 0;
-    this.oleada = 0;
-    this.numerosLibres = []; // "pool": números de daño guardados para reutilizar
+    this.oleada = 0;           // oleada actual (1, 2, 3...)
+    this.fase = 'oleadas';     // 'oleadas' → 'jefes' → 'victoria'
+    this.jefesPorAparecer = 0; // los jefes aparecen de a uno, con un intervalo
+    this.numerosLibres = [];   // "pool": números de daño guardados para reutilizar
 
     this.crearEfectos();
     this.crearTextos();
@@ -104,6 +120,8 @@ export default class EscenaArena extends Phaser.Scene {
         }
       }
     }
+
+    this.dibujarBarraJefes();
   }
 
   /** Arma la dirección de movimiento desde el joystick o el teclado */
@@ -278,31 +296,74 @@ export default class EscenaArena extends Phaser.Scene {
     });
   }
 
-  /** Empieza la siguiente oleada: más enemigos, más rápidos y resistentes */
+  /**
+   * Empieza la siguiente oleada del mundo. Cada oleada de balance.json dice
+   * cuántos enemigos de cada tipo salen, por ejemplo { "normal": 3, "rapido": 1 }.
+   */
   iniciarSiguienteOleada() {
-    if (!this.heroe.vivo) return;
+    if (!this.heroe.vivo || this.fase !== 'oleadas') return;
+    if (this.oleada >= this.mundo.oleadas.length) return this.iniciarJefes(); // protección: no hay más oleadas
     this.oleada += 1;
-    const o = this.balance.oleadas;
-    const base = this.balance.enemigo;
-    const n = this.oleada - 1; // cuántas oleadas se han superado
+    this.curarEntreOleadas();
 
-    // Entre oleadas, el héroe recupera un poco de vida
-    if (n > 0) {
-      this.heroe.vida = Math.min(this.heroe.vida + o.curacionEntreOleadas, this.balance.heroe.vidaMax);
+    const oleada = this.mundo.oleadas[this.oleada - 1];
+    // Object.entries convierte { normal: 3, rapido: 1 } en [["normal", 3], ["rapido", 1]]
+    for (const [tipo, cantidad] of Object.entries(oleada)) {
+      for (let i = 0; i < cantidad; i++) this.crearEnemigo(this.configEnemigo(tipo));
     }
 
-    // La configuración del enemigo crece con cada oleada.
-    // { ...base } copia todos los datos y luego sobrescribimos los que cambian.
-    const config = {
-      ...base,
-      velocidad: base.velocidad + n * o.aumentoVelocidad,
-      vidaMax: base.vidaMax + n * o.aumentoVida,
-    };
-    const cantidad = o.enemigosIniciales + n * o.enemigosPorOleada;
-    for (let i = 0; i < cantidad; i++) this.crearEnemigo(config);
+    const total = this.mundo.oleadas.length;
+    this.actualizarHud();
+    this.mostrarAnuncio(`Oleada ${this.oleada} de ${total}`);
+  }
 
-    this.textoOleada.setText(`Oleada ${this.oleada}`);
-    this.mostrarAnuncio(`Oleada ${this.oleada}`);
+  /** Arma la configuración de un enemigo: su tipo + la fuerza y el color del mundo */
+  configEnemigo(tipo) {
+    const base = this.balance.tiposEnemigo[tipo];
+    const fuerza = this.mundo.fuerza;
+    return {
+      ...base, // "..." copia todos los datos del tipo; luego cambiamos algunos
+      vidaMax: Math.round(base.vidaMax * fuerza),
+      velocidad: Math.round(base.velocidad * (1 + (fuerza - 1) / 2)),
+      color: this.mundo.colores[tipo],
+    };
+  }
+
+  /** Terminaron las oleadas: llegan los jefes, uno tras otro */
+  iniciarJefes() {
+    if (!this.heroe.vivo || this.fase !== 'oleadas') return; // solo una vez
+    this.fase = 'jefes';
+    this.curarEntreOleadas();
+    const j = this.mundo.jefes;
+    const config = {
+      ...this.balance.jefe, // comportamiento común (embestida, aviso...)
+      ...j,                 // tamaño, vida y velocidad de los jefes de ESTE mundo
+      radioTextura: 50,
+      color: this.mundo.colores.jefe,
+    };
+    this.jefesTotal = j.cantidad;
+    this.jefesPorAparecer = j.cantidad;
+    this.actualizarHud();
+    this.mostrarAnuncio(j.cantidad === 1 ? '¡Llega el jefe!' : `¡Llegan ${j.cantidad} jefes!`);
+    this.cameras.main.shake(400, 0.006);
+
+    // time.addEvent con "repeat": un jefe cada intervaloJefesMs
+    this.time.addEvent({
+      delay: this.balance.oleadas.intervaloJefesMs,
+      repeat: j.cantidad - 1,
+      callback: () => {
+        if (!this.heroe.vivo) return;
+        this.jefesPorAparecer -= 1;
+        this.crearEnemigo(config, Jefe);
+      },
+    });
+  }
+
+  curarEntreOleadas() {
+    if (this.oleada > 1 || this.fase === 'jefes') {
+      const o = this.balance.oleadas;
+      this.heroe.vida = Math.min(this.heroe.vida + o.curacionEntreOleadas, this.balance.heroe.vidaMax);
+    }
   }
 
   /** Texto grande en el centro que aparece y se desvanece */
@@ -312,40 +373,53 @@ export default class EscenaArena extends Phaser.Scene {
       stroke: '#3a1500', strokeThickness: 8,
     }).setOrigin(0.5).setScrollFactor(0).setDepth(150);
     this.tweens.add({
-      targets: texto, alpha: 0, y: texto.y - 30, delay: 700, duration: 600,
+      targets: texto, alpha: 0, y: texto.y - 30, delay: 900, duration: 600,
       onComplete: () => texto.destroy(),
     });
   }
 
-  /** Crea un enemigo en un punto al azar, lejos del héroe */
-  crearEnemigo(config) {
+  /**
+   * Crea un enemigo (o un jefe) en un punto al azar, lejos del héroe.
+   * "Clase" permite elegir qué crear: Enemigo por defecto, o Jefe.
+   */
+  crearEnemigo(config, Clase = Enemigo) {
     const { ancho, alto, grosorMuro } = this.balance.arena;
     const margen = grosorMuro + config.radio;
+    const distanciaMinima = this.balance.oleadas.distanciaMinimaAparicion;
     let x;
     let y;
     do {
       x = Phaser.Math.Between(margen, ancho - margen);
       y = Phaser.Math.Between(margen, alto - margen);
-    } while (Phaser.Math.Distance.Between(x, y, this.heroe.cuerpo.x, this.heroe.cuerpo.y) < config.distanciaMinimaAparicion);
+    } while (Phaser.Math.Distance.Between(x, y, this.heroe.cuerpo.x, this.heroe.cuerpo.y) < distanciaMinima);
 
-    this.enemigos.push(new Enemigo(this, x, y, config));
+    this.enemigos.push(new Clase(this, x, y, config));
   }
 
-  /** Quita un enemigo derrotado; si era el último, prepara la siguiente oleada */
+  /** Quita un enemigo derrotado y decide qué sigue: otra oleada, los jefes o la victoria */
   eliminarEnemigo(enemigo) {
-    this.chispas.explode(16, enemigo.cuerpo.x, enemigo.cuerpo.y); // explosión de partículas
+    const esJefe = enemigo instanceof Jefe; // instanceof: ¿este objeto es de la clase Jefe?
+    this.chispas.explode(esJefe ? 50 : 16, enemigo.cuerpo.x, enemigo.cuerpo.y); // explosión de partículas
     const luz = this.add.image(enemigo.cuerpo.x, enemigo.cuerpo.y, 'brillo').setTint(0xff7043)
       .setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
-    this.tweens.add({ targets: luz, scale: 1.6, alpha: 0, duration: 300, onComplete: () => luz.destroy() });
-    this.vibrar(25);
+    this.tweens.add({ targets: luz, scale: esJefe ? 4 : 1.6, alpha: 0, duration: esJefe ? 600 : 300, onComplete: () => luz.destroy() });
+    if (esJefe) this.cameras.main.shake(250, 0.01);
+    this.vibrar(esJefe ? 120 : 25);
     enemigo.destruir();
     this.enemigos = this.enemigos.filter((e) => e !== enemigo);
     this.derrotados += 1;
-    this.textoDerrotados.setText(`Derrotados: ${this.derrotados}`);
+    this.actualizarHud();
 
-    if (this.enemigos.length === 0 && this.heroe.vivo) {
+    if (this.enemigos.length > 0 || !this.heroe.vivo) return;
+
+    if (this.fase === 'oleadas') {
+      const quedanOleadas = this.oleada < this.mundo.oleadas.length;
       this.mostrarAnuncio('¡Oleada superada!');
-      this.time.delayedCall(this.balance.oleadas.pausaMs, () => this.iniciarSiguienteOleada());
+      this.time.delayedCall(this.balance.oleadas.pausaMs,
+        () => (quedanOleadas ? this.iniciarSiguienteOleada() : this.iniciarJefes()));
+    } else if (this.fase === 'jefes' && this.jefesPorAparecer === 0) {
+      this.fase = 'victoria';
+      this.time.delayedCall(900, () => this.victoria());
     }
   }
 
@@ -428,109 +502,148 @@ export default class EscenaArena extends Phaser.Scene {
     this.scene.launch('EscenaPausa');   // "launch" abre otra escena SIN cerrar esta
   }
 
-  /** El héroe cayó: pantalla de derrota con récord y botón Reintentar */
+  /** El héroe cayó: pantalla de derrota con botones Reintentar y Mapa */
   derrota() {
     this.heroe.cuerpo.body.setVelocity(0, 0);
     for (const enemigo of this.enemigos) enemigo.cuerpo.body.setVelocity(0, 0);
     this.vibrar(300);
 
-    // Récord guardado en el navegador (localStorage). Puede fallar en modo
-    // incógnito, por eso va dentro de try/catch.
-    let record = 0;
-    try {
-      record = Number(localStorage.getItem(CLAVE_RECORD)) || 0;
-      if (this.oleada > record) {
-        record = this.oleada;
-        localStorage.setItem(CLAVE_RECORD, String(record));
-      }
-    } catch (error) {
-      record = this.oleada;
-    }
+    const detalle = this.fase === 'jefes'
+      ? `${this.mundo.nombre} · caíste ante los jefes`
+      : `${this.mundo.nombre} · oleada ${this.oleada} de ${this.mundo.oleadas.length}`;
+    this.pantallaFinal('Has caído', `${detalle}\nDerrotados: ${this.derrotados}`, [
+      { texto: 'Reintentar', principal: true, accion: () => this.scene.restart({ mundo: this.indiceMundo }) },
+      { texto: 'Mapa', accion: () => this.scene.start('EscenaMundos') },
+    ]);
+  }
 
+  /** ¡Ganaste el mundo! Se guarda el progreso y se abre el siguiente */
+  victoria() {
+    if (!this.heroe.vivo) return;
+    this.heroe.cuerpo.body.setVelocity(0, 0);
+    this.heroe.invulnerableHasta = Infinity; // ya nada puede dañarlo
+    marcarSuperado(this.indiceMundo);
+
+    const siguiente = this.balance.mundos[this.indiceMundo + 1];
+    const mensaje = siguiente
+      ? `Desbloqueaste: ${siguiente.nombre}`
+      : '¡Venciste todos los mundos del prototipo!';
+    const botones = [{ texto: 'Mapa', accion: () => this.scene.start('EscenaMundos') }];
+    if (siguiente) {
+      botones.unshift({ // unshift: lo agrega al PRINCIPIO de la lista
+        texto: 'Siguiente', principal: true,
+        accion: () => this.scene.restart({ mundo: this.indiceMundo + 1 }),
+      });
+    }
+    this.chispas.explode(80, this.heroe.cuerpo.x, this.heroe.cuerpo.y);
+    this.pantallaFinal(`¡${this.mundo.nombre} superado!`, `${mensaje}\nDerrotados: ${this.derrotados}`, botones);
+  }
+
+  /** Fondo oscuro, título, texto y 1 o 2 botones (lo usan la derrota y la victoria) */
+  pantallaFinal(titulo, texto, botones) {
     const cx = this.scale.width / 2;
     const cy = this.scale.height / 2;
     const fijo = (objeto) => objeto.setScrollFactor(0).setDepth(200);
 
     fijo(this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.65));
-    fijo(this.add.text(cx, cy - 140, 'Has caído', {
-      fontFamily: FUENTE_TITULO, fontSize: '76px', color: '#f5c542', fontStyle: 'bold',
+    fijo(this.add.text(cx, cy - 140, titulo, {
+      fontFamily: FUENTE_TITULO, fontSize: '70px', color: '#f5c542', fontStyle: 'bold',
       stroke: '#3a1500', strokeThickness: 8,
     }).setOrigin(0.5));
-    fijo(this.add.text(cx, cy - 50,
-      `Llegaste a la oleada ${this.oleada} · Derrotados: ${this.derrotados}\nRécord: oleada ${record}`, {
-        fontFamily: 'Arial, sans-serif', fontSize: '28px', color: '#ffffff', align: 'center',
+    fijo(this.add.text(cx, cy - 40, texto, {
+      fontFamily: 'Arial, sans-serif', fontSize: '28px', color: '#ffffff', align: 'center',
+    }).setOrigin(0.5));
+
+    botones.forEach((b, i) => {
+      const x = botones.length === 1 ? cx : cx + (i === 0 ? -170 : 170);
+      const fondo = fijo(this.add.rectangle(x, cy + 90, 300, 80, b.principal ? 0xf5c542 : 0x0b0f1a)
+        .setStrokeStyle(3, 0xf5c542).setInteractive());
+      fijo(this.add.text(x, cy + 90, b.texto, {
+        fontFamily: FUENTE_TITULO, fontSize: '30px', fontStyle: 'bold',
+        color: b.principal ? '#0b0f1a' : '#f5c542',
       }).setOrigin(0.5));
-
-    const boton = fijo(this.add.rectangle(cx - 170, cy + 80, 300, 80, 0xf5c542).setInteractive());
-    fijo(this.add.text(cx - 170, cy + 80, 'Reintentar', {
-      fontFamily: FUENTE_TITULO, fontSize: '30px', color: '#0b0f1a', fontStyle: 'bold',
-    }).setOrigin(0.5));
-    boton.on('pointerdown', () => this.scene.restart());
-
-    const menu = fijo(this.add.rectangle(cx + 170, cy + 80, 300, 80, 0x0b0f1a)
-      .setStrokeStyle(3, 0xf5c542).setInteractive());
-    fijo(this.add.text(cx + 170, cy + 80, 'Menú', {
-      fontFamily: FUENTE_TITULO, fontSize: '30px', color: '#f5c542', fontStyle: 'bold',
-    }).setOrigin(0.5));
-    menu.on('pointerdown', () => this.scene.start('EscenaTitulo'));
+      fondo.on('pointerdown', b.accion);
+    });
   }
 
   /**
-   * Dibuja la caverna: suelo de baldosas, muros de ladrillo, antorchas,
-   * brasas flotando y una viñeta (bordes oscuros de la pantalla).
+   * Dibuja el mundo: suelo, adornos, muros, antorchas, clima y viñeta.
+   * Todo sale de balance.json → mundos[i] (colores, decoracion, clima...).
    */
   dibujarArena(ancho, alto, grosorMuro, tamanoCuadricula) {
-    // SUELO: en vez de cientos de imágenes sueltas, las "pintamos" una vez sobre
-    // una RenderTexture (una imagen grande en la memoria). Es mucho más liviano.
+    const id = this.mundo.id;
+
+    // SUELO: lo "pintamos" una sola vez sobre una RenderTexture (una imagen
+    // grande en la memoria). Es mucho más liviano que cientos de imágenes.
     const suelo = this.add.renderTexture(0, 0, ancho, alto).setOrigin(0).setDepth(0);
-    const azar = new Phaser.Math.RandomDataGenerator(['caverna-1']);
+    const azar = new Phaser.Math.RandomDataGenerator([id]); // semilla: siempre igual
     for (let x = 0; x < ancho; x += tamanoCuadricula) {
       for (let y = 0; y < alto; y += tamanoCuadricula) {
-        // La mayoría lisas (variante 0), algunas con grietas (1 a 3)
-        const variante = azar.frac() < 0.6 ? 0 : azar.between(1, 3);
-        suelo.draw('baldosa-' + variante, x, y);
+        const variante = azar.frac() < 0.55 ? 0 : azar.between(1, 3);
+        suelo.draw(`suelo-${id}-${variante}`, x, y);
+      }
+    }
+
+    // ADORNOS sobre el suelo (arbustos, cactus, lava...). La lava además brilla.
+    for (const { tipo, cantidad } of this.mundo.decoracion) {
+      for (let i = 0; i < cantidad; i++) {
+        const x = azar.between(grosorMuro + 20, ancho - grosorMuro - 140);
+        const y = azar.between(grosorMuro + 20, alto - grosorMuro - 100);
+        suelo.draw(`deco-${id}-${tipo}`, x, y);
+        if (tipo === 'lava') {
+          const halo = this.add.image(x + 70, y + 50, 'brillo').setTint(0xff6d00).setScale(2.2)
+            .setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD).setDepth(1);
+          this.tweens.add({ targets: halo, alpha: 0.15, duration: Phaser.Math.Between(600, 1100), yoyo: true, repeat: -1 });
+        }
       }
     }
 
     // MUROS: TileSprite repite una textura para llenar un rectángulo
-    const muro = (x, y, w, h) => this.add.tileSprite(x, y, w, h, 'muro').setOrigin(0).setDepth(2);
+    const muro = (x, y, w, h) => this.add.tileSprite(x, y, w, h, `muro-${id}`).setOrigin(0).setDepth(2);
     muro(0, 0, ancho, grosorMuro);
     muro(0, alto - grosorMuro, ancho, grosorMuro);
     muro(0, 0, grosorMuro, alto);
     muro(ancho - grosorMuro, 0, grosorMuro, alto);
 
-    // Borde interior dorado
-    this.add.graphics().setDepth(3)
-      .lineStyle(3, 0xf5c542, 0.45)
-      .strokeRect(grosorMuro, grosorMuro, ancho - grosorMuro * 2, alto - grosorMuro * 2);
-
-    // ANTORCHAS en los cuatro muros
-    for (let x = 300; x < ancho; x += 600) {
-      this.crearAntorcha(x, grosorMuro / 2);
-      this.crearAntorcha(x, alto - grosorMuro / 2);
-    }
-    for (let y = 400; y < alto; y += 800) {
-      this.crearAntorcha(grosorMuro / 2, y);
-      this.crearAntorcha(ancho - grosorMuro / 2, y);
+    // ANTORCHAS (solo en los mundos que las tienen)
+    if (this.mundo.antorchas) {
+      for (let x = 300; x < ancho; x += 600) {
+        this.crearAntorcha(x, grosorMuro / 2);
+        this.crearAntorcha(x, alto - grosorMuro / 2);
+      }
+      for (let y = 400; y < alto; y += 800) {
+        this.crearAntorcha(grosorMuro / 2, y);
+        this.crearAntorcha(ancho - grosorMuro / 2, y);
+      }
     }
 
-    // BRASAS: partículas naranjas que suben lentamente por toda la caverna
-    this.add.particles(0, 0, 'chispa', {
-      x: { min: 0, max: ancho },
-      y: { min: 0, max: alto },
-      speedY: { min: -40, max: -15 },
-      speedX: { min: -10, max: 10 },
-      lifespan: 4000,
-      scale: { start: 0.6, end: 0 },
-      alpha: { start: 0.7, end: 0 },
-      tint: [0xff7043, 0xffb74d],
-      frequency: 90,
-      blendMode: 'ADD',
-    }).setDepth(5);
+    for (const tipo of this.mundo.clima) this.crearClima(tipo, ancho, alto);
 
     // VIÑETA: fija en la pantalla, encima del mundo y debajo de los controles
     this.add.image(this.scale.width / 2, this.scale.height / 2, 'vineta')
       .setScrollFactor(0).setDepth(90);
+  }
+
+  /**
+   * Partículas de ambiente según el mundo. Todas cubren la arena entera;
+   * solo cambian la textura, el color, la dirección y la velocidad.
+   */
+  crearClima(tipo, ancho, alto) {
+    const zona = { x: { min: 0, max: ancho }, y: { min: 0, max: alto } };
+    const climas = {
+      hojas: { textura: 'hoja', speedY: { min: 20, max: 50 }, speedX: { min: -30, max: 30 }, rotate: { min: 0, max: 360 },
+        tint: [0x9ccc65, 0xffb300, 0xe65100], scale: 1, alpha: { start: 0.9, end: 0 }, lifespan: 5000, frequency: 120 },
+      luciernagas: { textura: 'brillo', speedY: { min: -15, max: 15 }, speedX: { min: -15, max: 15 },
+        tint: 0xd4e157, scale: { start: 0.12, end: 0.04 }, alpha: { start: 0.9, end: 0 }, lifespan: 3000, frequency: 160, blendMode: 'ADD' },
+      polvo: { textura: 'chispa', speedX: { min: 60, max: 140 }, speedY: { min: -10, max: 10 },
+        tint: 0xfff3d6, scale: { start: 0.8, end: 0.2 }, alpha: { start: 0.5, end: 0 }, lifespan: 3500, frequency: 50 },
+      brasas: { textura: 'chispa', speedY: { min: -40, max: -15 }, speedX: { min: -10, max: 10 },
+        tint: [0xff7043, 0xffb74d], scale: { start: 0.6, end: 0 }, alpha: { start: 0.7, end: 0 }, lifespan: 4000, frequency: 90, blendMode: 'ADD' },
+      nieve: { textura: 'chispa', speedY: { min: 40, max: 90 }, speedX: { min: 10, max: 40 },
+        tint: 0xffffff, scale: { start: 0.9, end: 0.5 }, alpha: { start: 0.9, end: 0 }, lifespan: 5000, frequency: 25 },
+    };
+    const { textura, ...config } = climas[tipo]; // separamos la textura del resto de la configuración
+    this.add.particles(0, 0, textura, { ...zona, ...config }).setDepth(5);
   }
 
   /** Una antorcha: llama que tiembla y un halo de luz que parpadea */
@@ -552,22 +665,57 @@ export default class EscenaArena extends Phaser.Scene {
   /** Textos fijos en pantalla (no se mueven con la cámara) */
   crearTextos() {
     const estilo = {
-      fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#9fb3c8',
+      fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#ffffff',
       stroke: '#05070d', strokeThickness: 4,
     };
 
-    this.add.text(20, 14, 'SMILLE GOD', { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
+    this.add.text(20, 14, `SMILLE GOD · ${this.mundo.nombre.toUpperCase()}`, { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
       .setScrollFactor(0).setDepth(100);
 
-    this.textoOleada = this.add.text(20, 42, 'Oleada 1', {
+    this.textoOleada = this.add.text(20, 42, '', {
       ...estilo, fontFamily: FUENTE_TITULO, fontSize: '32px', color: '#f5c542', fontStyle: 'bold',
     }).setScrollFactor(0).setDepth(100);
 
-    this.textoDerrotados = this.add.text(20, 82, 'Derrotados: 0', { ...estilo, color: '#ffffff' })
-      .setScrollFactor(0).setDepth(100);
+    this.textoDerrotados = this.add.text(20, 82, '', estilo).setScrollFactor(0).setDepth(100);
 
     this.add.text(20, this.scale.height - 36,
-      'PC: WASD mover · ESPACIO atacar · K Onda · L Torbellino · P pausa', { ...estilo, fontSize: '18px' })
+      'PC: WASD mover · ESPACIO atacar · K Onda · L Torbellino · P pausa', { ...estilo, fontSize: '18px', color: '#c8d3e0' })
       .setScrollFactor(0).setDepth(100);
+
+    // Barra grande de vida de los jefes, arriba al centro (se dibuja en update)
+    this.barraJefes = this.add.graphics().setScrollFactor(0).setDepth(100);
+    this.textoJefes = this.add.text(this.scale.width / 2, 22, '', { ...estilo, fontFamily: FUENTE_TITULO, fontSize: '20px', color: '#ffccbc' })
+      .setOrigin(0.5, 0).setScrollFactor(0).setDepth(101);
+  }
+
+  /** Actualiza los textos de oleada y derrotados */
+  actualizarHud() {
+    const texto = this.fase === 'oleadas'
+      ? `Oleada ${this.oleada}/${this.mundo.oleadas.length}`
+      : '¡Jefes!';
+    this.textoOleada.setText(texto);
+    this.textoDerrotados.setText(`Derrotados: ${this.derrotados}`);
+  }
+
+  /** Barra con la vida SUMADA de todos los jefes, y cuántos quedan */
+  dibujarBarraJefes() {
+    const g = this.barraJefes;
+    g.clear();
+    if (this.fase !== 'jefes') {
+      this.textoJefes.setText('');
+      return;
+    }
+    const jefes = this.enemigos.filter((e) => e instanceof Jefe);
+    const vidaMaxJefe = this.mundo.jefes.vidaMax * this.mundo.fuerza;
+    // reduce: recorre la lista sumando la vida de cada jefe
+    const vida = jefes.reduce((suma, j) => suma + Math.max(j.vida, 0), 0) + this.jefesPorAparecer * vidaMaxJefe;
+    const porcentaje = Phaser.Math.Clamp(vida / (this.jefesTotal * vidaMaxJefe), 0, 1);
+    const ancho = 480;
+    const x = this.scale.width / 2 - ancho / 2;
+    g.fillStyle(0x000000, 0.6).fillRect(x - 3, 50, ancho + 6, 22);
+    g.fillStyle(color(this.mundo.colores.jefe)).fillRect(x, 53, ancho * porcentaje, 16);
+    g.lineStyle(2, 0xf5c542, 0.8).strokeRect(x - 3, 50, ancho + 6, 22);
+    const quedan = jefes.length + this.jefesPorAparecer;
+    this.textoJefes.setText(this.jefesTotal === 1 ? 'JEFE' : `JEFES: ${quedan} de ${this.jefesTotal}`);
   }
 }

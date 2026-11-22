@@ -28,12 +28,14 @@ export default class Enemigo {
     this.cuerpo.body.setCircle(config.radio);
     this.cuerpo.body.setCollideWorldBounds(true);
 
-    // DIBUJO: la textura mide 80 px para un radio de 24 → la escalamos según el radio
-    const escala = config.radio / 24;
+    // DIBUJO: cada tipo tiene su textura (balance.json → tiposEnemigo).
+    // La textura está dibujada para un radio fijo (radioTextura); la escalamos al radio real.
+    const textura = config.textura || 'enemigo';
+    const escala = config.radio / (config.radioTextura || 24);
     this.escalaBase = escala;
     this.sombra = escena.add.image(x, y, 'sombra').setAlpha(0.35).setScale(escala * 0.9, escala * 0.65).setDepth(8);
-    this.sprite = escena.add.image(x, y, 'enemigo').setTint(this.color).setScale(escala).setDepth(10);
-    this.ojos = escena.add.image(x, y, 'enemigo-ojos').setScale(escala).setDepth(10);
+    this.sprite = escena.add.image(x, y, textura).setTint(this.color).setScale(escala).setDepth(10);
+    this.ojos = escena.add.image(x, y, textura + '-ojos').setScale(escala).setDepth(10);
 
     // Aparece "creciendo" desde cero
     escena.tweens.add({ targets: [this.sprite, this.ojos], scale: { from: 0, to: escala }, duration: 300 });
@@ -79,7 +81,9 @@ export default class Enemigo {
     this.vida -= danio;
 
     // Empuje: lo lanzamos hacia atrás y lo "aturdimos" un momento
-    this.cuerpo.body.setVelocity(direccion.x * empuje, direccion.y * empuje);
+    // resistenciaEmpuje: 1 = vuela normal; 0.2 = apenas se mueve (jefes)
+    const fuerza = empuje * (this.config.resistenciaEmpuje ?? 1);
+    this.cuerpo.body.setVelocity(direccion.x * fuerza, direccion.y * fuerza);
     this.aturdidoHasta = this.escena.time.now + this.config.aturdidoMs;
 
     // Destello blanco al recibir el golpe: setTintFill pinta todo de un color

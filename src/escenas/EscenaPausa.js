@@ -28,7 +28,7 @@ export default class EscenaPausa extends Phaser.Scene {
 
     this.crearBoton(cx, cy - 10, 'Continuar', true, () => this.continuar());
     this.crearBoton(cx, cy + 100, 'Reiniciar', false, () => this.irA('reiniciar'));
-    this.crearBoton(cx, cy + 210, 'Menú', false, () => this.irA('menu'));
+    this.crearBoton(cx, cy + 210, 'Mapa', false, () => this.irA('mapa'));
 
     // En el PC: P o ESC también continúan
     this.input.keyboard.once('keydown-P', () => this.continuar());
@@ -52,9 +52,11 @@ export default class EscenaPausa extends Phaser.Scene {
     this.scene.stop();
   }
 
-  /** Reiniciar la partida o volver al título */
+  /** Reiniciar el mismo mundo o volver al mapa de mundos */
   irA(destino) {
+    const mundo = this.scene.get('EscenaArena').indiceMundo; // para reiniciar el MISMO mundo
     this.scene.stop('EscenaArena');
-    this.scene.start(destino === 'menu' ? 'EscenaTitulo' : 'EscenaArena');
+    if (destino === 'mapa') this.scene.start('EscenaMundos');
+    else this.scene.start('EscenaArena', { mundo });
   }
 }

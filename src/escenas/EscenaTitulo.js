@@ -5,11 +5,20 @@
 // =============================================================
 
 import { crearTexturas } from '../graficos/Texturas.js';
-import { CLAVE_RECORD, FUENTE_TITULO } from './EscenaArena.js';
+import { FUENTE_TITULO } from './EscenaArena.js';
+import { mundosSuperados } from '../datos/Progreso.js';
 
 export default class EscenaTitulo extends Phaser.Scene {
   constructor() {
     super('EscenaTitulo');
+  }
+
+  // Cargamos balance.json aquí, en la primera escena; las demás lo leen de la caché de Phaser.
+  // "?v=..." evita que el navegador use una copia vieja guardada.
+  preload() {
+    if (!this.cache.json.exists('balance')) {
+      this.load.json('balance', 'src/datos/balance.json?v=' + Date.now());
+    }
   }
 
   create() {
@@ -47,11 +56,11 @@ export default class EscenaTitulo extends Phaser.Scene {
       stroke: '#05070d', strokeThickness: 5,
     }).setOrigin(0.5);
 
-    // Récord guardado (si existe)
-    let record = 0;
-    try { record = Number(localStorage.getItem(CLAVE_RECORD)) || 0; } catch (error) { /* modo incógnito */ }
-    if (record > 0) {
-      this.add.text(cx, 520, `Récord: oleada ${record}`, {
+    // Progreso guardado: cuántos mundos superó
+    const superados = mundosSuperados();
+    const total = this.cache.json.get('balance').mundos.length;
+    if (superados > 0) {
+      this.add.text(cx, 520, `Mundos superados: ${Math.min(superados, total)} de ${total}`, {
         fontFamily: FUENTE_TITULO, fontSize: '26px', color: '#ffffff', stroke: '#05070d', strokeThickness: 4,
       }).setOrigin(0.5);
     }
@@ -63,7 +72,7 @@ export default class EscenaTitulo extends Phaser.Scene {
     }).setOrigin(0.5);
     this.tweens.add({ targets: [boton, texto], scale: 1.06, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    this.add.text(W - 16, H - 12, 'v0.0.7 · prototipo', {
+    this.add.text(W - 16, H - 12, 'v0.0.8 · prototipo', {
       fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#6b7a90',
     }).setOrigin(1, 1);
 
@@ -71,7 +80,7 @@ export default class EscenaTitulo extends Phaser.Scene {
     const empezar = () => {
       boton.disableInteractive();
       this.cameras.main.fadeOut(350, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaArena'));
+      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaMundos'));
     };
     boton.on('pointerdown', empezar);
     this.input.keyboard.once('keydown-SPACE', empezar);

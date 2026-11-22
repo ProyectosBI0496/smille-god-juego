@@ -10,6 +10,8 @@
 // Todas las texturas "miran a la derecha" (ángulo 0). El juego las gira.
 // =============================================================
 
+import { enemigosEtapa6 } from './TexturasMundo.js';
+
 /** Crea todas las texturas, solo si aún no existen (sirve al reiniciar la escena) */
 export function crearTexturas(escena) {
   if (escena.textures.exists('goruk-cuerpo')) return;
@@ -20,6 +22,7 @@ export function crearTexturas(escena) {
 
   heroeGoruk(escena);
   enemigoSombra(escena);
+  enemigosEtapa6(escena);
   suelo(escena, azar);
   muro(escena);
   efectos(escena);

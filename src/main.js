@@ -12,6 +12,7 @@
 import EscenaArena from './escenas/EscenaArena.js';
 import EscenaTitulo from './escenas/EscenaTitulo.js';
 import EscenaPausa from './escenas/EscenaPausa.js';
+import EscenaMundos from './escenas/EscenaMundos.js';
 
 const config = {
   type: Phaser.AUTO,          // usa WebGL si el equipo lo soporta; si no, Canvas
@@ -29,7 +30,7 @@ const config = {
   input: {
     activePointers: 3,        // hasta 3 dedos a la vez (joystick + botones)
   },
-  scene: [EscenaTitulo, EscenaArena, EscenaPausa], // la primera de la lista es la que arranca
+  scene: [EscenaTitulo, EscenaMundos, EscenaArena, EscenaPausa], // la primera de la lista es la que arranca
 };
 
 // Arranca el juego. Lo guardamos en window.juego para poder
