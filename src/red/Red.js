@@ -30,6 +30,7 @@ export default class Red extends Phaser.Events.EventEmitter {
     this.con = null;
     this.esAnfitrion = false;
     this.razaCompanero = 'humano';
+    this.rolCompanero = 'guerrero'; // Fase 1
     this.nickCompanero = '';
     this.ultimoMensaje = 0; // cuándo llegó el último mensaje (para saber si se cortó)
   }
@@ -74,6 +75,7 @@ export default class Red extends Phaser.Events.EventEmitter {
       // La raza del compañero se guarda siempre, esté en la escena que esté
       if (mensaje.t === 'hola' || mensaje.t === 'raza') {
         this.razaCompanero = mensaje.raza;
+        this.rolCompanero = mensaje.rol || 'guerrero';
         this.nickCompanero = String(mensaje.nick || '').slice(0, 12);
       }
       this.emit(mensaje.t, mensaje);

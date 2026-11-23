@@ -122,6 +122,60 @@
     "empuje": 250,
     "recargaMs": 10000
   },
+  "roles": {
+    "guerrero": {
+      "nombre": "Guerrero",
+      "descripcion": "Golpe, Onda y Torbellino. Equilibrado",
+      "vida": 1.0,
+      "velocidad": 1.0,
+      "color": "#f5c542",
+      "disponible": true
+    },
+    "asesino": {
+      "nombre": "Asesino",
+      "descripcion": "Rápido y letal, pero con poca vida",
+      "vida": 0.75,
+      "velocidad": 1.1,
+      "color": "#ef5350",
+      "disponible": true,
+      "cuchilladas": {
+        "nombre": "Cuchilladas",
+        "danio": 16,
+        "golpes": 2,
+        "intervaloMs": 110,
+        "alcance": 60,
+        "empuje": 140,
+        "recargaMs": 380,
+        "rangoAutoApuntado": 220
+      },
+      "pasoSombrio": {
+        "nombre": "Paso sombrío",
+        "rango": 320,
+        "distanciaDetras": 55,
+        "saltoSinEnemigo": 200,
+        "danio": 20,
+        "radio": 70,
+        "empuje": 300,
+        "invulnerableMs": 500,
+        "recargaMs": 3500
+      },
+      "critico": {
+        "nombre": "Golpe crítico",
+        "danio": 130,
+        "rango": 180,
+        "empuje": 600,
+        "recargaMs": 8000
+      }
+    },
+    "sanador": {
+      "nombre": "Sanador",
+      "descripcion": "Cura y protege (próximamente)",
+      "vida": 0.9,
+      "velocidad": 1.0,
+      "color": "#66bb6a",
+      "disponible": false
+    }
+  },
   "tiposEnemigo": {
     "normal": {
       "textura": "enemigo",

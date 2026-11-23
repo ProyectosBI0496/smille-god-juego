@@ -294,4 +294,32 @@ function iconos(escena) {
     }
     g.fillCircle(32, 32, 6);
   });
+
+  // Fase 1 — íconos del Asesino
+  dibujar(escena, 'icono-dagas', 64, 64, (g) => {
+    // Dos dagas cruzadas
+    g.lineStyle(6, 0xffffff);
+    g.lineBetween(14, 50, 46, 12);
+    g.lineBetween(50, 50, 18, 12);
+    g.lineStyle(4, 0xffffff);
+    g.lineBetween(12, 40, 24, 52); // guardas
+    g.lineBetween(52, 40, 40, 52);
+  });
+
+  dibujar(escena, 'icono-paso', 64, 64, (g) => {
+    // Una silueta que se desvanece hacia atrás (tres círculos) y una flecha
+    g.fillStyle(0xffffff, 0.3);
+    g.fillCircle(16, 34, 8);
+    g.fillStyle(0xffffff, 0.6);
+    g.fillCircle(28, 32, 9);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(42, 30, 10);
+    poligono(g, [[50, 18], [60, 30], [50, 42]]);
+  });
+
+  dibujar(escena, 'icono-critico', 64, 64, (g) => {
+    // Una estrella de 4 puntas (golpe certero)
+    g.fillStyle(0xffffff);
+    poligono(g, [[32, 4], [38, 26], [60, 32], [38, 38], [32, 60], [26, 38], [4, 32], [26, 26]]);
+  });
 }

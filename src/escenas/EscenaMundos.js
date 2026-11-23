@@ -8,8 +8,15 @@ import { crearTexturas } from '../graficos/Texturas.js';
 import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
-import { mundosSuperados, razaElegida } from '../datos/Progreso.js';
+import { mundosSuperados, razaElegida, rolElegido } from '../datos/Progreso.js';
 import { redActual } from '../red/Red.js';
+
+/** Nombre del rol elegido (Fase 1), para mostrarlo junto a la raza */
+function nombreRol(escena) {
+  const roles = escena.cache.json.get('balance').roles;
+  const rol = roles[rolElegido()];
+  return rol && rol.disponible ? rol.nombre : roles.guerrero.nombre;
+}
 
 export default class EscenaMundos extends Phaser.Scene {
   constructor() {
@@ -60,7 +67,7 @@ export default class EscenaMundos extends Phaser.Scene {
     const id = razas[razaElegida()] ? razaElegida() : 'humano';
     // El texto se alinea al borde derecho (origen 1) y el dibujo va a su izquierda:
     // así nunca se sale de la pantalla, sea cual sea el largo del nombre.
-    const cambiar = this.add.text(W - 24, H - 60, `${razas[id].nombre} · Cambiar`, {
+    const cambiar = this.add.text(W - 24, H - 60, `${razas[id].nombre} ${nombreRol(this)} · Cambiar`, {
       fontFamily: FUENTE_TITULO, fontSize: '26px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
     }).setOrigin(1, 0.5).setInteractive();
     const xHeroe = cambiar.x - cambiar.width - 45;

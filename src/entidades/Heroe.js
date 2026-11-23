@@ -128,9 +128,11 @@ export default class Heroe {
    * Ataque básico: un golpe en un círculo justo delante del héroe.
    * Devuelve la zona de impacto { x, y, radio } para que la escena
    * revise a qué enemigos alcanza.
-   * @param {object} ataque  datos de balance.json → "ataqueBasico"
+   * @param {object} ataque  datos de balance.json → "ataqueBasico" (o los del rol)
+   * @param {number} tinte   color del tajo (Fase 1: cada rol tiene el suyo)
+   * @param {boolean} alReves  el tajo barre en sentido contrario (2.ª cuchillada del Asesino)
    */
-  atacar(ataque) {
+  atacar(ataque, tinte = 0xffe082, alReves = false) {
     const distancia = this.radio + ataque.alcance / 2;
     const zona = {
       x: this.cuerpo.x + this.mirando.x * distancia,
@@ -141,10 +143,11 @@ export default class Heroe {
     // Efecto visual: un "tajo" dorado en media luna que barre de un lado al otro
     const angulo = Phaser.Math.RadToDeg(Math.atan2(this.mirando.y, this.mirando.x));
     const tajo = this.escena.add.image(this.cuerpo.x, this.cuerpo.y, 'tajo')
-      .setTint(0xffe082).setScale(distancia / 36).setAngle(angulo - 35)
+      .setTint(tinte).setScale(distancia / 36).setAngle(alReves ? angulo + 35 : angulo - 35)
       .setBlendMode(Phaser.BlendModes.ADD).setDepth(40);
+    if (alReves) tajo.setFlipY(true); // espejo: la media luna mira al otro lado
     this.escena.tweens.add({
-      targets: tajo, angle: angulo + 35, alpha: 0, duration: 160,
+      targets: tajo, angle: alReves ? angulo - 35 : angulo + 35, alpha: 0, duration: 160,
       onComplete: () => tajo.destroy(),
     });
 

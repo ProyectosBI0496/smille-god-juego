@@ -9,9 +9,16 @@
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
-import { razaElegida } from '../datos/Progreso.js';
+import { razaElegida, rolElegido, nick } from '../datos/Progreso.js';
 import { crearEditorNick } from '../ui/EditorNick.js';
 import Red, { redActual } from '../red/Red.js';
+
+/** Nombre del rol elegido (Fase 1), para mostrarlo junto a la raza */
+function nombreRol(escena) {
+  const roles = escena.cache.json.get('balance').roles;
+  const rol = roles[rolElegido()];
+  return rol && rol.disponible ? rol.nombre : roles.guerrero.nombre;
+}
 
 export default class EscenaSala extends Phaser.Scene {
   constructor() {
@@ -70,7 +77,7 @@ export default class EscenaSala extends Phaser.Scene {
   crearMiHeroe(W, H) {
     const razas = this.cache.json.get('balance').razas;
     const id = razas[razaElegida()] ? razaElegida() : 'humano';
-    const cambiar = this.add.text(W - 24, H - 55, `${razas[id].nombre} · Cambiar`, {
+    const cambiar = this.add.text(W - 24, H - 55, `${razas[id].nombre} ${nombreRol(this)} · Cambiar`, {
       fontFamily: FUENTE_TITULO, fontSize: '26px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
     }).setOrigin(1, 0.5).setInteractive(); // alineado al borde derecho
     const xHeroe = cambiar.x - cambiar.width - 45;
@@ -121,7 +128,7 @@ export default class EscenaSala extends Phaser.Scene {
       },
       (error) => this.fallo(error),
     );
-    red.escuchar(this, 'conectado', () => red.enviar({ t: 'hola', raza: razaElegida(), nick: nick() }));
+    red.escuchar(this, 'conectado', () => red.enviar({ t: 'hola', raza: razaElegida(), rol: rolElegido(), nick: nick() }));
     red.escuchar(this, 'hola', () => {
       this.decir(`¡Conectado con ${red.nickCompanero || 'tu compañero'}! ✓`);
       // El anfitrión elige el mundo en el mapa (el mapa sabe que hay pareja)
@@ -166,7 +173,7 @@ export default class EscenaSala extends Phaser.Scene {
     this.decir(`Conectando a la sala ${codigo}...`);
     const red = new Red();
     red.unirse(codigo, (error) => this.fallo(error));
-    red.escuchar(this, 'conectado', () => red.enviar({ t: 'hola', raza: razaElegida(), nick: nick() }));
+    red.escuchar(this, 'conectado', () => red.enviar({ t: 'hola', raza: razaElegida(), rol: rolElegido(), nick: nick() }));
     red.escuchar(this, 'hola', () => {
       this.decir(`Conectado con ${red.nickCompanero || 'tu compañero'} ✓\nEsperando que elija el mundo...`);
     });

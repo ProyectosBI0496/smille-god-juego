@@ -55,6 +55,25 @@ export function elegirRaza(id) {
   }
 }
 
+const CLAVE_ROL = 'smilleGod.rol';
+
+/** El rol que eligió el jugador (Fase 1); "guerrero" si todavía no eligió */
+export function rolElegido() {
+  try {
+    return localStorage.getItem(CLAVE_ROL) || 'guerrero';
+  } catch (error) {
+    return 'guerrero';
+  }
+}
+
+export function elegirRol(id) {
+  try {
+    localStorage.setItem(CLAVE_ROL, id);
+  } catch (error) {
+    // sin memoria del navegador: la elección dura solo esta partida
+  }
+}
+
 /** Marca como superado el mundo número "indice" (0 = el primero) */
 export function marcarSuperado(indice) {
   try {

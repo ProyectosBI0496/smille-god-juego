@@ -15,6 +15,8 @@
 // Etapa 9: COOPERATIVO en línea. Hay un segundo héroe ("companero").
 //          El anfitrión calcula todo; el invitado dibuja (ver red/Cooperativo.js).
 //          Si un héroe cae, se levanta al vencer la sala; se pierde si caen los dos.
+// Fase 1: ROLES. El rol elegido decide qué hacen los 3 botones
+//          (Guerrero: Golpe/Onda/Torbellino; Asesino: Cuchilladas/Paso sombrío/Crítico).
 // =============================================================
 
 // Tipografía de fantasía (Google Fonts, cargada en index.html).
@@ -30,12 +32,34 @@ import BotonHabilidad from '../controles/BotonHabilidad.js';
 import Mazmorra from '../mundo/Mazmorra.js';
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
-import { marcarSuperado, razaElegida, mundosSuperados, nick } from '../datos/Progreso.js';
+import { marcarSuperado, razaElegida, rolElegido, mundosSuperados, nick } from '../datos/Progreso.js';
 import { redActual } from '../red/Red.js';
 import Cooperativo from '../red/Cooperativo.js';
 
 // Qué clase usar para cada tipo de enemigo de balance.json (por defecto, Enemigo)
 const CLASES = { tirador: Tirador };
+
+// Fase 1: los 3 botones de cada ROL.
+//   tipo:    nombre corto de la acción (también es lo que viaja por la red en pareja)
+//   icono:   textura del botón (graficos/Texturas.js)
+//   recarga: función que lee la recarga en balance.json (b = balance, r = datos del rol)
+const BOTONES_ROL = {
+  guerrero: [
+    { tipo: 'atq', icono: 'icono-espada', color: 0xf5c542, recarga: (b) => b.ataqueBasico.recargaMs },
+    { tipo: 'onda', icono: 'icono-onda', color: 0x4fc3f7, recarga: (b) => b.habilidad.recargaMs },
+    { tipo: 'torb', icono: 'icono-torbellino', color: 0xab47bc, recarga: (b) => b.especial.recargaMs },
+  ],
+  asesino: [
+    { tipo: 'cuch', icono: 'icono-dagas', color: 0xef5350, recarga: (b, r) => r.cuchilladas.recargaMs },
+    { tipo: 'paso', icono: 'icono-paso', color: 0x9575cd, recarga: (b, r) => r.pasoSombrio.recargaMs },
+    { tipo: 'crit', icono: 'icono-critico', color: 0xff1744, recarga: (b, r) => r.critico.recargaMs },
+  ],
+};
+
+/** El id del rol que se puede usar (si no existe o aún no está listo, Guerrero) */
+function rolValido(roles, id) {
+  return roles[id] && roles[id].disponible && BOTONES_ROL[id] ? id : 'guerrero';
+}
 
 export default class EscenaArena extends Phaser.Scene {
   constructor() {
@@ -78,10 +102,13 @@ export default class EscenaArena extends Phaser.Scene {
     let idRaza = razaElegida();
     if (!this.balance.razas[idRaza] || this.balance.razas[idRaza].desbloqueo > mundosSuperados()) idRaza = 'humano';
     this.raza = this.balance.razas[idRaza];
+    // El ROL multiplica la vida y la velocidad de la raza (el Asesino tiene menos vida)
+    this.idRol = rolValido(this.balance.roles, rolElegido());
+    this.rol = this.balance.roles[this.idRol];
     const configHeroe = {
       ...this.balance.heroe,
-      vidaMax: this.raza.vidaMax,
-      velocidad: this.raza.velocidad,
+      vidaMax: Math.round(this.raza.vidaMax * this.rol.vida),
+      velocidad: Math.round(this.raza.velocidad * this.rol.velocidad),
       textura: idRaza,
       extra: this.raza.extra,
     };
@@ -90,6 +117,7 @@ export default class EscenaArena extends Phaser.Scene {
     const entrada = salas[0];
     this.heroe = new Heroe(this, entrada.x + 150, entrada.medio, configHeroe);
     this.heroe.raza = this.raza;
+    this.heroe.rol = this.rol;
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.muros);
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.puertas.filter(Boolean));
 
@@ -100,10 +128,15 @@ export default class EscenaArena extends Phaser.Scene {
     if (this.coop && red && red.conectado) {
       const idOtra = this.balance.razas[red.razaCompanero] ? red.razaCompanero : 'humano';
       const razaOtra = this.balance.razas[idOtra];
+      const rolOtro = this.balance.roles[rolValido(this.balance.roles, red.rolCompanero)];
       this.companero = new Heroe(this, entrada.x + 150, entrada.medio + 70, {
-        ...this.balance.heroe, vidaMax: razaOtra.vidaMax, velocidad: razaOtra.velocidad, textura: idOtra, extra: razaOtra.extra,
+        ...this.balance.heroe,
+        vidaMax: Math.round(razaOtra.vidaMax * rolOtro.vida),
+        velocidad: Math.round(razaOtra.velocidad * rolOtro.velocidad),
+        textura: idOtra, extra: razaOtra.extra,
       });
       this.companero.raza = razaOtra;
+      this.companero.rol = rolOtro;
       this.companero.nombre = red.nickCompanero || 'Compañero';
       this.companero.ponerEtiqueta(this.companero.nombre);
       this.heroe.nombre = nick() || 'Tú';
@@ -142,7 +175,7 @@ export default class EscenaArena extends Phaser.Scene {
     this.cameras.main.startFollow(this.heroe.cuerpo, true, 0.1, 0.1);
 
     // ---- Controles ----
-    // Teclado (PC): WASD/flechas; ESPACIO/J ataque, K Onda, L Torbellino, H cura
+    // Teclado (PC): WASD/flechas; ESPACIO/J botón 1, K botón 2, L botón 3, H cura
     this.teclas = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,K,L,H');
     this.joystick = new Joystick(this, this.balance.joystick);
     this.direccion = new Phaser.Math.Vector2(); // reutilizable (no crear uno por frame)
@@ -181,9 +214,9 @@ export default class EscenaArena extends Phaser.Scene {
     const { radio, margen } = this.balance.botones;
     const xAtq = W - margen - radio;
     const yAtq = H - margen - radio;
-    this.botonAtaque.mover(xAtq, yAtq);
-    this.botonOnda.mover(xAtq - 150, yAtq + 25);
-    this.botonTorbellino.mover(xAtq - 35, yAtq - 150);
+    this.boton1.mover(xAtq, yAtq);
+    this.boton2.mover(xAtq - 150, yAtq + 25);
+    this.boton3.mover(xAtq - 35, yAtq - 150);
     this.botonCura.mover(xAtq - 175, yAtq - 120);
     this.textoCuras.setPosition(xAtq - 175 + 30, yAtq - 120 + 26);
     for (const [objeto, dx] of this.partesPausa) objeto.setPosition(W - 55 + dx, 55);
@@ -219,15 +252,15 @@ export default class EscenaArena extends Phaser.Scene {
       this.heroe.mover(this.direccion);
       // Habilidades con teclado (JustDown = solo en el instante en que se aprieta)
       const recienApretada = Phaser.Input.Keyboard.JustDown;
-      if (recienApretada(this.teclas.SPACE) || recienApretada(this.teclas.J)) this.botonAtaque.usar();
-      if (recienApretada(this.teclas.K)) this.botonOnda.usar();
-      if (recienApretada(this.teclas.L)) this.botonTorbellino.usar();
+      if (recienApretada(this.teclas.SPACE) || recienApretada(this.teclas.J)) this.boton1.usar();
+      if (recienApretada(this.teclas.K)) this.boton2.usar();
+      if (recienApretada(this.teclas.L)) this.boton3.usar();
       if (recienApretada(this.teclas.H)) this.botonCura.usar();
     } else {
       this.direccion.set(0, 0);
       this.heroe.mover(this.direccion); // caído: quieto (se ve como fantasma)
     }
-    for (const boton of [this.botonAtaque, this.botonOnda, this.botonTorbellino, this.botonCura]) boton.actualizar();
+    for (const boton of [this.boton1, this.boton2, this.boton3, this.botonCura]) boton.actualizar();
 
     if (this.cooperativo) this.cooperativo.actualizar();
 
@@ -516,31 +549,21 @@ export default class EscenaArena extends Phaser.Scene {
   // Combate (igual que en etapas anteriores)
   // =============================================================
 
-  /** Crea los botones: ataque, Onda, Torbellino y cura */
+  /** Crea los 3 botones del ROL y el de cura */
   crearBotones() {
     const { radio, radioPequeno, margen } = this.balance.botones;
     const xAtq = this.scale.baseSize.width - margen - radio;
     const yAtq = this.scale.baseSize.height - margen - radio;
     const recarga = this.raza.recarga; // < 1 = la raza recarga más rápido (Humano)
 
-    // Botón 1 — ataque básico (el más grande, bajo el pulgar)
-    this.botonAtaque = new BotonHabilidad(this, {
-      x: xAtq, y: yAtq, radio, etiqueta: 'ATQ', icono: 'icono-espada',
-      recargaMs: this.balance.ataqueBasico.recargaMs * recarga, color: 0xf5c542,
-      alPulsar: () => this.accion('atq'),
-    });
-    // Botón 2 — "Onda": a la izquierda del ataque
-    this.botonOnda = new BotonHabilidad(this, {
-      x: xAtq - 150, y: yAtq + 25, radio: radioPequeno, etiqueta: 'ONDA', icono: 'icono-onda',
-      recargaMs: this.balance.habilidad.recargaMs * recarga, color: 0x4fc3f7,
-      alPulsar: () => this.accion('onda'),
-    });
-    // Botón 3 — "Torbellino": encima del ataque
-    this.botonTorbellino = new BotonHabilidad(this, {
-      x: xAtq - 35, y: yAtq - 150, radio: radioPequeno, etiqueta: 'ESP', icono: 'icono-torbellino',
-      recargaMs: this.balance.especial.recargaMs * recarga, color: 0xab47bc,
-      alPulsar: () => this.accion('torb'),
-    });
+    // Botón 1 (el más grande, bajo el pulgar), botón 2 a su izquierda, botón 3 encima
+    const posiciones = [[xAtq, yAtq, radio], [xAtq - 150, yAtq + 25, radioPequeno], [xAtq - 35, yAtq - 150, radioPequeno]];
+    const botones = BOTONES_ROL[this.idRol].map((b, i) => new BotonHabilidad(this, {
+      x: posiciones[i][0], y: posiciones[i][1], radio: posiciones[i][2], etiqueta: String(i + 1), icono: b.icono,
+      recargaMs: b.recarga(this.balance, this.rol) * recarga, color: b.color,
+      alPulsar: () => this.accion(b.tipo),
+    }));
+    [this.boton1, this.boton2, this.boton3] = botones; // "desestructurar": reparte la lista en 3 variables
     // Botón 4 — cura: más arriba, con el número de curas que quedan
     const xCura = xAtq - 175;
     const yCura = yAtq - 120;
@@ -574,10 +597,15 @@ export default class EscenaArena extends Phaser.Scene {
       if (direccion.lengthSq() === 0) direccion.set(1, 0); // por si están en el mismo punto
       direccion.normalize();
 
-      enemigo.recibirDanio(danio, direccion, empuje);
-      this.mostrarNumero(enemigo.cuerpo.x, enemigo.cuerpo.y - enemigo.radio, `-${danio}`);
-      if (enemigo.vida <= 0) this.eliminarEnemigo(enemigo);
+      this.danarEnemigo(enemigo, danio, direccion, empuje);
     }
+  }
+
+  /** Daña a UN enemigo, muestra el número y lo elimina si se queda sin vida */
+  danarEnemigo(enemigo, danio, direccion, empuje, colorNumero = '#ffeb3b') {
+    enemigo.recibirDanio(danio, direccion, empuje);
+    this.mostrarNumero(enemigo.cuerpo.x, enemigo.cuerpo.y - enemigo.radio, `-${danio}`, colorNumero);
+    if (enemigo.vida <= 0) this.eliminarEnemigo(enemigo);
   }
 
   /** Devuelve el enemigo más cercano al héroe dentro de un rango (o null) */
@@ -619,6 +647,9 @@ export default class EscenaArena extends Phaser.Scene {
     if (tipo === 'atq') this.atacar(h);
     else if (tipo === 'onda') this.usarOnda(h);
     else if (tipo === 'torb') this.usarTorbellino(h);
+    else if (tipo === 'cuch') this.usarCuchilladas(h);
+    else if (tipo === 'paso') this.usarPasoSombrio(h);
+    else if (tipo === 'crit') this.usarCritico(h);
   }
 
   /** Anfitrión: el invitado usó una habilidad; se hace con SU héroe (aquí sí hace daño) */
@@ -717,6 +748,113 @@ export default class EscenaArena extends Phaser.Scene {
         this.golpearArea(x, y, e.radio, e.danio, e.empuje, x, y, heroe);
       },
     });
+  }
+
+  // =============================================================
+  // ASESINO (Fase 1): rápido y letal, con poca vida
+  // =============================================================
+
+  /** Botón 1 — dos cuchilladas rápidas seguidas, con auto-apuntado */
+  usarCuchilladas(h = this.heroe) {
+    if (!h.vivo) return;
+    const c = h.rol.cuchilladas;
+    for (let i = 0; i < c.golpes; i++) {
+      // delayedCall: ejecuta la función después de unos milisegundos (0 = ya)
+      this.time.delayedCall(i * c.intervaloMs, () => {
+        if (!h.vivo || !h.cuerpo.active) return;
+        const objetivo = this.enemigoMasCercano(c.rangoAutoApuntado * (h.raza.autoApuntado || 1), h);
+        if (objetivo) h.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
+        const zona = h.atacar(c, i % 2 === 0 ? 0xef9a9a : 0xffcdd2, i % 2 === 1); // la 2.ª va al revés
+        if (objetivo && Phaser.Math.Distance.Between(h.cuerpo.x, h.cuerpo.y, objetivo.cuerpo.x, objetivo.cuerpo.y) < h.radio + c.alcance) {
+          zona.x = objetivo.cuerpo.x; // muy pegado: el golpe se centra en él
+          zona.y = objetivo.cuerpo.y;
+        }
+        this.golpearArea(zona.x, zona.y, zona.radio, c.danio, c.empuje, h.cuerpo.x, h.cuerpo.y, h);
+      });
+    }
+  }
+
+  /**
+   * Botón 2 — "Paso sombrío": desaparece y aparece DETRÁS del enemigo más cercano,
+   * dañando un poco a su alrededor. Sin enemigos cerca, da un salto hacia adelante.
+   * Durante un instante es invulnerable (sirve también para escapar).
+   */
+  usarPasoSombrio(h = this.heroe) {
+    if (!h.vivo) return;
+    const p = h.rol.pasoSombrio;
+    const desde = { x: h.cuerpo.x, y: h.cuerpo.y };
+    const objetivo = this.enemigoMasCercano(p.rango, h);
+
+    // Puntos a probar, en orden de preferencia: detrás del enemigo, a sus lados
+    // y delante de él. Nos quedamos con el primero que no esté dentro de un muro.
+    let candidatos;
+    if (objetivo) {
+      const ex = objetivo.cuerpo.x;
+      const ey = objetivo.cuerpo.y;
+      const angulo = Math.atan2(ey - desde.y, ex - desde.x); // de mí hacia el enemigo
+      const d = objetivo.radio + p.distanciaDetras;
+      candidatos = [0, 0.8, -0.8, 1.6, -1.6, Math.PI].map((giro) => ({
+        x: ex + Math.cos(angulo + giro) * d,
+        y: ey + Math.sin(angulo + giro) * d,
+      }));
+    } else {
+      candidatos = [1, 0.6, 0.3].map((f) => ({
+        x: desde.x + h.mirando.x * p.saltoSinEnemigo * f,
+        y: desde.y + h.mirando.y * p.saltoSinEnemigo * f,
+      }));
+    }
+    const destino = candidatos.find((punto) => this.puntoLibre(punto.x, punto.y, h.radio));
+    if (!destino) return; // todo bloqueado: no se mueve
+
+    // Humo violeta donde estaba y donde aparece
+    for (const punto of [desde, destino]) {
+      const humo = this.add.image(punto.x, punto.y, 'brillo').setTint(0x7e57c2)
+        .setBlendMode(Phaser.BlendModes.ADD).setDepth(44).setScale(0.6);
+      this.tweens.add({ targets: humo, scale: 1.8, alpha: 0, duration: 380, onComplete: () => humo.destroy() });
+    }
+    h.cuerpo.body.reset(destino.x, destino.y); // "teletransporta" el cuerpo físico
+    h.invulnerableHasta = this.time.now + p.invulnerableMs;
+    if (objetivo) h.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y); // queda mirando su espalda
+    h.actualizarDibujo(false);
+    if (h === this.heroe) this.cameras.main.shake(90, 0.003);
+
+    this.golpearArea(destino.x, destino.y, p.radio, p.danio, p.empuje, destino.x, destino.y, h);
+  }
+
+  /** true si un círculo en (x, y) no toca muros ni rejas (para no aparecer dentro de una pared) */
+  puntoLibre(x, y, radio) {
+    const { ancho, alto } = this.mazmorra;
+    if (x < radio || y < radio || x > ancho - radio || y > alto - radio) return false;
+    // overlapCirc busca cuerpos físicos dentro del círculo; (false, true) = solo los fijos (muros, rejas)
+    return this.physics.overlapCirc(x, y, radio, false, true).length === 0;
+  }
+
+  /** Botón 3 — "Golpe crítico": muchísimo daño a UN solo enemigo (el más cercano) */
+  usarCritico(h = this.heroe) {
+    if (!h.vivo) return;
+    const c = h.rol.critico;
+    const objetivo = this.enemigoMasCercano(c.rango, h);
+    if (objetivo) h.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
+
+    // Dibujo: un tajo rojo grande y una cruz brillante sobre el objetivo
+    h.atacar({ alcance: 90 }, 0xff1744);
+    if (!objetivo) return; // sin nadie cerca, el golpe se pierde
+    const { x, y } = objetivo.cuerpo;
+    for (const angulo of [45, -45]) {
+      const corte = this.add.rectangle(x, y, 10, objetivo.radio * 3.2, 0xffffff).setAngle(angulo)
+        .setBlendMode(Phaser.BlendModes.ADD).setDepth(46);
+      this.tweens.add({ targets: corte, scaleX: 0.2, alpha: 0, duration: 350, onComplete: () => corte.destroy() });
+    }
+    if (h === this.heroe) {
+      this.cameras.main.shake(160, 0.008);
+      this.vibrar(40);
+    }
+    if (this.esInvitado) return; // el daño lo calcula el anfitrión
+    const direccion = new Phaser.Math.Vector2(x - h.cuerpo.x, y - h.cuerpo.y);
+    if (direccion.lengthSq() === 0) direccion.set(1, 0);
+    direccion.normalize();
+    const danio = Math.round(c.danio * h.raza.danio);
+    this.danarEnemigo(objetivo, danio, direccion, c.empuje * (h.raza.empuje || 1), '#ff5252');
   }
 
   /**
@@ -983,14 +1121,14 @@ export default class EscenaArena extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#ffffff',
       stroke: '#05070d', strokeThickness: 4,
     };
-    this.add.text(20, 14, `${this.mundo.nombre.toUpperCase()} · ${this.raza.nombre.toUpperCase()}${this.cooperativo ? ' · EN PAREJA' : ''}`, { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
+    this.add.text(20, 14, `${this.mundo.nombre.toUpperCase()} · ${this.raza.nombre.toUpperCase()} ${this.rol.nombre.toUpperCase()}${this.cooperativo ? ' · EN PAREJA' : ''}`, { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
       .setScrollFactor(0).setDepth(100);
     this.textoProgreso = this.add.text(20, 42, '', {
       ...estilo, fontFamily: FUENTE_TITULO, fontSize: '28px', color: '#f5c542', fontStyle: 'bold',
     }).setScrollFactor(0).setDepth(100);
     this.textoDerrotados = this.add.text(20, 80, '', estilo).setScrollFactor(0).setDepth(100);
     this.textoAyuda = this.add.text(20, this.scale.baseSize.height - 36,
-      'PC: WASD mover · ESPACIO atacar · K Onda · L Torbellino · H cura · P pausa', { ...estilo, fontSize: '18px', color: '#c8d3e0' })
+      'PC: WASD mover · ESPACIO botón 1 · K botón 2 · L botón 3 · H cura · P pausa', { ...estilo, fontSize: '18px', color: '#c8d3e0' })
       .setScrollFactor(0).setDepth(100);
 
     // FPS = cuadros por segundo. 60 es fluido; menos de 30 se siente lento.
