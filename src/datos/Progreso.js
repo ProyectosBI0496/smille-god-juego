@@ -140,3 +140,30 @@ export function marcarSuperado(indice) {
     // sin memoria del navegador: el progreso solo dura esta partida
   }
 }
+
+// =============================================================
+// v0.1.3 — TIENDA DE EQUIPO
+// Lo que se COMPRA es de la cuenta (como las monedas): no se pierde al
+// borrar el personaje. Lo que se EQUIPA es del personaje (p.equipo).
+// =============================================================
+
+const CLAVE_INVENTARIO = 'smilleGod.inventario';
+
+/** Lista de los objetos comprados, por ejemplo ["espadaCorta", "amuletoVida"] */
+export function inventario() {
+  const lista = leerJson(CLAVE_INVENTARIO, []);
+  return Array.isArray(lista) ? lista : [];
+}
+
+/** Compra un objeto: resta su precio y lo guarda. Devuelve true si se pudo. */
+export function comprarObjeto(id, precio) {
+  const m = monedas();
+  // ¿alcanza cada moneda del precio? (every = "todas cumplen")
+  const alcanza = Object.entries(precio).every(([moneda, cantidad]) => (m[moneda] || 0) >= cantidad);
+  if (!alcanza || inventario().includes(id)) return false;
+  const resta = {};
+  for (const [moneda, cantidad] of Object.entries(precio)) resta[moneda] = -cantidad;
+  sumarMonedas(resta);
+  guardarJson(CLAVE_INVENTARIO, [...inventario(), id]);
+  return true;
+}

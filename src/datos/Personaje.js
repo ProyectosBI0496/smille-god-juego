@@ -47,7 +47,44 @@ export function personajeValido(balance, p) {
     est[id] = Math.max(0, Math.floor(Number(p && p.est && p.est[id]) || 0));
   }
   const nivel = Phaser.Math.Clamp(Math.floor(Number(p && p.nivel) || 1), 1, balance.progreso.nivelMax);
-  return { raza, clase, nivel, puntos: Math.max(0, Number(p && p.puntos) || 0), est };
+  // v0.1.3: el equipo puesto (una cosa por ranura). Si un objeto no existe o es de otra ranura, se quita.
+  const equipo = {};
+  for (const ranura of Object.keys(balance.equipo.ranuras)) {
+    const id = p && p.equipo && p.equipo[ranura];
+    const obj = balance.equipo.objetos[id];
+    if (obj && obj.ranura === ranura) equipo[ranura] = id;
+  }
+  return { raza, clase, nivel, puntos: Math.max(0, Number(p && p.puntos) || 0), est, equipo };
+}
+
+/**
+ * v0.1.3: los puntos de estadísticas que REGALA el equipo puesto.
+ * El equipo puede dar cualquier estadística (aunque no sea de los roles de la clase):
+ * así un Guerrero con un anillo veloz corre un poco más.
+ */
+export function bonosEquipo(balance, p) {
+  const total = {};
+  for (const id of Object.keys(balance.estadisticas.lista)) total[id] = 0;
+  for (const idObjeto of Object.values(p.equipo || {})) {
+    const obj = balance.equipo.objetos[idObjeto];
+    if (!obj) continue;
+    for (const [est, cantidad] of Object.entries(obj.bonos)) total[est] = (total[est] || 0) + cantidad;
+  }
+  return total;
+}
+
+/** Texto corto de los bonos de un objeto: "+2 Daño · +1 Vida" */
+export function textoBonos(balance, bonos) {
+  // Si da lo mismo a TODAS las estadísticas, se dice corto: "+1 a todas las estadísticas"
+  const valores = Object.keys(balance.estadisticas.lista).map((id) => bonos[id]);
+  if (valores.every((n) => n > 0 && n === valores[0])) return `+${valores[0]} a todas las estadísticas`;
+  return Object.entries(bonos).map(([est, n]) => `+${n} ${balance.estadisticas.lista[est].nombre}`).join(' · ');
+}
+
+/** Texto del precio: "☀️ 60" o "💎 3" */
+export function textoPrecio(precio) {
+  const iconos = { intys: '☀️', fichas: '🎟️', rubis: '💎' };
+  return Object.entries(precio).map(([moneda, n]) => `${iconos[moneda]} ${n}`).join(' + ');
 }
 
 /**
@@ -60,7 +97,10 @@ export function calcularHeroe(balance, entrada) {
   const clase = balance.clases[p.clase];
   const pp = balance.estadisticas.porPunto;
   const lim = balance.estadisticas.limites;
-  const e = p.est;
+  // Estadísticas finales = puntos repartidos + bonos del equipo
+  const bonos = bonosEquipo(balance, p);
+  const e = {};
+  for (const id of Object.keys(p.est)) e[id] = p.est[id] + (bonos[id] || 0);
   // Cuántos botones tiene abiertos (botón 2 y 3 se abren al subir de nivel)
   const botones = balance.progreso.nivelBotones.filter((n) => p.nivel >= n).length;
   return {
@@ -86,7 +126,7 @@ export function calcularHeroe(balance, entrada) {
 
 /** Lo que se le cuenta al compañero por la red: solo lo necesario */
 export function paraLaRed(p) {
-  return { raza: p.raza, clase: p.clase, nivel: p.nivel, est: p.est };
+  return { raza: p.raza, clase: p.clase, nivel: p.nivel, est: p.est, equipo: p.equipo || {} };
 }
 
 /** Nombre corto de cada habilidad (para mostrarlo en los menús) */

@@ -16,7 +16,7 @@ import {
   personaje, guardarPersonaje, borrarPersonaje, monedas, sumarMonedas, nivelMaximo,
 } from '../datos/Progreso.js';
 import {
-  personajeValido, calcularHeroe, estadisticasDeClase, costoNivel, nombrePersonaje, clasesDeRaza,
+  personajeValido, calcularHeroe, estadisticasDeClase, costoNivel, nombrePersonaje, clasesDeRaza, bonosEquipo,
 } from '../datos/Personaje.js';
 import { redActual, seguirPareja } from '../red/Red.js';
 
@@ -59,6 +59,8 @@ export default class EscenaPersonaje extends Phaser.Scene {
     }).setOrigin(0, 1).setInteractive();
     volver.on('pointerdown', () => this.scene.start(this.volverA === 'EscenaSala' ? 'EscenaSala' : 'EscenaTitulo', this.datosVolver));
     this.boton(W - 160, H - 50, 260, 'Jugar →', true, () => this.scene.start(this.volverA, this.datosVolver));
+    // v0.1.3: la tienda de equipo (se le pasa a dónde volver para que la ficha lo recuerde)
+    this.boton(W - 450, H - 50, 260, '🛒 Equipo', false, () => this.scene.start('EscenaTienda', { volverA: this.volverA, datosVolver: this.datosVolver }));
     seguirPareja(this);
   }
 
@@ -160,6 +162,7 @@ export default class EscenaPersonaje extends Phaser.Scene {
     const b = this.balance;
     const p = this.p;
     const permitidas = estadisticasDeClase(b, p.clase);
+    const bonos = bonosEquipo(b, p); // lo que suma el equipo puesto (se muestra en verde)
     const ancho = this.anchoDerecha;
     this.add.rectangle(cx, H / 2 - 25, ancho, H - 120, 0x0b0f1a, 0.75).setStrokeStyle(2, 0xf5c542, 0.5);
     this.add.text(cx, 52, 'Estadísticas', {
@@ -183,6 +186,11 @@ export default class EscenaPersonaje extends Phaser.Scene {
       this.add.text(cx + ancho / 2 - 110, y + 6, String(p.est[id]), {
         fontFamily: FUENTE_TITULO, fontSize: '28px', fontStyle: 'bold', color: puede ? '#ffffff' : gris,
       }).setOrigin(0.5);
+      if (bonos[id] > 0) {
+        this.add.text(cx + ancho / 2 - 140, y + 6, `+${bonos[id]}`, {
+          fontFamily: FUENTE_TITULO, fontSize: '20px', fontStyle: 'bold', color: '#66bb6a',
+        }).setOrigin(1, 0.5);
+      }
       if (!puede) return;
       // Botón "+": gasta un punto en esta estadística
       const activo = p.puntos > 0;

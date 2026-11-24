@@ -1,5 +1,5 @@
 {
-  "version": "0.1.2",
+  "version": "0.1.3",
   "archivos": [
     "index.html",
     "src/controles/BotonHabilidad.js",
@@ -19,6 +19,7 @@
     "src/escenas/EscenaPausa.js",
     "src/escenas/EscenaPersonaje.js",
     "src/escenas/EscenaSala.js",
+    "src/escenas/EscenaTienda.js",
     "src/escenas/EscenaTitulo.js",
     "src/graficos/Texturas.js",
     "src/graficos/TexturasMundo.js",

@@ -553,5 +553,25 @@
         "rubis": [1, 3]
       }
     }
+  },
+  "equipo": {
+    "ranuras": {
+      "arma": { "nombre": "Arma", "icono": "⚔️" },
+      "armadura": { "nombre": "Armadura", "icono": "🛡️" },
+      "accesorio": { "nombre": "Accesorio", "icono": "💍" }
+    },
+    "objetos": {
+      "espadaCorta":   { "nombre": "Espada corta",       "ranura": "arma",      "nivel": 1,  "precio": { "intys": 60 },  "bonos": { "danio": 2 } },
+      "bastonRoble":   { "nombre": "Bastón de roble",    "ranura": "arma",      "nivel": 1,  "precio": { "intys": 60 },  "bonos": { "inteligencia": 2 } },
+      "hachaGuerra":   { "nombre": "Hacha de guerra",    "ranura": "arma",      "nivel": 4,  "precio": { "intys": 200 }, "bonos": { "fuerza": 3, "danio": 2 } },
+      "baculoRunico":  { "nombre": "Báculo rúnico",      "ranura": "arma",      "nivel": 4,  "precio": { "intys": 200 }, "bonos": { "inteligencia": 4, "danio": 1 } },
+      "tunicaCuero":   { "nombre": "Túnica de cuero",    "ranura": "armadura",  "nivel": 1,  "precio": { "intys": 60 },  "bonos": { "velocidad": 2 } },
+      "cotaMalla":     { "nombre": "Cota de malla",      "ranura": "armadura",  "nivel": 2,  "precio": { "intys": 100 }, "bonos": { "armadura": 2, "vida": 2 } },
+      "placasHierro":  { "nombre": "Placas de hierro",   "ranura": "armadura",  "nivel": 5,  "precio": { "intys": 260 }, "bonos": { "armadura": 4, "vida": 4 } },
+      "amuletoVida":   { "nombre": "Amuleto de vida",    "ranura": "accesorio", "nivel": 1,  "precio": { "intys": 70 },  "bonos": { "vida": 3 } },
+      "anilloVeloz":   { "nombre": "Anillo veloz",       "ranura": "accesorio", "nivel": 2,  "precio": { "intys": 90 },  "bonos": { "velocidad": 3 } },
+      "colganteSabio": { "nombre": "Colgante del sabio", "ranura": "accesorio", "nivel": 4,  "precio": { "intys": 200 }, "bonos": { "inteligencia": 2, "armadura": 2 } },
+      "coronaSolar":   { "nombre": "Corona solar",       "ranura": "accesorio", "nivel": 1,  "precio": { "rubis": 3 },   "bonos": { "fuerza": 1, "vida": 1, "danio": 1, "velocidad": 1, "inteligencia": 1, "armadura": 1 }, "especial": true }
+    }
   }
 }
