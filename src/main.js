@@ -16,7 +16,8 @@ import EscenaMundos from './escenas/EscenaMundos.js';
 import EscenaHeroe from './escenas/EscenaHeroe.js';
 import EscenaSala from './escenas/EscenaSala.js';
 import EscenaNick from './escenas/EscenaNick.js';
-import EscenaRol from './escenas/EscenaRol.js';
+import EscenaClase from './escenas/EscenaClase.js';
+import EscenaPersonaje from './escenas/EscenaPersonaje.js';
 
 const config = {
   type: Phaser.AUTO,          // usa WebGL si el equipo lo soporta; si no, Canvas
@@ -42,7 +43,7 @@ const config = {
     // el celular o entrar a pantalla completa), ya no se podía caminar y atacar a la vez.
     activePointers: 6,
   },
-  scene: [EscenaTitulo, EscenaHeroe, EscenaMundos, EscenaArena, EscenaPausa, EscenaSala, EscenaNick, EscenaRol], // la primera de la lista es la que arranca
+  scene: [EscenaTitulo, EscenaHeroe, EscenaMundos, EscenaArena, EscenaPausa, EscenaSala, EscenaNick, EscenaClase, EscenaPersonaje], // la primera de la lista es la que arranca
 };
 
 // Arranca el juego. Lo guardamos en window.juego para poder

@@ -1,9 +1,10 @@
 {
-  "version": "0.1.1",
+  "version": "0.1.2",
   "archivos": [
     "index.html",
     "src/controles/BotonHabilidad.js",
     "src/controles/Joystick.js",
+    "src/datos/Personaje.js",
     "src/datos/Progreso.js",
     "src/datos/balance.json",
     "src/entidades/Enemigo.js",
@@ -11,11 +12,12 @@
     "src/entidades/Jefe.js",
     "src/entidades/Tirador.js",
     "src/escenas/EscenaArena.js",
+    "src/escenas/EscenaClase.js",
     "src/escenas/EscenaHeroe.js",
     "src/escenas/EscenaMundos.js",
     "src/escenas/EscenaNick.js",
     "src/escenas/EscenaPausa.js",
-    "src/escenas/EscenaRol.js",
+    "src/escenas/EscenaPersonaje.js",
     "src/escenas/EscenaSala.js",
     "src/escenas/EscenaTitulo.js",
     "src/graficos/Texturas.js",
@@ -27,6 +29,7 @@
     "src/red/Red.js",
     "src/ui/BarraVida.js",
     "src/ui/EditorNick.js",
+    "src/ui/MiHeroe.js",
     "src/ui/Pantalla.js"
   ]
 }

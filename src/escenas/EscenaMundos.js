@@ -8,15 +8,9 @@ import { crearTexturas } from '../graficos/Texturas.js';
 import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
-import { mundosSuperados, razaElegida, rolElegido } from '../datos/Progreso.js';
+import { mundosSuperados, personaje } from '../datos/Progreso.js';
 import { redActual } from '../red/Red.js';
-
-/** Nombre del rol elegido (Fase 1), para mostrarlo junto a la raza */
-function nombreRol(escena) {
-  const roles = escena.cache.json.get('balance').roles;
-  const rol = roles[rolElegido()];
-  return rol && rol.disponible ? rol.nombre : roles.guerrero.nombre;
-}
+import { crearMiHeroe } from '../ui/MiHeroe.js';
 
 export default class EscenaMundos extends Phaser.Scene {
   constructor() {
@@ -24,6 +18,11 @@ export default class EscenaMundos extends Phaser.Scene {
   }
 
   create() {
+    // v0.1.2: sin personaje no se puede jugar: primero hay que crearlo
+    if (!personaje()) {
+      this.scene.start('EscenaHeroe');
+      return;
+    }
     crearTexturas(this);
     const W = this.scale.baseSize.width;
     const H = this.scale.baseSize.height;
@@ -62,24 +61,14 @@ export default class EscenaMundos extends Phaser.Scene {
       this.crearTarjeta(x0 + i * (anchoTarjeta + separacion), 370, anchoTarjeta, mundo, i, estado);
     });
 
-    // Héroe elegido (abajo a la derecha) y botón para cambiarlo
-    const razas = this.cache.json.get('balance').razas;
-    const id = razas[razaElegida()] ? razaElegida() : 'humano';
-    // El texto se alinea al borde derecho (origen 1) y el dibujo va a su izquierda:
-    // así nunca se sale de la pantalla, sea cual sea el largo del nombre.
-    const cambiar = this.add.text(W - 24, H - 60, `${razas[id].nombre} ${nombreRol(this)} · Cambiar`, {
-      fontFamily: FUENTE_TITULO, fontSize: '26px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
-    }).setOrigin(1, 0.5).setInteractive();
-    const xHeroe = cambiar.x - cambiar.width - 45;
-    if (razas[id].extra) this.add.image(xHeroe, H - 60, `${id}-${razas[id].extra}`).setAngle(-90).setScale(0.8);
-    this.add.image(xHeroe, H - 60, `${id}-cuerpo`).setAngle(-90).setScale(0.8);
-    cambiar.on('pointerdown', () => this.scene.start('EscenaHeroe'));
+    // Mi personaje (abajo a la derecha): al tocarlo se abre su ficha (nivel, estadísticas)
+    crearMiHeroe(this, W - 24, H - 60, () => this.scene.start('EscenaPersonaje'));
 
-    // Botón para volver (a la elección de héroe)
+    // Botón para volver (a la ficha del personaje)
     const volver = this.add.text(30, H - 30, '← Volver', {
       fontFamily: FUENTE_TITULO, fontSize: '28px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
     }).setOrigin(0, 1).setInteractive();
-    volver.on('pointerdown', () => this.scene.start('EscenaHeroe'));
+    volver.on('pointerdown', () => this.scene.start('EscenaPersonaje'));
   }
 
   /** Una tarjeta: vista del suelo del mundo, nombre, jefes y su estado */
@@ -104,6 +93,14 @@ export default class EscenaMundos extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif', fontSize: '20px', color: bloqueado ? '#777777' : '#ffffff',
       stroke: '#05070d', strokeThickness: 3,
     }).setOrigin(0.5);
+    // v0.1.2: el premio al terminarlo
+    const cofre = this.cache.json.get('balance').cofres.tipos[mundo.cofre];
+    if (cofre) {
+      this.add.text(x, y + 160, `Premio: ${cofre.nombre}`, {
+        fontFamily: 'Arial, sans-serif', fontSize: '18px', color: bloqueado ? '#777777' : cofre.color,
+        stroke: '#05070d', strokeThickness: 3,
+      }).setOrigin(0.5);
+    }
 
     if (bloqueado) {
       // Oscurecemos la vista y dibujamos un candado

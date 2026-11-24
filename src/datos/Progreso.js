@@ -55,23 +55,81 @@ export function elegirRaza(id) {
   }
 }
 
-const CLAVE_ROL = 'smilleGod.rol';
+// =============================================================
+// v0.1.2 — PERSONAJE FIJO, MONEDAS Y COFRES
+// El jugador crea UN personaje (raza + clase). Ese personaje sube de nivel
+// gastando FICHAS y en cada nivel reparte puntos de ESTADÍSTICAS.
+// Para cambiar de raza o clase hay que borrarlo y crear otro (vuelve a nivel 1).
+// Las monedas (intys, fichas, rubís) son de la CUENTA: no se pierden al borrar.
+// =============================================================
 
-/** El rol que eligió el jugador (Fase 1); "guerrero" si todavía no eligió */
-export function rolElegido() {
+const CLAVE_PERSONAJE = 'smilleGod.personaje';
+const CLAVE_MONEDAS = 'smilleGod.monedas';
+const CLAVE_NIVEL_MAX = 'smilleGod.nivelMaximo';
+
+/** Lee un objeto guardado como texto JSON; si no hay o está roto, devuelve "porDefecto" */
+function leerJson(clave, porDefecto) {
   try {
-    return localStorage.getItem(CLAVE_ROL) || 'guerrero';
+    const texto = localStorage.getItem(clave);
+    return texto ? JSON.parse(texto) : porDefecto;
   } catch (error) {
-    return 'guerrero';
+    return porDefecto;
   }
 }
 
-export function elegirRol(id) {
+function guardarJson(clave, valor) {
   try {
-    localStorage.setItem(CLAVE_ROL, id);
+    localStorage.setItem(clave, JSON.stringify(valor));
   } catch (error) {
-    // sin memoria del navegador: la elección dura solo esta partida
+    // sin memoria del navegador: dura solo esta partida
   }
+}
+
+/** El personaje guardado, o null si todavía no creó uno */
+export function personaje() {
+  return leerJson(CLAVE_PERSONAJE, null);
+}
+
+export function guardarPersonaje(p) {
+  guardarJson(CLAVE_PERSONAJE, p);
+  if (p.nivel > nivelMaximo()) guardarJson(CLAVE_NIVEL_MAX, p.nivel); // abre clases nuevas
+}
+
+/** Crea un personaje nuevo de nivel 1, sin puntos repartidos */
+export function crearPersonaje(raza, clase) {
+  const p = {
+    raza, clase, nivel: 1, puntos: 0,
+    est: { fuerza: 0, vida: 0, danio: 0, velocidad: 0, inteligencia: 0, armadura: 0 },
+  };
+  elegirRaza(raza);
+  guardarPersonaje(p);
+  return p;
+}
+
+export function borrarPersonaje() {
+  try {
+    localStorage.removeItem(CLAVE_PERSONAJE);
+  } catch (error) {
+    // nada que borrar
+  }
+}
+
+/** El nivel más alto que alcanzó cualquiera de sus personajes (abre clases) */
+export function nivelMaximo() {
+  return Number(leerJson(CLAVE_NIVEL_MAX, 1)) || 1;
+}
+
+/** Intys, fichas y rubís de la cuenta */
+export function monedas() {
+  return { intys: 0, fichas: 0, rubis: 0, ...leerJson(CLAVE_MONEDAS, {}) };
+}
+
+/** Suma (o resta, con números negativos) monedas: sumarMonedas({ fichas: -2 }) */
+export function sumarMonedas(cambio) {
+  const m = monedas();
+  for (const [clave, cantidad] of Object.entries(cambio)) m[clave] = Math.max(0, (m[clave] || 0) + cantidad);
+  guardarJson(CLAVE_MONEDAS, m);
+  return m;
 }
 
 /** Marca como superado el mundo número "indice" (0 = el primero) */

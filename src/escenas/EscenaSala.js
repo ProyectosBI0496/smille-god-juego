@@ -9,16 +9,10 @@
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
-import { razaElegida, rolElegido, nick } from '../datos/Progreso.js';
+import { personaje } from '../datos/Progreso.js';
 import { crearEditorNick } from '../ui/EditorNick.js';
+import { crearMiHeroe } from '../ui/MiHeroe.js';
 import Red, { redActual } from '../red/Red.js';
-
-/** Nombre del rol elegido (Fase 1), para mostrarlo junto a la raza */
-function nombreRol(escena) {
-  const roles = escena.cache.json.get('balance').roles;
-  const rol = roles[rolElegido()];
-  return rol && rol.disponible ? rol.nombre : roles.guerrero.nombre;
-}
 
 export default class EscenaSala extends Phaser.Scene {
   constructor() {
@@ -73,21 +67,14 @@ export default class EscenaSala extends Phaser.Scene {
     this.mensaje.setText(texto);
   }
 
-  /** Abajo a la derecha: mi héroe y el botón para cambiarlo */
+  /** Abajo a la derecha: mi personaje y el botón para ver su ficha (o crearlo) */
   crearMiHeroe(W, H) {
-    const razas = this.cache.json.get('balance').razas;
-    const id = razas[razaElegida()] ? razaElegida() : 'humano';
-    const cambiar = this.add.text(W - 24, H - 55, `${razas[id].nombre} ${nombreRol(this)} · Cambiar`, {
-      fontFamily: FUENTE_TITULO, fontSize: '26px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
-    }).setOrigin(1, 0.5).setInteractive(); // alineado al borde derecho
-    const xHeroe = cambiar.x - cambiar.width - 45;
-    if (razas[id].extra) this.add.image(xHeroe, H - 55, `${id}-${razas[id].extra}`).setAngle(-90).setScale(0.8);
-    this.add.image(xHeroe, H - 55, `${id}-cuerpo`).setAngle(-90).setScale(0.8);
-    cambiar.on('pointerdown', () => {
+    crearMiHeroe(this, W - 24, H - 55, () => {
       const red = redActual();
       const conectado = !!(red && red.conectado);
       // Si ya está conectado como invitado, vuelve a esperar; si no, vuelve a la sala desde cero
-      this.scene.start('EscenaHeroe', { volverA: 'EscenaSala', datosVolver: { esperando: conectado && !red.esAnfitrion } });
+      const datos = { volverA: 'EscenaSala', datosVolver: { esperando: conectado && !red.esAnfitrion } };
+      this.scene.start(personaje() ? 'EscenaPersonaje' : 'EscenaHeroe', datos);
     });
   }
 
@@ -104,6 +91,10 @@ export default class EscenaSala extends Phaser.Scene {
 
   mostrarOpciones() {
     this.capa.removeAll(true);
+    if (!personaje()) {
+      this.decir('Primero crea tu personaje (abajo a la derecha).');
+      return;
+    }
     this.boton(this.cx, 330, 'Crear sala', () => this.crearSala());
     this.boton(this.cx, 460, 'Unirme', () => this.mostrarTeclado());
   }
@@ -128,7 +119,7 @@ export default class EscenaSala extends Phaser.Scene {
       },
       (error) => this.fallo(error),
     );
-    red.escuchar(this, 'conectado', () => red.enviar({ t: 'hola', raza: razaElegida(), rol: rolElegido(), nick: nick() }));
+    red.escuchar(this, 'conectado', () => red.presentarme('hola'));
     red.escuchar(this, 'hola', () => {
       this.decir(`¡Conectado con ${red.nickCompanero || 'tu compañero'}! ✓`);
       // El anfitrión elige el mundo en el mapa (el mapa sabe que hay pareja)
@@ -173,7 +164,7 @@ export default class EscenaSala extends Phaser.Scene {
     this.decir(`Conectando a la sala ${codigo}...`);
     const red = new Red();
     red.unirse(codigo, (error) => this.fallo(error));
-    red.escuchar(this, 'conectado', () => red.enviar({ t: 'hola', raza: razaElegida(), rol: rolElegido(), nick: nick() }));
+    red.escuchar(this, 'conectado', () => red.presentarme('hola'));
     red.escuchar(this, 'hola', () => {
       this.decir(`Conectado con ${red.nickCompanero || 'tu compañero'} ✓\nEsperando que elija el mundo...`);
     });

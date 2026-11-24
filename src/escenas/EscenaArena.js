@@ -17,6 +17,9 @@
 //          Si un héroe cae, se levanta al vencer la sala; se pierde si caen los dos.
 // Fase 1: ROLES. El rol elegido decide qué hacen los 3 botones
 //          (Guerrero: Golpe/Onda/Torbellino; Asesino: Cuchilladas/Paso sombrío/Crítico).
+// v0.1.2: PERSONAJE fijo (raza + CLASE + nivel + estadísticas, ver datos/Personaje.js).
+//          10 clases; las nuevas usan habilidades comunes (Proyectil, Abanico, Sanar).
+//          Los botones 2 y 3 se abren al subir de nivel. COFRES al terminar.
 // =============================================================
 
 // Tipografía de fantasía (Google Fonts, cargada en index.html).
@@ -32,33 +35,35 @@ import BotonHabilidad from '../controles/BotonHabilidad.js';
 import Mazmorra from '../mundo/Mazmorra.js';
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
-import { marcarSuperado, razaElegida, rolElegido, mundosSuperados, nick } from '../datos/Progreso.js';
+import { marcarSuperado, personaje, nick, sumarMonedas } from '../datos/Progreso.js';
+import { calcularHeroe } from '../datos/Personaje.js';
 import { redActual } from '../red/Red.js';
 import Cooperativo from '../red/Cooperativo.js';
 
 // Qué clase usar para cada tipo de enemigo de balance.json (por defecto, Enemigo)
 const CLASES = { tirador: Tirador };
 
-// Fase 1: los 3 botones de cada ROL.
-//   tipo:    nombre corto de la acción (también es lo que viaja por la red en pareja)
+// Cada HABILIDAD que puede ir en un botón (v0.1.2; antes era una tabla por rol).
+//   La clase dice qué 3 habilidades usa (balance.json → clases.X.botones).
 //   icono:   textura del botón (graficos/Texturas.js)
-//   recarga: función que lee la recarga en balance.json (b = balance, r = datos del rol)
-const BOTONES_ROL = {
-  guerrero: [
-    { tipo: 'atq', icono: 'icono-espada', color: 0xf5c542, recarga: (b) => b.ataqueBasico.recargaMs },
-    { tipo: 'onda', icono: 'icono-onda', color: 0x4fc3f7, recarga: (b) => b.habilidad.recargaMs },
-    { tipo: 'torb', icono: 'icono-torbellino', color: 0xab47bc, recarga: (b) => b.especial.recargaMs },
-  ],
-  asesino: [
-    { tipo: 'cuch', icono: 'icono-dagas', color: 0xef5350, recarga: (b, r) => r.cuchilladas.recargaMs },
-    { tipo: 'paso', icono: 'icono-paso', color: 0x9575cd, recarga: (b, r) => r.pasoSombrio.recargaMs },
-    { tipo: 'crit', icono: 'icono-critico', color: 0xff1744, recarga: (b, r) => r.critico.recargaMs },
-  ],
+//   color:   null = el color de la clase
+//   recarga: función que lee la recarga en balance.json (b = balance, c = datos de la clase)
+// El nombre corto (atq, onda...) también es lo que viaja por la red en pareja.
+const HABILIDADES = {
+  atq: { icono: 'icono-espada', color: 0xf5c542, recarga: (b) => b.ataqueBasico.recargaMs },
+  onda: { icono: 'icono-onda', color: 0x4fc3f7, recarga: (b) => b.habilidad.recargaMs },
+  torb: { icono: 'icono-torbellino', color: 0xab47bc, recarga: (b) => b.especial.recargaMs },
+  cuch: { icono: 'icono-dagas', color: 0xef5350, recarga: (b, c) => c.cuchilladas.recargaMs },
+  paso: { icono: 'icono-paso', color: 0x9575cd, recarga: (b, c) => c.pasoSombrio.recargaMs },
+  crit: { icono: 'icono-critico', color: 0xff1744, recarga: (b, c) => c.critico.recargaMs },
+  bola: { icono: 'icono-bola', color: null, recarga: (b) => b.magia.bola.recargaMs },
+  abanico: { icono: 'icono-abanico', color: null, recarga: (b) => b.magia.abanico.recargaMs },
+  sanar: { icono: 'icono-sanar', color: 0x81c784, recarga: (b) => b.magia.sanar.recargaMs },
 };
 
-/** El id del rol que se puede usar (si no existe o aún no está listo, Guerrero) */
-function rolValido(roles, id) {
-  return roles[id] && roles[id].disponible && BOTONES_ROL[id] ? id : 'guerrero';
+/** El multiplicador de daño de un héroe: los de "a distancia" usan la magia (inteligencia) */
+function multDanio(h) {
+  return h.clase.tipo === 'caster' ? h.mult.magia : h.mult.fisico;
 }
 
 export default class EscenaArena extends Phaser.Scene {
@@ -98,26 +103,16 @@ export default class EscenaArena extends Phaser.Scene {
     this.crearAmbiente();
     this.cameras.main.fadeIn(400);
 
-    // La RAZA elegida cambia los números del héroe (si está bloqueada, se usa Humano)
-    let idRaza = razaElegida();
-    if (!this.balance.razas[idRaza] || this.balance.razas[idRaza].desbloqueo > mundosSuperados()) idRaza = 'humano';
-    this.raza = this.balance.razas[idRaza];
-    // El ROL multiplica la vida y la velocidad de la raza (el Asesino tiene menos vida)
-    this.idRol = rolValido(this.balance.roles, rolElegido());
-    this.rol = this.balance.roles[this.idRol];
-    const configHeroe = {
-      ...this.balance.heroe,
-      vidaMax: Math.round(this.raza.vidaMax * this.rol.vida),
-      velocidad: Math.round(this.raza.velocidad * this.rol.velocidad),
-      textura: idRaza,
-      extra: this.raza.extra,
-    };
+    // v0.1.2: MI PERSONAJE (raza + clase + estadísticas) da los números del héroe
+    this.datosHeroe = calcularHeroe(this.balance, personaje());
+    this.raza = this.datosHeroe.raza;
+    this.rol = this.datosHeroe.clase; // "rol" = la clase (nombre heredado de la Fase 1)
+    const configHeroe = this.configDeHeroe(this.datosHeroe);
 
     // El héroe aparece en la sala de entrada
     const entrada = salas[0];
     this.heroe = new Heroe(this, entrada.x + 150, entrada.medio, configHeroe);
-    this.heroe.raza = this.raza;
-    this.heroe.rol = this.rol;
+    this.prepararHeroe(this.heroe, this.datosHeroe);
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.muros);
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.puertas.filter(Boolean));
 
@@ -126,17 +121,10 @@ export default class EscenaArena extends Phaser.Scene {
     this.cooperativo = null;
     const red = redActual();
     if (this.coop && red && red.conectado) {
-      const idOtra = this.balance.razas[red.razaCompanero] ? red.razaCompanero : 'humano';
-      const razaOtra = this.balance.razas[idOtra];
-      const rolOtro = this.balance.roles[rolValido(this.balance.roles, red.rolCompanero)];
-      this.companero = new Heroe(this, entrada.x + 150, entrada.medio + 70, {
-        ...this.balance.heroe,
-        vidaMax: Math.round(razaOtra.vidaMax * rolOtro.vida),
-        velocidad: Math.round(razaOtra.velocidad * rolOtro.velocidad),
-        textura: idOtra, extra: razaOtra.extra,
-      });
-      this.companero.raza = razaOtra;
-      this.companero.rol = rolOtro;
+      // El compañero, con SU personaje (lo mandó al conectarse: mensaje "hola")
+      const datosOtro = calcularHeroe(this.balance, red.personajeCompanero);
+      this.companero = new Heroe(this, entrada.x + 150, entrada.medio + 70, this.configDeHeroe(datosOtro));
+      this.prepararHeroe(this.companero, datosOtro);
       this.companero.nombre = red.nickCompanero || 'Compañero';
       this.companero.ponerEtiqueta(this.companero.nombre);
       this.heroe.nombre = nick() || 'Tú';
@@ -186,7 +174,11 @@ export default class EscenaArena extends Phaser.Scene {
     this.salaActiva = null;      // la sala donde se está peleando ahora
     this.oleadasVencidas = 0;
     this.jefesVencidos = 0;
-    this.curas = this.mundo.curas;
+    // Corrección (v0.1.2): cada héroe tiene SUS propias curas (antes se compartían
+    // y una cura gastada por uno dejaba sin cura al otro)
+    for (const h of this.heroes()) h.curas = this.mundo.curas;
+    this.magias = [];             // v0.1.2: proyectiles de los héroes
+    this.cofresAbiertos = false;
     this.numerosLibres = [];     // "pool": números de daño guardados para reutilizar
     this.terminado = false;      // true al ganar el mundo
     this.caido = false;          // true al perder (hay que reiniciarlo: restart reutiliza la escena)
@@ -227,6 +219,26 @@ export default class EscenaArena extends Phaser.Scene {
     this.cameras.main.setSize(W, H); // la cámara también toma el tamaño nuevo
   }
 
+  /** Config para crear un Heroe a partir de los números del personaje */
+  configDeHeroe(datos) {
+    return {
+      ...this.balance.heroe,
+      vidaMax: datos.vidaMax,
+      velocidad: datos.velocidad,
+      textura: datos.idRaza,
+      extra: datos.raza.extra,
+    };
+  }
+
+  /** Le guarda al héroe lo que necesitan las habilidades: raza, clase y multiplicadores */
+  prepararHeroe(h, datos) {
+    h.raza = datos.raza;
+    h.clase = datos.clase;
+    h.rol = datos.clase; // las habilidades del Asesino leen h.rol.cuchilladas...
+    h.mult = datos.mult;
+    h.reduccion = datos.reduccion;
+  }
+
   /** Los héroes en juego: el mío y, en pareja, el del compañero */
   heroes() {
     return [this.heroe, this.companero].filter(Boolean);
@@ -244,7 +256,7 @@ export default class EscenaArena extends Phaser.Scene {
     return elegido;
   }
 
-  update() {
+  update(tiempo, delta) {
     if (this.caido) return; // pantalla de derrota
 
     if (this.heroe.vivo && !this.terminado) {
@@ -263,6 +275,7 @@ export default class EscenaArena extends Phaser.Scene {
     for (const boton of [this.boton1, this.boton2, this.boton3, this.botonCura]) boton.actualizar();
 
     if (this.cooperativo) this.cooperativo.actualizar();
+    this.actualizarMagias(delta); // v0.1.2: proyectiles de los héroes
 
     // El juego en sí lo calcula quien juega solo o el anfitrión (el invitado solo dibuja)
     if (!this.esInvitado) {
@@ -301,6 +314,7 @@ export default class EscenaArena extends Phaser.Scene {
   /** Daño a un héroe (por contacto o proyectil). Si caen todos, se pierde. */
   danarHeroe(danio, h = this.heroe) {
     if (!h.vivo || this.terminado || this.caido) return;
+    danio = Math.max(1, Math.round(danio * (1 - (h.reduccion || 0)))); // v0.1.2: la ARMADURA quita una parte
     if (!h.recibirDanio(danio)) return;
     if (h === this.heroe) {
       this.cameras.main.shake(100, 0.006);
@@ -533,9 +547,9 @@ export default class EscenaArena extends Phaser.Scene {
   /** Usa una cura si quedan y si el héroe no tiene la vida llena */
   usarCura(h = this.heroe) {
     const max = h.config.vidaMax;
-    if (this.curas <= 0 || h.vida >= max || !h.vivo) return;
-    this.curas -= 1; // en pareja, las curas se comparten
-    const cantidad = Math.round(this.balance.cura.cantidad * (h.raza.cura || 1)); // los Derial curan más
+    if (h.curas <= 0 || h.vida >= max || !h.vivo) return;
+    h.curas -= 1; // cada jugador gasta solo las suyas
+    const cantidad = Math.round(this.balance.cura.cantidad * h.mult.cura); // Derial e Inteligencia curan más
     h.vida = Math.min(h.vida + cantidad, max);
     // Efecto: destello verde y números de curación
     const { x, y } = h.cuerpo;
@@ -554,15 +568,32 @@ export default class EscenaArena extends Phaser.Scene {
     const { radio, radioPequeno, margen } = this.balance.botones;
     const xAtq = this.scale.baseSize.width - margen - radio;
     const yAtq = this.scale.baseSize.height - margen - radio;
-    const recarga = this.raza.recarga; // < 1 = la raza recarga más rápido (Humano)
+    const recarga = this.datosHeroe.mult.recarga; // < 1 = recarga más rápido (Humano, Velocidad)
+    const colorClase = color(this.rol.color);
+    const niveles = this.balance.progreso.nivelBotones;
 
     // Botón 1 (el más grande, bajo el pulgar), botón 2 a su izquierda, botón 3 encima
     const posiciones = [[xAtq, yAtq, radio], [xAtq - 150, yAtq + 25, radioPequeno], [xAtq - 35, yAtq - 150, radioPequeno]];
-    const botones = BOTONES_ROL[this.idRol].map((b, i) => new BotonHabilidad(this, {
-      x: posiciones[i][0], y: posiciones[i][1], radio: posiciones[i][2], etiqueta: String(i + 1), icono: b.icono,
-      recargaMs: b.recarga(this.balance, this.rol) * recarga, color: b.color,
-      alPulsar: () => this.accion(b.tipo),
-    }));
+    const botones = this.rol.botones.map((tipo, i) => {
+      const hab = HABILIDADES[tipo];
+      const abierto = i < this.datosHeroe.botones; // v0.1.2: se abren al subir de nivel
+      const boton = new BotonHabilidad(this, {
+        x: posiciones[i][0], y: posiciones[i][1], radio: posiciones[i][2], etiqueta: String(i + 1), icono: hab.icono,
+        recargaMs: hab.recarga(this.balance, this.rol) * recarga, color: abierto ? (hab.color ?? colorClase) : 0x555555,
+        alPulsar: () => { if (abierto) this.accion(tipo); },
+      });
+      if (!abierto) {
+        // Bloqueado: gris y con el nivel que hace falta encima
+        boton.circulo.setAlpha(0.4);
+        boton.texto.setAlpha(0.3);
+        const candado = this.add.text(posiciones[i][0], posiciones[i][1], 'Nv ' + niveles[i], {
+          fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#ffffff', fontStyle: 'bold', stroke: '#05070d', strokeThickness: 4,
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(103);
+        const moverOriginal = boton.mover.bind(boton);
+        boton.mover = (x, y) => { moverOriginal(x, y); candado.setPosition(x, y); };
+      }
+      return boton;
+    });
     [this.boton1, this.boton2, this.boton3] = botones; // "desestructurar": reparte la lista en 3 variables
     // Botón 4 — cura: más arriba, con el número de curas que quedan
     const xCura = xAtq - 175;
@@ -586,7 +617,7 @@ export default class EscenaArena extends Phaser.Scene {
   golpearArea(x, y, radio, danioBase, empujeBase, origenX, origenY, h = this.heroe) {
     if (this.esInvitado) return; // el invitado solo dibuja: el daño lo calcula el anfitrión
     // La raza de quien golpea multiplica el daño (Orco, Goruk...) y el empuje (Toro)
-    const danio = Math.round(danioBase * h.raza.danio);
+    const danio = Math.round(danioBase * multDanio(h)); // raza + estadísticas
     const empuje = empujeBase * (h.raza.empuje || 1);
     const direccion = new Phaser.Math.Vector2();
     for (const enemigo of [...this.enemigos]) {
@@ -650,6 +681,9 @@ export default class EscenaArena extends Phaser.Scene {
     else if (tipo === 'cuch') this.usarCuchilladas(h);
     else if (tipo === 'paso') this.usarPasoSombrio(h);
     else if (tipo === 'crit') this.usarCritico(h);
+    else if (tipo === 'bola') this.usarBola(h);
+    else if (tipo === 'abanico') this.usarAbanico(h);
+    else if (tipo === 'sanar') this.usarSanar(h);
   }
 
   /** Anfitrión: el invitado usó una habilidad; se hace con SU héroe (aquí sí hace daño) */
@@ -821,6 +855,129 @@ export default class EscenaArena extends Phaser.Scene {
     this.golpearArea(destino.x, destino.y, p.radio, p.danio, p.empuje, destino.x, destino.y, h);
   }
 
+  // =============================================================
+  // HABILIDADES COMUNES de las clases nuevas (v0.1.2)
+  // Proyectil y Abanico (a distancia) y Sanar (cura al grupo).
+  // Más adelante, cada clase tendrá sus propias habilidades.
+  // =============================================================
+
+  /** Botón 1 de los "a distancia": un proyectil mágico con auto-apuntado */
+  usarBola(h = this.heroe) {
+    if (!h.vivo) return;
+    const cfg = this.balance.magia.bola;
+    const objetivo = this.enemigoMasCercano(cfg.rangoAutoApuntado * (h.raza.autoApuntado || 1), h);
+    if (objetivo) h.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
+    this.dispararMagia(h, Math.atan2(h.mirando.y, h.mirando.x), cfg);
+  }
+
+  /** Botón 3 de los "a distancia" DPS: varios proyectiles en abanico */
+  usarAbanico(h = this.heroe) {
+    if (!h.vivo) return;
+    const cfg = this.balance.magia.abanico;
+    const objetivo = this.enemigoMasCercano(this.balance.magia.bola.rangoAutoApuntado, h);
+    if (objetivo) h.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
+    const centro = Math.atan2(h.mirando.y, h.mirando.x);
+    for (let i = 0; i < cfg.cantidad; i++) {
+      // reparte los proyectiles entre -apertura/2 y +apertura/2 alrededor del centro
+      const desvio = cfg.cantidad === 1 ? 0 : (i / (cfg.cantidad - 1) - 0.5) * cfg.apertura;
+      this.dispararMagia(h, centro + desvio, cfg);
+    }
+    if (h === this.heroe) this.cameras.main.shake(80, 0.003);
+  }
+
+  /** Sanar: cura a los héroes vivos que estén cerca (también al compañero) */
+  usarSanar(h = this.heroe) {
+    if (!h.vivo) return;
+    const cfg = this.balance.magia.sanar;
+    const { x, y } = h.cuerpo;
+    const anillo = this.add.circle(x, y, 20).setStrokeStyle(6, 0x81c784).setDepth(40);
+    this.tweens.add({ targets: anillo, radius: cfg.radio, alpha: 0, duration: 450, onComplete: () => anillo.destroy() });
+    if (this.esInvitado) return; // la vida la decide el anfitrión
+    const cantidad = Math.round(cfg.cura * h.mult.cura);
+    for (const otro of this.heroes()) {
+      if (!otro.vivo) continue;
+      if (Phaser.Math.Distance.Between(x, y, otro.cuerpo.x, otro.cuerpo.y) > cfg.radio) continue;
+      otro.vida = Math.min(otro.vida + cantidad, otro.config.vidaMax);
+      const luz = this.add.image(otro.cuerpo.x, otro.cuerpo.y, 'brillo').setTint(0x81c784)
+        .setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
+      this.tweens.add({ targets: luz, scale: 2, alpha: 0, duration: 450, onComplete: () => luz.destroy() });
+      this.mostrarNumero(otro.cuerpo.x, otro.cuerpo.y - 40, `+${cantidad}`, '#a5d6a7');
+    }
+  }
+
+  /**
+   * Crea un proyectil del héroe. No usa el grupo de proyectiles de los enemigos:
+   * lo movemos a mano en actualizarMagias() (cada frame) y revisamos si toca a alguien.
+   */
+  dispararMagia(h, angulo, cfg) {
+    const bola = this.add.image(h.cuerpo.x, h.cuerpo.y, 'brillo').setTint(color(h.clase.color))
+      .setBlendMode(Phaser.BlendModes.ADD).setScale((cfg.radio * 2.6) / 128).setDepth(45);
+    bola.vx = Math.cos(angulo) * cfg.velocidad;
+    bola.vy = Math.sin(angulo) * cfg.velocidad;
+    bola.muereEn = this.time.now + cfg.duracionMs;
+    bola.cfg = cfg;
+    bola.duenio = h;
+    this.magias.push(bola);
+  }
+
+  /** Cada frame: mueve los proyectiles de los héroes y revisa choques */
+  actualizarMagias(delta) {
+    const dt = delta / 1000; // milisegundos → segundos
+    this.magias = this.magias.filter((bola) => {
+      bola.x += bola.vx * dt;
+      bola.y += bola.vy * dt;
+      let muere = this.time.now >= bola.muereEn || !this.puntoLibre(bola.x, bola.y, 4); // tiempo o muro
+      if (!muere) {
+        for (const enemigo of this.enemigos) {
+          if (Phaser.Math.Distance.Between(bola.x, bola.y, enemigo.cuerpo.x, enemigo.cuerpo.y) > enemigo.radio + bola.cfg.radio) continue;
+          muere = true;
+          if (!this.esInvitado) { // el daño lo calcula quien juega solo o el anfitrión
+            const h = bola.duenio;
+            const direccion = new Phaser.Math.Vector2(bola.vx, bola.vy).normalize();
+            this.danarEnemigo(enemigo, Math.round(bola.cfg.danio * multDanio(h)), direccion, bola.cfg.empuje * (h.raza.empuje || 1), '#e1bee7');
+          }
+          break;
+        }
+      }
+      if (!muere) return true; // sigue volando
+      const chispa = this.add.image(bola.x, bola.y, 'brillo').setTint(bola.tintTopLeft)
+        .setBlendMode(Phaser.BlendModes.ADD).setScale(0.3).setDepth(45);
+      this.tweens.add({ targets: chispa, scale: 0.8, alpha: 0, duration: 200, onComplete: () => chispa.destroy() });
+      bola.destroy();
+      return false; // filter: lo saca de la lista
+    });
+  }
+
+  // =============================================================
+  // COFRES (v0.1.2): premio al terminar una mazmorra (ganando o perdiendo)
+  //   - un cofre pequeño por cada jefe vencido;
+  //   - al superar el mundo, además, el cofre del mundo (mediano o grande).
+  // Cada cofre da intys y fichas, y a veces (azar) rubís.
+  // Cada jugador abre SUS cofres en su celular.
+  // =============================================================
+  abrirCofres(victoria) {
+    if (this.cofresAbiertos) return '';
+    this.cofresAbiertos = true;
+    const c = this.balance.cofres;
+    const lista = Array(this.jefesVencidos).fill(c.porJefe);
+    if (victoria && this.mundo.cofre) lista.push(this.mundo.cofre);
+    if (!lista.length) return 'Sin cofres: vence a un jefe para ganar uno';
+    const entre = ([min, max]) => Phaser.Math.Between(min, max);
+    const total = { intys: 0, fichas: 0, rubis: 0 };
+    const lineas = lista.map((id) => {
+      const cofre = c.tipos[id];
+      const intys = entre(cofre.intys);
+      const fichas = entre(cofre.fichas);
+      const rubis = Math.random() < cofre.probRubi ? entre(cofre.rubis) : 0;
+      total.intys += intys;
+      total.fichas += fichas;
+      total.rubis += rubis;
+      return `${cofre.nombre}: +${intys} ☀️  +${fichas} 🎟️${rubis ? `  +${rubis} 💎` : ''}`;
+    });
+    sumarMonedas(total); // se guarda en el navegador
+    return lineas.join('\n');
+  }
+
   /** true si un círculo en (x, y) no toca muros ni rejas (para no aparecer dentro de una pared) */
   puntoLibre(x, y, radio) {
     const { ancho, alto } = this.mazmorra;
@@ -853,7 +1010,7 @@ export default class EscenaArena extends Phaser.Scene {
     const direccion = new Phaser.Math.Vector2(x - h.cuerpo.x, y - h.cuerpo.y);
     if (direccion.lengthSq() === 0) direccion.set(1, 0);
     direccion.normalize();
-    const danio = Math.round(c.danio * h.raza.danio);
+    const danio = Math.round(c.danio * multDanio(h));
     this.danarEnemigo(objetivo, danio, direccion, c.empuje * (h.raza.empuje || 1), '#ff5252');
   }
 
@@ -954,7 +1111,7 @@ export default class EscenaArena extends Phaser.Scene {
     const titulo = this.cooperativo ? 'Han caído' : 'Has caído';
     const texto = `${detalle}\nDerrotados: ${this.derrotados}`;
     if (this.cooperativo) this.cooperativo.enviar({ t: 'fin', tipo: 'derrota', titulo, texto });
-    this.pantallaFinal(titulo, texto, [
+    this.pantallaFinal(titulo, texto, this.abrirCofres(false), [
       { texto: 'Reintentar', principal: true, accion: () => this.jugarMundo(this.indiceMundo) },
       { texto: 'Mapa', accion: () => this.irAlMapa() },
     ]);
@@ -1014,11 +1171,14 @@ export default class EscenaArena extends Phaser.Scene {
     const titulo = `¡${this.mundo.nombre} superado!`;
     const texto = `${mensaje}\nDerrotados: ${this.derrotados}`;
     if (this.cooperativo) this.cooperativo.enviar({ t: 'fin', tipo: 'victoria', titulo, texto });
-    this.pantallaFinal(titulo, texto, botones);
+    this.pantallaFinal(titulo, texto, this.abrirCofres(true), botones);
   }
 
-  /** Fondo oscuro, título, texto y 1 o 2 botones (lo usan la derrota y la victoria) */
-  pantallaFinal(titulo, texto, botones) {
+  /**
+   * Fondo oscuro, título, texto y 1 o 2 botones (lo usan la derrota y la victoria).
+   * premios (v0.1.2): el texto de los cofres, debajo de los botones.
+   */
+  pantallaFinal(titulo, texto, premios, botones) {
     // Por seguridad: ningún menú de pausa encima, y esta escena funcionando
     this.scene.stop('EscenaPausa');
     if (this.scene.isPaused()) this.scene.resume();
@@ -1045,6 +1205,12 @@ export default class EscenaArena extends Phaser.Scene {
       }).setOrigin(0.5));
       fondo.on('pointerdown', b.accion);
     });
+    if (premios) {
+      fijo(this.add.text(cx, cy + 150, premios, {
+        fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#ffe082', align: 'center',
+        stroke: '#05070d', strokeThickness: 4, lineSpacing: 4,
+      }).setOrigin(0.5, 0));
+    }
     // En el PC: ENTER = primer botón (Reintentar o Siguiente)
     this.input.keyboard.once('keydown-ENTER', botones[0].accion);
   }
@@ -1121,7 +1287,7 @@ export default class EscenaArena extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#ffffff',
       stroke: '#05070d', strokeThickness: 4,
     };
-    this.add.text(20, 14, `${this.mundo.nombre.toUpperCase()} · ${this.raza.nombre.toUpperCase()} ${this.rol.nombre.toUpperCase()}${this.cooperativo ? ' · EN PAREJA' : ''}`, { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
+    this.add.text(20, 14, `${this.mundo.nombre.toUpperCase()} · ${this.raza.nombre.toUpperCase()} ${this.rol.nombre.toUpperCase()} NV ${this.datosHeroe.personaje.nivel}${this.cooperativo ? ' · EN PAREJA' : ''}`, { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
       .setScrollFactor(0).setDepth(100);
     this.textoProgreso = this.add.text(20, 42, '', {
       ...estilo, fontFamily: FUENTE_TITULO, fontSize: '28px', color: '#f5c542', fontStyle: 'bold',
@@ -1145,9 +1311,10 @@ export default class EscenaArena extends Phaser.Scene {
   actualizarHud() {
     this.textoProgreso.setText(`Oleadas ${this.oleadasVencidas}/${this.mundo.oleadas} · Jefes ${this.jefesVencidos}/${this.mazmorra.totalJefes}`);
     this.textoDerrotados.setText(`Derrotados: ${this.derrotados}`);
-    this.textoCuras.setText(`${this.curas}`);
-    this.botonCura.circulo.setAlpha(this.curas > 0 ? 1 : 0.35);
-    this.botonCura.texto.setAlpha(this.curas > 0 ? 1 : 0.35);
+    const curas = this.heroe.curas; // mis curas
+    this.textoCuras.setText(`${curas}`);
+    this.botonCura.circulo.setAlpha(curas > 0 ? 1 : 0.35);
+    this.botonCura.texto.setAlpha(curas > 0 ? 1 : 0.35);
   }
 
   /** Barra con la vida del jefe que se está enfrentando */

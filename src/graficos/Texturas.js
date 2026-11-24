@@ -322,4 +322,34 @@ function iconos(escena) {
     g.fillStyle(0xffffff);
     poligono(g, [[32, 4], [38, 26], [60, 32], [38, 38], [32, 60], [26, 38], [4, 32], [26, 26]]);
   });
+
+  // v0.1.2 — íconos de las habilidades comunes de las clases nuevas
+  dibujar(escena, 'icono-bola', 64, 64, (g) => {
+    // Una esfera con estela
+    g.fillStyle(0xffffff, 0.35);
+    g.fillCircle(18, 44, 7);
+    g.fillStyle(0xffffff, 0.6);
+    g.fillCircle(28, 36, 9);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(42, 24, 13);
+  });
+
+  dibujar(escena, 'icono-abanico', 64, 64, (g) => {
+    // Cinco rayos que se abren
+    g.lineStyle(5, 0xffffff);
+    for (const a of [-0.8, -0.4, 0, 0.4, 0.8]) {
+      g.lineBetween(10, 32, 10 + Math.cos(a) * 46, 32 + Math.sin(a) * 46);
+    }
+    g.fillStyle(0xffffff);
+    g.fillCircle(10, 32, 6);
+  });
+
+  dibujar(escena, 'icono-sanar', 64, 64, (g) => {
+    // Una cruz dentro de un anillo
+    g.lineStyle(4, 0xffffff, 0.7);
+    g.strokeCircle(32, 32, 26);
+    g.fillStyle(0xffffff);
+    g.fillRect(26, 14, 12, 36);
+    g.fillRect(14, 26, 36, 12);
+  });
 }

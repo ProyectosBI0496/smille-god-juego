@@ -13,6 +13,7 @@
 // =============================================================
 
 import Enemigo from '../entidades/Enemigo.js';
+import Jefe from '../entidades/Jefe.js';
 import { marcarSuperado } from '../datos/Progreso.js';
 
 const ENVIO_ANFITRION_MS = 66; // ~15 fotos por segundo
@@ -33,7 +34,9 @@ export default class Cooperativo {
     if (this.esAnfitrion) {
       oir('yo', (m) => { this.ultimoYo = m; });
       oir('hab', (m) => escena.ejecutarRemota(m.h));
+      oir('reconectado', () => this.sincronizar()); // v0.1.2: volvió tras apagar la pantalla
     } else {
+      oir('sync', (m) => this.recibirSincronia(m));
       oir('estado', (m) => { this.ultimoEstado = m; });
       oir('nace', (m) => this.crearRemoto(m));
       oir('muerte', (m) => this.morirRemoto(m));
@@ -107,7 +110,7 @@ export default class Cooperativo {
       a: [Math.round(h.cuerpo.x), Math.round(h.cuerpo.y), +h.mirando.x.toFixed(2), +h.mirando.y.toFixed(2), Math.round(h.vida), h.cuerpo.body.velocity.lengthSq() > 0 ? 1 : 0],
       b: e.companero ? Math.round(e.companero.vida) : 0,
       e: e.enemigos.map((en) => [en.id, Math.round(en.cuerpo.x), Math.round(en.cuerpo.y), +en.sprite.rotation.toFixed(2), Math.round(en.vida)]),
-      h: [e.oleadasVencidas, e.jefesVencidos, e.curas, e.derrotados],
+      h: [e.oleadasVencidas, e.jefesVencidos, e.companero ? e.companero.curas : 0, e.derrotados], // curas = las del invitado
     };
   }
 
@@ -130,7 +133,7 @@ export default class Cooperativo {
       en.vida = evida;
       en.colocarDibujo(ang);
     }
-    [e.oleadasVencidas, e.jefesVencidos, e.curas, e.derrotados] = m.h;
+    [e.oleadasVencidas, e.jefesVencidos, e.heroe.curas, e.derrotados] = m.h; // mis curas las cuenta el anfitrión
     e.actualizarHud();
     this.ultimoEstado = null; // ya aplicada
   }
@@ -145,6 +148,34 @@ export default class Cooperativo {
       t: 'nace', id: enemigo.id, x: Math.round(enemigo.cuerpo.x), y: Math.round(enemigo.cuerpo.y), jefe: esJefe,
       cfg: { textura: c.textura, radio: c.radio, color: c.color, vidaMax: c.vidaMax, radioTextura: c.radioTextura },
     });
+  }
+
+  /**
+   * v0.1.2 — El invitado se RECONECTÓ (por ejemplo, apagó la pantalla un rato).
+   * Mientras no estaba se perdió avisos de enemigos nuevos o muertos, así que le
+   * mandamos la lista COMPLETA: enemigos vivos y salas ya vencidas (rejas abiertas).
+   */
+  sincronizar() {
+    const e = this.escena;
+    const enemigos = e.enemigos.filter((en) => en.id).map((en) => {
+      const c = en.config;
+      return {
+        id: en.id, x: Math.round(en.cuerpo.x), y: Math.round(en.cuerpo.y), jefe: en instanceof Jefe,
+        cfg: { textura: c.textura, radio: c.radio, color: c.color, vidaMax: c.vidaMax, radioTextura: c.radioTextura },
+      };
+    });
+    const vencidas = e.mazmorra.salas.map((sala, i) => (sala.estado === 'vencida' ? i : -1)).filter((i) => i >= 0);
+    this.enviar({ t: 'sync', en: enemigos, v: vencidas });
+  }
+
+  /** INVITADO: borra lo que tenía dibujado y lo arma de nuevo con la lista del anfitrión */
+  recibirSincronia(m) {
+    const e = this.escena;
+    for (const en of this.remotos.values()) en.destruir();
+    e.enemigos = [];
+    this.remotos.clear();
+    for (const datos of m.en) this.crearRemoto(datos);
+    for (const i of m.v) e.mazmorra.abrirPuerta(i);
   }
 
   aviso(x, y, angulo, largo, ancho, ms) {
@@ -185,7 +216,8 @@ export default class Cooperativo {
     const e = this.escena;
     if (m.tipo === 'victoria') marcarSuperado(e.indiceMundo); // el invitado también avanza
     e.terminado = true;
-    e.pantallaFinal(m.titulo, `${m.texto}\n\nEsperando a tu compañero...`, [
+    // Mis cofres los abro yo, en mi celular (los jefes vencidos llegan en cada "foto")
+    e.pantallaFinal(m.titulo, `${m.texto}\nEsperando a tu compañero...`, e.abrirCofres(m.tipo === 'victoria'), [
       { texto: 'Salir', accion: () => { this.red.cerrar(); e.scene.start('EscenaTitulo'); } },
     ]);
   }

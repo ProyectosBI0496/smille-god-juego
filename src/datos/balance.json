@@ -11,27 +11,21 @@
     "distanciaActivar": 90,
     "distanciaMinimaAparicion": 350
   },
-  "heroe": {
-    "radio": 28,
-    "velocidad": 320,
-    "color": "#4fc3f7",
-    "vidaMax": 100,
-    "invulnerableMs": 600
-  },
+  "heroe": {"radio": 28, "velocidad": 320, "color": "#4fc3f7", "vidaMax": 100, "invulnerableMs": 600},
   "bandos": [
     {
       "id": "pacto",
       "nombre": "Pacto de Ceniza",
       "lema": "Fuego, ceniza y poder",
       "color": "#ff7043",
-      "razas": ["orco", "toro", "goruk"]
+      "razas": ["orco", "toro", "goruk", "muerto", "elfosangre", "troll"]
     },
     {
       "id": "liga",
       "nombre": "Liga del Alba",
       "lema": "Luz, orden y mar",
       "color": "#4fc3f7",
-      "razas": ["humano", "elfo", "derial"]
+      "razas": ["humano", "elfo", "derial", "enano", "lycan", "gnomo"]
     }
   ],
   "razas": {
@@ -43,7 +37,8 @@
       "danio": 1.15,
       "recarga": 1.0,
       "extra": null,
-      "desbloqueo": 0
+      "desbloqueo": 0,
+      "clases": ["guerrero", "cazador", "sacerdote", "asesino", "paladin"]
     },
     "toro": {
       "nombre": "Toro",
@@ -54,7 +49,8 @@
       "recarga": 1.0,
       "extra": null,
       "desbloqueo": 0,
-      "empuje": 1.4
+      "empuje": 1.4,
+      "clases": ["guerrero", "druida", "shaman", "cazador"]
     },
     "goruk": {
       "nombre": "Goruk",
@@ -64,7 +60,41 @@
       "danio": 1.2,
       "recarga": 0.95,
       "extra": "alas",
-      "desbloqueo": 2
+      "desbloqueo": 2,
+      "clases": ["guerrero", "cazador", "asesino", "shaman", "paladin"]
+    },
+    "muerto": {
+      "nombre": "Muerto",
+      "descripcion": "No muere fácil; algo lento",
+      "vidaMax": 115,
+      "velocidad": 300,
+      "danio": 1.05,
+      "recarga": 1.0,
+      "extra": null,
+      "desbloqueo": 0,
+      "clases": ["asesino", "brujo", "sacerdote", "guerrero", "nigromante"]
+    },
+    "elfosangre": {
+      "nombre": "Elfo de sangre",
+      "descripcion": "Elegante y mágico",
+      "vidaMax": 90,
+      "velocidad": 355,
+      "danio": 1.1,
+      "recarga": 0.95,
+      "extra": null,
+      "desbloqueo": 0,
+      "clases": ["asesino", "mago", "sacerdote", "cazador", "paladin", "guerrero", "brujo"]
+    },
+    "troll": {
+      "nombre": "Troll",
+      "descripcion": "Alto, ágil y salvaje",
+      "vidaMax": 105,
+      "velocidad": 340,
+      "danio": 1.1,
+      "recarga": 0.95,
+      "extra": null,
+      "desbloqueo": 0,
+      "clases": ["asesino", "shaman", "cazador", "mago", "sacerdote"]
     },
     "humano": {
       "nombre": "Humano",
@@ -74,10 +104,11 @@
       "danio": 1.0,
       "recarga": 0.85,
       "extra": null,
-      "desbloqueo": 0
+      "desbloqueo": 0,
+      "clases": ["guerrero", "mago", "sacerdote", "asesino", "paladin", "brujo", "nigromante"]
     },
     "elfo": {
-      "nombre": "Elfo",
+      "nombre": "Elfo nocturno",
       "descripcion": "Muy veloz y certero",
       "vidaMax": 85,
       "velocidad": 365,
@@ -85,7 +116,8 @@
       "recarga": 0.95,
       "extra": null,
       "desbloqueo": 0,
-      "autoApuntado": 1.3
+      "autoApuntado": 1.3,
+      "clases": ["asesino", "druida", "cazador", "guerrero", "sacerdote"]
     },
     "derial": {
       "nombre": "Derial",
@@ -96,23 +128,45 @@
       "recarga": 0.95,
       "extra": "cola",
       "desbloqueo": 4,
-      "cura": 1.5
+      "cura": 1.5,
+      "clases": ["guerrero", "sacerdote", "brujo", "asesino", "druida"]
+    },
+    "enano": {
+      "nombre": "Enano",
+      "descripcion": "Bajo, duro como la roca",
+      "vidaMax": 125,
+      "velocidad": 295,
+      "danio": 1.05,
+      "recarga": 1.0,
+      "extra": null,
+      "desbloqueo": 0,
+      "clases": ["guerrero", "sacerdote", "cazador", "paladin", "asesino"]
+    },
+    "lycan": {
+      "nombre": "Lycan",
+      "descripcion": "Lobo feroz y rápido",
+      "vidaMax": 110,
+      "velocidad": 350,
+      "danio": 1.1,
+      "recarga": 1.0,
+      "extra": null,
+      "desbloqueo": 0,
+      "clases": ["guerrero", "shaman", "druida", "asesino", "cazador"]
+    },
+    "gnomo": {
+      "nombre": "Gnomo",
+      "descripcion": "Pequeño e ingenioso; recarga rápido",
+      "vidaMax": 85,
+      "velocidad": 330,
+      "danio": 1.0,
+      "recarga": 0.85,
+      "extra": null,
+      "desbloqueo": 0,
+      "clases": ["asesino", "mago", "brujo", "guerrero"]
     }
   },
-  "ataqueBasico": {
-    "danio": 25,
-    "alcance": 70,
-    "recargaMs": 400,
-    "empuje": 380,
-    "rangoAutoApuntado": 220
-  },
-  "habilidad": {
-    "nombre": "Onda",
-    "danio": 15,
-    "radio": 170,
-    "empuje": 750,
-    "recargaMs": 4000
-  },
+  "ataqueBasico": {"danio": 25, "alcance": 70, "recargaMs": 400, "empuje": 380, "rangoAutoApuntado": 220},
+  "habilidad": {"nombre": "Onda", "danio": 15, "radio": 170, "empuje": 750, "recargaMs": 4000},
   "especial": {
     "nombre": "Torbellino",
     "danio": 18,
@@ -122,69 +176,8 @@
     "empuje": 250,
     "recargaMs": 10000
   },
-  "roles": {
-    "guerrero": {
-      "nombre": "Guerrero",
-      "descripcion": "Golpe, Onda y Torbellino. Equilibrado",
-      "vida": 1.0,
-      "velocidad": 1.0,
-      "color": "#f5c542",
-      "disponible": true
-    },
-    "asesino": {
-      "nombre": "Asesino",
-      "descripcion": "Rápido y letal, pero con poca vida",
-      "vida": 0.75,
-      "velocidad": 1.1,
-      "color": "#ef5350",
-      "disponible": true,
-      "cuchilladas": {
-        "nombre": "Cuchilladas",
-        "danio": 16,
-        "golpes": 2,
-        "intervaloMs": 110,
-        "alcance": 60,
-        "empuje": 140,
-        "recargaMs": 380,
-        "rangoAutoApuntado": 220
-      },
-      "pasoSombrio": {
-        "nombre": "Paso sombrío",
-        "rango": 320,
-        "distanciaDetras": 55,
-        "saltoSinEnemigo": 200,
-        "danio": 20,
-        "radio": 70,
-        "empuje": 300,
-        "invulnerableMs": 500,
-        "recargaMs": 3500
-      },
-      "critico": {
-        "nombre": "Golpe crítico",
-        "danio": 130,
-        "rango": 180,
-        "empuje": 600,
-        "recargaMs": 8000
-      }
-    },
-    "sanador": {
-      "nombre": "Sanador",
-      "descripcion": "Cura y protege (próximamente)",
-      "vida": 0.9,
-      "velocidad": 1.0,
-      "color": "#66bb6a",
-      "disponible": false
-    }
-  },
   "tiposEnemigo": {
-    "normal": {
-      "textura": "enemigo",
-      "radio": 24,
-      "velocidad": 150,
-      "vidaMax": 60,
-      "danioContacto": 10,
-      "aturdidoMs": 250
-    },
+    "normal": {"textura": "enemigo", "radio": 24, "velocidad": 150, "vidaMax": 60, "danioContacto": 10, "aturdidoMs": 250},
     "rapido": {
       "textura": "enemigo-rapido",
       "radio": 18,
@@ -209,13 +202,7 @@
       "danioContacto": 6,
       "aturdidoMs": 250,
       "distanciaIdeal": [300, 460],
-      "disparo": {
-        "recargaMs": 2200,
-        "avisoMs": 450,
-        "velocidad": 330,
-        "danio": 8,
-        "duracionMs": 2600
-      }
+      "disparo": {"recargaMs": 2200, "avisoMs": 450, "velocidad": 330, "danio": 8, "duracionMs": 2600}
     }
   },
   "jefe": {
@@ -228,19 +215,9 @@
     "duracionEmbestidaMs": 650,
     "recargaEmbestidaMs": 3500,
     "aumentoVidaPorJefe": 0.2,
-    "rafaga": {
-      "recargaMs": 5500,
-      "avisoMs": 700,
-      "cantidad": 12,
-      "velocidad": 260,
-      "danio": 10,
-      "duracionMs": 3000
-    }
+    "rafaga": {"recargaMs": 5500, "avisoMs": 700, "cantidad": 12, "velocidad": 260, "danio": 10, "duracionMs": 3000}
   },
-  "oleadas": {
-    "curacionPorSala": 10,
-    "retrasoJefeMs": 900
-  },
+  "oleadas": {"curacionPorSala": 10, "retrasoJefeMs": 900},
   "mundos": [
     {
       "id": "bosque",
@@ -249,18 +226,8 @@
       "oleadas": 3,
       "oleadasPorJefe": 3,
       "curas": 1,
-      "enemigos": {
-        "normal": [2, 4],
-        "rapido": [0, 1],
-        "tirador": [0, 1]
-      },
-      "jefe": {
-        "radio": 60,
-        "vidaMax": 450,
-        "velocidad": 105,
-        "danioContacto": 20,
-        "ataques": ["embestida"]
-      },
+      "enemigos": {"normal": [2, 4], "rapido": [0, 1], "tirador": [0, 1]},
+      "jefe": {"radio": 60, "vidaMax": 450, "velocidad": 105, "danioContacto": 20, "ataques": ["embestida"]},
       "colores": {
         "estilo": "natural",
         "suelo": "#2f5a2e",
@@ -277,10 +244,11 @@
       "antorchas": false,
       "clima": ["hojas", "luciernagas"],
       "decoracionPorSala": [
-        { "tipo": "arbusto", "cantidad": 6 },
-        { "tipo": "flores", "cantidad": 6 },
-        { "tipo": "roca", "cantidad": 2 }
-      ]
+        {"tipo": "arbusto", "cantidad": 6},
+        {"tipo": "flores", "cantidad": 6},
+        {"tipo": "roca", "cantidad": 2}
+      ],
+      "cofre": "mediano"
     },
     {
       "id": "desierto",
@@ -289,19 +257,8 @@
       "oleadas": 6,
       "oleadasPorJefe": 3,
       "curas": 2,
-      "enemigos": {
-        "normal": [3, 4],
-        "rapido": [1, 3],
-        "resistente": [0, 1],
-        "tirador": [0, 2]
-      },
-      "jefe": {
-        "radio": 58,
-        "vidaMax": 500,
-        "velocidad": 110,
-        "danioContacto": 20,
-        "ataques": ["embestida", "rafaga"]
-      },
+      "enemigos": {"normal": [3, 4], "rapido": [1, 3], "resistente": [0, 1], "tirador": [0, 2]},
+      "jefe": {"radio": 58, "vidaMax": 500, "velocidad": 110, "danioContacto": 20, "ataques": ["embestida", "rafaga"]},
       "colores": {
         "estilo": "natural",
         "suelo": "#c9a463",
@@ -318,9 +275,10 @@
       "antorchas": true,
       "clima": ["polvo"],
       "decoracionPorSala": [
-        { "tipo": "cactus", "cantidad": 5 },
-        { "tipo": "roca", "cantidad": 5 }
-      ]
+        {"tipo": "cactus", "cantidad": 5},
+        {"tipo": "roca", "cantidad": 5}
+      ],
+      "cofre": "mediano"
     },
     {
       "id": "infierno",
@@ -329,19 +287,8 @@
       "oleadas": 9,
       "oleadasPorJefe": 3,
       "curas": 3,
-      "enemigos": {
-        "normal": [3, 5],
-        "rapido": [1, 3],
-        "resistente": [0, 2],
-        "tirador": [1, 3]
-      },
-      "jefe": {
-        "radio": 58,
-        "vidaMax": 550,
-        "velocidad": 115,
-        "danioContacto": 22,
-        "ataques": ["embestida", "rafaga"]
-      },
+      "enemigos": {"normal": [3, 5], "rapido": [1, 3], "resistente": [0, 2], "tirador": [1, 3]},
+      "jefe": {"radio": 58, "vidaMax": 550, "velocidad": 115, "danioContacto": 22, "ataques": ["embestida", "rafaga"]},
       "colores": {
         "estilo": "baldosa",
         "suelo": "#2a1414",
@@ -358,9 +305,10 @@
       "antorchas": true,
       "clima": ["brasas"],
       "decoracionPorSala": [
-        { "tipo": "lava", "cantidad": 2 },
-        { "tipo": "roca", "cantidad": 4 }
-      ]
+        {"tipo": "lava", "cantidad": 2},
+        {"tipo": "roca", "cantidad": 4}
+      ],
+      "cofre": "grande"
     },
     {
       "id": "nevado",
@@ -369,19 +317,8 @@
       "oleadas": 12,
       "oleadasPorJefe": 4,
       "curas": 3,
-      "enemigos": {
-        "normal": [4, 5],
-        "rapido": [2, 3],
-        "resistente": [1, 3],
-        "tirador": [1, 3]
-      },
-      "jefe": {
-        "radio": 60,
-        "vidaMax": 600,
-        "velocidad": 115,
-        "danioContacto": 22,
-        "ataques": ["embestida", "rafaga"]
-      },
+      "enemigos": {"normal": [4, 5], "rapido": [2, 3], "resistente": [1, 3], "tirador": [1, 3]},
+      "jefe": {"radio": 60, "vidaMax": 600, "velocidad": 115, "danioContacto": 22, "ataques": ["embestida", "rafaga"]},
       "colores": {
         "estilo": "natural",
         "suelo": "#dfe9f1",
@@ -398,34 +335,223 @@
       "antorchas": true,
       "clima": ["nieve"],
       "decoracionPorSala": [
-        { "tipo": "hielo", "cantidad": 2 },
-        { "tipo": "roca", "cantidad": 3 }
-      ]
+        {"tipo": "hielo", "cantidad": 2},
+        {"tipo": "roca", "cantidad": 3}
+      ],
+      "cofre": "grande"
     }
   ],
-  "joystick": {
-    "radioBase": 90,
-    "radioPalanca": 40,
-    "zonaMuerta": 0.15,
-    "seguirDedo": true
+  "joystick": {"radioBase": 90, "radioPalanca": 40, "zonaMuerta": 0.15, "seguirDedo": true},
+  "botones": {"radio": 70, "radioPequeno": 52, "margen": 60},
+  "cura": {"cantidad": 50, "recargaMs": 1500},
+  "cooperativo": {"multCantidad": 1.6, "multVida": 1.4, "multVidaJefe": 1.8},
+  "dificultad": {"vidaPorSala": 0.06, "velocidadPorSala": 0.02, "danioPorSala": 0.04},
+  "clases": {
+    "guerrero": {
+      "nombre": "Guerrero",
+      "descripcion": "Golpe, Onda y Torbellino",
+      "tipo": "melee",
+      "roles": ["dps", "tanque"],
+      "vida": 1.0,
+      "velocidad": 1.0,
+      "color": "#f5c542",
+      "botones": ["atq", "onda", "torb"]
+    },
+    "asesino": {
+      "nombre": "Asesino",
+      "descripcion": "Rápido y letal, con poca vida",
+      "tipo": "melee",
+      "roles": ["dps"],
+      "vida": 0.75,
+      "velocidad": 1.1,
+      "color": "#ef5350",
+      "botones": ["cuch", "paso", "crit"],
+      "cuchilladas": {
+        "nombre": "Cuchilladas",
+        "danio": 16,
+        "golpes": 2,
+        "intervaloMs": 110,
+        "alcance": 60,
+        "empuje": 140,
+        "recargaMs": 380,
+        "rangoAutoApuntado": 220
+      },
+      "pasoSombrio": {
+        "nombre": "Paso sombrío",
+        "rango": 320,
+        "distanciaDetras": 55,
+        "saltoSinEnemigo": 200,
+        "danio": 20,
+        "radio": 70,
+        "empuje": 300,
+        "invulnerableMs": 500,
+        "recargaMs": 3500
+      },
+      "critico": {"nombre": "Golpe crítico", "danio": 130, "rango": 180, "empuje": 600, "recargaMs": 8000}
+    },
+    "paladin": {
+      "nombre": "Paladín",
+      "descripcion": "Golpea, protege y cura",
+      "tipo": "melee",
+      "roles": ["dps", "tanque", "heler"],
+      "vida": 1.1,
+      "velocidad": 0.95,
+      "color": "#ffd54f",
+      "botones": ["atq", "onda", "sanar"]
+    },
+    "druida": {
+      "nombre": "Druida",
+      "descripcion": "Fuerza de la naturaleza; cura",
+      "tipo": "melee",
+      "roles": ["dps", "tanque", "heler"],
+      "vida": 1.0,
+      "velocidad": 1.0,
+      "color": "#8bc34a",
+      "botones": ["atq", "onda", "sanar"]
+    },
+    "sacerdote": {
+      "nombre": "Sacerdote",
+      "descripcion": "Luz a distancia; cura al grupo",
+      "tipo": "caster",
+      "roles": ["dps", "heler"],
+      "vida": 0.85,
+      "velocidad": 1.0,
+      "color": "#fff59d",
+      "botones": ["bola", "onda", "sanar"]
+    },
+    "shaman": {
+      "nombre": "Chamán",
+      "descripcion": "Rayos y curación",
+      "tipo": "caster",
+      "roles": ["dps", "heler"],
+      "vida": 0.9,
+      "velocidad": 1.0,
+      "color": "#4dd0e1",
+      "botones": ["bola", "onda", "sanar"]
+    },
+    "mago": {
+      "nombre": "Mago",
+      "descripcion": "Magia arcana a distancia",
+      "tipo": "caster",
+      "roles": ["dps"],
+      "vida": 0.8,
+      "velocidad": 1.0,
+      "color": "#7c4dff",
+      "botones": ["bola", "onda", "abanico"]
+    },
+    "brujo": {
+      "nombre": "Brujo",
+      "descripcion": "Fuego oscuro a distancia",
+      "tipo": "caster",
+      "roles": ["dps"],
+      "vida": 0.85,
+      "velocidad": 1.0,
+      "color": "#ab47bc",
+      "botones": ["bola", "onda", "abanico"]
+    },
+    "nigromante": {
+      "nombre": "Nigromante",
+      "descripcion": "Magia de muerte a distancia",
+      "tipo": "caster",
+      "roles": ["dps"],
+      "vida": 0.85,
+      "velocidad": 1.0,
+      "color": "#26a69a",
+      "botones": ["bola", "onda", "abanico"]
+    },
+    "cazador": {
+      "nombre": "Cazador",
+      "descripcion": "Flechas certeras a distancia",
+      "tipo": "caster",
+      "roles": ["dps"],
+      "vida": 0.85,
+      "velocidad": 1.05,
+      "color": "#a1887f",
+      "botones": ["bola", "onda", "abanico"]
+    }
   },
-  "botones": {
-    "radio": 70,
-    "radioPequeno": 52,
-    "margen": 60
+  "magia": {
+    "bola": {
+      "nombre": "Proyectil",
+      "danio": 20,
+      "velocidad": 650,
+      "duracionMs": 800,
+      "radio": 14,
+      "empuje": 160,
+      "recargaMs": 450,
+      "rangoAutoApuntado": 520
+    },
+    "abanico": {
+      "nombre": "Abanico",
+      "cantidad": 5,
+      "apertura": 0.9,
+      "danio": 22,
+      "velocidad": 600,
+      "duracionMs": 700,
+      "radio": 16,
+      "empuje": 220,
+      "recargaMs": 7000
+    },
+    "sanar": {"nombre": "Sanar", "cura": 30, "radio": 280, "recargaMs": 9000}
   },
-  "cura": {
-    "cantidad": 50,
-    "recargaMs": 1500
+  "estadisticas": {
+    "lista": {
+      "fuerza": {"nombre": "Fuerza", "rol": "tanque", "color": "#ff7043", "texto": "+2% daño físico y +3 vida"},
+      "vida": {"nombre": "Vida", "rol": "tanque", "color": "#66bb6a", "texto": "+8 vida máxima"},
+      "danio": {"nombre": "Daño", "rol": "dps", "color": "#ef5350", "texto": "+3% a todo el daño"},
+      "velocidad": {"nombre": "Velocidad", "rol": "dps", "color": "#4fc3f7", "texto": "+1,5% velocidad y -1% recarga"},
+      "inteligencia": {"nombre": "Inteligencia", "rol": "heler", "color": "#b388ff", "texto": "+4% daño mágico y +5% curación"},
+      "armadura": {"nombre": "Armadura", "rol": "heler", "color": "#b0bec5", "texto": "-2% daño recibido"}
+    },
+    "porPunto": {
+      "fuerzaDanio": 0.02,
+      "fuerzaVida": 3,
+      "vida": 8,
+      "danio": 0.03,
+      "velocidad": 0.015,
+      "recarga": 0.01,
+      "inteligenciaMagia": 0.04,
+      "inteligenciaCura": 0.05,
+      "armadura": 0.02
+    },
+    "limites": {"recargaMin": 0.7, "armaduraMax": 0.5}
   },
-  "cooperativo": {
-    "multCantidad": 1.6,
-    "multVida": 1.4,
-    "multVidaJefe": 1.8
+  "nombresRol": {"tanque": "Tanque", "dps": "DPS", "heler": "Sanador"},
+  "progreso": {
+    "nivelMax": 20,
+    "fichasBase": 1,
+    "fichasPorNivel": 1,
+    "puntosPorNivel": 3,
+    "nivelBotones": [1, 2, 3],
+    "desbloqueoClases": [1, 1, 3, 5, 7, 9, 11]
   },
-  "dificultad": {
-    "vidaPorSala": 0.06,
-    "velocidadPorSala": 0.02,
-    "danioPorSala": 0.04
+  "cofres": {
+    "porJefe": "pequeno",
+    "tipos": {
+      "pequeno": {
+        "nombre": "Cofre pequeño",
+        "color": "#a1887f",
+        "intys": [20, 40],
+        "fichas": [1, 1],
+        "probRubi": 0.05,
+        "rubis": [1, 1]
+      },
+      "mediano": {
+        "nombre": "Cofre mediano",
+        "color": "#90a4ae",
+        "intys": [50, 90],
+        "fichas": [1, 2],
+        "probRubi": 0.15,
+        "rubis": [1, 2]
+      },
+      "grande": {
+        "nombre": "Cofre grande",
+        "color": "#f5c542",
+        "intys": [100, 180],
+        "fichas": [2, 3],
+        "probRubi": 0.3,
+        "rubis": [1, 3]
+      }
+    }
   }
 }

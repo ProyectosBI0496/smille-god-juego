@@ -150,4 +150,133 @@ export function crearTexturasRazas(escena) {
     g.fillStyle(0x37474f);
     poligono(g, [[16, 52], [4, 46], [6, 58]]);     // aleta del final
   });
+
+  // ===== v0.1.2: las 6 razas nuevas del Excel del creador =====
+
+  // ENANO: ancho y bajo, barba larga trenzada, casco con cuernitos y un martillo
+  dibujar(escena, 'enano-cuerpo', (g) => {
+    g.lineStyle(5, 0x5d4037);
+    g.lineBetween(58, 78, 94, 82);                 // mango del martillo
+    g.fillStyle(0x9e9e9e);
+    g.fillRect(88, 70, 14, 24);                    // cabeza del martillo
+    g.fillStyle(0x4e342e);
+    g.fillCircle(54, 56, 28);                      // cuerpo muy ancho
+    g.fillStyle(0x8d6e63);
+    g.fillCircle(54, 56, 24);
+    g.fillStyle(0xbf6b2c);                         // barba (hacia adelante)
+    poligono(g, [[66, 46], [88, 52], [92, 56], [88, 60], [66, 66]]);
+    g.fillStyle(0x9e9e9e);
+    g.fillCircle(62, 56, 12);                      // casco
+    g.fillStyle(0xfff8e1);                         // cuernitos del casco
+    poligono(g, [[58, 46], [62, 44], [56, 34]]);
+    poligono(g, [[58, 66], [62, 68], [56, 78]]);
+    g.fillStyle(0x263238);
+    g.fillCircle(70, 52, 2);
+    g.fillCircle(70, 60, 2);
+  });
+
+  // LYCAN: lobo gris, hocico largo, orejas de punta y garras
+  dibujar(escena, 'lycan-cuerpo', (g) => {
+    g.fillStyle(0xeceff1);                         // garras
+    for (const [x, y] of [[74, 30], [78, 34], [74, 82], [78, 78]]) poligono(g, [[x, y], [x + 10, y + (y < 56 ? -2 : 2)], [x + 2, y + (y < 56 ? 4 : -4)]]);
+    g.fillStyle(0x37474f);
+    g.fillCircle(52, 56, 27);
+    g.fillStyle(0x607d8b);
+    g.fillCircle(52, 56, 23);
+    g.fillStyle(0x546e7a);                         // orejas
+    poligono(g, [[58, 44], [64, 46], [52, 30]]);
+    poligono(g, [[58, 68], [64, 66], [52, 82]]);
+    g.fillStyle(0x78909c);
+    g.fillCircle(62, 56, 12);                      // cabeza
+    g.fillStyle(0x90a4ae);
+    g.fillEllipse(78, 56, 18, 12);                 // hocico largo
+    g.fillStyle(0x212121);
+    g.fillCircle(86, 56, 3);                       // nariz
+    g.fillStyle(0xffd54f);
+    g.fillCircle(68, 50, 2.5);
+    g.fillCircle(68, 62, 2.5);
+  });
+
+  // GNOMO: muy pequeño, gorro rojo puntiagudo, gafas y una llave inglesa
+  dibujar(escena, 'gnomo-cuerpo', (g) => {
+    g.lineStyle(4, 0x90a4ae);
+    g.lineBetween(56, 72, 82, 78);                 // llave inglesa
+    g.strokeCircle(86, 79, 5);
+    g.fillStyle(0x1565c0);
+    g.fillCircle(52, 56, 18);                      // cuerpo pequeño
+    g.fillStyle(0x1e88e5);
+    g.fillCircle(52, 56, 15);
+    g.fillStyle(0xe53935);                         // gorro: un triángulo hacia atrás
+    poligono(g, [[62, 46], [62, 66], [30, 56]]);
+    g.fillStyle(0xffccbc);
+    g.fillCircle(62, 56, 9);                       // cara
+    g.lineStyle(2, 0x5d4037);
+    g.strokeCircle(66, 52, 3);                     // gafas
+    g.strokeCircle(66, 60, 3);
+  });
+
+  // MUERTO: no-muerto pálido, capucha negra, costillas a la vista y una guadaña
+  dibujar(escena, 'muerto-cuerpo', (g) => {
+    g.lineStyle(4, 0x6d4c41);
+    g.lineBetween(56, 80, 100, 80);                // asta de la guadaña
+    g.fillStyle(0xcfd8dc);
+    poligono(g, [[96, 80], [108, 64], [104, 82]]); // hoja
+    g.fillStyle(0x212121);
+    g.fillCircle(54, 56, 25);                      // capucha / capa
+    g.fillStyle(0x37474f);
+    g.fillCircle(54, 56, 21);
+    g.lineStyle(2, 0xb0bec5, 0.9);                 // costillas
+    for (const dx of [-8, -2, 4]) g.lineBetween(50 + dx, 46, 50 + dx, 66);
+    g.fillStyle(0xc5cae9);
+    g.fillCircle(64, 56, 11);                      // cráneo
+    g.fillStyle(0x00e5ff);                         // ojos que brillan
+    g.fillCircle(69, 52, 2.5);
+    g.fillCircle(69, 60, 2.5);
+  });
+
+  // ELFO DE SANGRE: capa roja y dorada, cabello blanco, orejas largas y un orbe
+  dibujar(escena, 'elfosangre-cuerpo', (g) => {
+    g.fillStyle(0xff7043, 0.5);
+    g.fillCircle(90, 76, 10);                      // brillo del orbe
+    g.fillStyle(0xffab40);
+    g.fillCircle(90, 76, 6);                       // orbe
+    g.fillStyle(0x8e0000);
+    g.fillCircle(54, 56, 23);
+    g.fillStyle(0xc62828);
+    g.fillCircle(54, 56, 19);
+    g.lineStyle(3, 0xffc107);
+    g.strokeCircle(54, 56, 19);                    // borde dorado
+    g.fillStyle(0xffe0b2);                         // orejas largas
+    poligono(g, [[62, 46], [66, 48], [50, 26]]);
+    poligono(g, [[62, 66], [66, 64], [50, 86]]);
+    g.fillStyle(0xfafafa);
+    g.fillCircle(62, 56, 12);                      // cabello blanco
+    g.fillStyle(0xffe0b2);
+    g.fillCircle(67, 56, 8);                       // cara
+    g.fillStyle(0x76ff03);
+    g.fillCircle(71, 53, 2);
+    g.fillCircle(71, 59, 2);
+  });
+
+  // TROLL: piel azul, colmillos hacia arriba, cresta roja y una lanza
+  dibujar(escena, 'troll-cuerpo', (g) => {
+    g.lineStyle(3, 0x8d6e63);
+    g.lineBetween(58, 80, 106, 80);                // lanza
+    g.fillStyle(0xcfd8dc);
+    poligono(g, [[104, 75], [112, 80], [104, 85]]);
+    g.fillStyle(0x00838f);
+    g.fillCircle(52, 56, 24);
+    g.fillStyle(0x26a69a);
+    g.fillCircle(52, 56, 20);
+    g.fillStyle(0xd32f2f);                         // cresta de pelo
+    poligono(g, [[60, 52], [60, 60], [34, 58], [36, 54]]);
+    g.fillStyle(0x4db6ac);
+    g.fillCircle(64, 56, 12);                      // cabeza
+    g.fillStyle(0xfff8e1);                         // colmillos largos
+    poligono(g, [[72, 48], [84, 42], [76, 52]]);
+    poligono(g, [[72, 64], [84, 70], [76, 60]]);
+    g.fillStyle(0xffeb3b);
+    g.fillCircle(70, 52, 2.5);
+    g.fillCircle(70, 60, 2.5);
+  });
 }

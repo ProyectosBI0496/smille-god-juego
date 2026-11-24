@@ -78,7 +78,7 @@ export default class EscenaTitulo extends Phaser.Scene {
     }).setOrigin(0.5);
     this.tweens.add({ targets: [boton, texto], scale: 1.06, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-    this.add.text(W - 16, H - 12, 'v0.1.0 · prototipo', {
+    this.add.text(W - 16, H - 12, 'v0.1.2 · prototipo', {
       fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#6b7a90',
     }).setOrigin(1, 1);
 
@@ -90,7 +90,7 @@ export default class EscenaTitulo extends Phaser.Scene {
       boton.disableInteractive();
       this.saliendo = true;
       this.cameras.main.fadeOut(350, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaHeroe'));
+      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaPersonaje')); // v0.1.2: sin personaje, lleva a crearlo
     };
     boton.on('pointerdown', empezar);
 
