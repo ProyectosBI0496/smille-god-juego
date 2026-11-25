@@ -1,8 +1,8 @@
 // =============================================================
 // Crear personaje, paso 3: elegir el ROL (v0.1.4)
-//   1. Raza  (EscenaHeroe)  → el aspecto y pequeñas diferencias.
-//   2. Clase (EscenaClase)  → el estilo: Guerrero, Mago, Paladín...
-//   3. Rol   (esta escena)  → qué hace en el grupo: DPS, Tanque o Sanador.
+//   v0.1.5: la raza + clase se elige en "Mis héroes" (EscenaHeroe), en el
+//   orden de la escala de desbloqueo. Aquí se elige el ROL:
+//   qué hace en el grupo: DPS, Tanque o Sanador.
 // Cada CLASE + ROL tiene su set de poderes (Excel del creador:
 // pasiva + 3 botones), guardado en balance.json → "poderes".
 // El rol también decide qué estadísticas se suben.
@@ -62,9 +62,7 @@ export default class EscenaRol extends Phaser.Scene {
     const volver = this.add.text(24, H - 14, '← Volver', {
       fontFamily: FUENTE_TITULO, fontSize: '26px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
     }).setOrigin(0, 1).setInteractive();
-    volver.on('pointerdown', () => this.scene.start('EscenaClase', {
-      raza: this.raza, volverA: this.volverA, datosVolver: this.datosVolver,
-    }));
+    volver.on('pointerdown', () => this.scene.start('EscenaHeroe', { volverA: this.volverA, datosVolver: this.datosVolver }));
     seguirPareja(this);
   }
 

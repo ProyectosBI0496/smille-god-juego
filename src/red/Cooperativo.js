@@ -217,7 +217,7 @@ export default class Cooperativo {
     if (m.tipo === 'victoria') marcarSuperado(e.indiceMundo, e.dificultad); // el invitado también avanza
     e.terminado = true;
     // Mis cofres los abro yo, en mi celular (los jefes vencidos llegan en cada "foto")
-    e.pantallaFinal(m.titulo, `${m.texto}\nEsperando a tu compañero...`, e.abrirCofres(m.tipo === 'victoria'), [
+    e.pantallaFinal(m.titulo, `${m.texto}\nEsperando a tu compañero...`, e.premiosFinales(m.tipo === 'victoria'), [
       { texto: 'Salir', accion: () => { this.red.cerrar(); e.scene.start('EscenaTitulo'); } },
     ]);
   }

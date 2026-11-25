@@ -1,10 +1,11 @@
 // =============================================================
 // Ficha del personaje (v0.1.2)
-//   Izquierda: quién es, su nivel, las monedas y el botón SUBIR DE NIVEL
-//              (cuesta FICHAS; cada nivel da puntos para repartir).
-//   Derecha:   las 6 estadísticas. Solo se suben las del ROL elegido (v0.1.4):
+//   Izquierda: quién es, su nivel, su RANGO y coronas (v0.1.5), las monedas
+//              y el botón SUBIR DE NIVEL (cuesta FICHAS; cada nivel da puntos).
+//   Derecha:   las 6 estadísticas. v0.1.5: crecen solas con el nivel (Excel)
+//              y además se reparten puntos en las del ROL elegido (v0.1.4):
 //              Tanque → Fuerza y Vida · DPS → Daño y Velocidad ·
-//              Sanador → Inteligencia y Armadura.
+//              Sanador → Inteligencia y Armadura. El equipo suma (en verde).
 // Cada cambio se guarda al instante y se vuelve a dibujar la escena.
 // =============================================================
 
@@ -13,10 +14,11 @@ import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { color } from '../graficos/TexturasMundo.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
 import {
-  personaje, guardarPersonaje, borrarPersonaje, monedas, sumarMonedas, nivelMaximo,
+  personaje, guardarPersonaje, monedas, sumarMonedas, coronasJugador,
 } from '../datos/Progreso.js';
 import {
-  personajeValido, calcularHeroe, estadisticasDeRol, costoNivel, nombrePersonaje, clasesDeRaza, bonosEquipo, poderesDe,
+  personajeValido, calcularHeroe, estadisticasDeRol, costoNivel, nombrePersonaje, bonosEquipo, poderesDe,
+  rangoDe, estadisticasBase, textoEstadistica, esPorcentaje,
 } from '../datos/Personaje.js';
 import { redActual, seguirPareja } from '../red/Red.js';
 
@@ -34,7 +36,7 @@ export default class EscenaPersonaje extends Phaser.Scene {
 
   create() {
     const guardado = personaje();
-    if (!guardado) { // todavía no hay personaje: a crearlo
+    if (!guardado) { // todavía no hay héroe: a elegir uno
       this.scene.start('EscenaHeroe', { volverA: this.volverA, datosVolver: this.datosVolver });
       return;
     }
@@ -91,18 +93,31 @@ export default class EscenaPersonaje extends Phaser.Scene {
     const raza = b.razas[p.raza];
     this.add.rectangle(cx, H / 2 - 25, 460, H - 120, 0x0b0f1a, 0.75).setStrokeStyle(2, color(clase.color), 0.7);
 
-    this.add.image(cx, 110, 'brillo').setTint(color(clase.color)).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD);
-    if (raza.extra) this.add.image(cx, 110, `${p.raza}-${raza.extra}`).setScale(1.3).setAngle(-90);
-    this.add.image(cx, 110, `${p.raza}-cuerpo`).setScale(1.3).setAngle(-90);
-    this.add.text(cx, 190, nombrePersonaje(b, p), {
+    this.add.image(cx, 100, 'brillo').setTint(color(clase.color)).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD);
+    if (raza.extra) this.add.image(cx, 100, `${p.raza}-${raza.extra}`).setScale(1.2).setAngle(-90);
+    this.add.image(cx, 100, `${p.raza}-cuerpo`).setScale(1.2).setAngle(-90);
+    this.add.text(cx, 176, nombrePersonaje(b, p), {
       fontFamily: FUENTE_TITULO, fontSize: '30px', fontStyle: 'bold', color: clase.color, stroke: '#05070d', strokeThickness: 5,
     }).setOrigin(0.5);
-    this.add.text(cx, 228, `Nivel ${p.nivel} · ${b.nombresRol[p.rol]}`, { ...TEXTO, fontSize: '20px', color: '#ffe082' }).setOrigin(0.5);
+    this.add.text(cx, 214, `Nivel ${p.nivel} · ${b.nombresRol[p.rol]}`, { ...TEXTO, fontSize: '20px', color: '#ffe082' }).setOrigin(0.5);
 
-    // Monedas de la cuenta
+    // v0.1.5: RANGO del héroe (según SUS coronas) con una barra hasta el siguiente
+    const rango = rangoDe(b, p.coronas);
+    this.add.circle(cx - 190, 250, 12, color(rango.color)).setStrokeStyle(3, 0x05070d);
+    const falta = rango.siguiente === null ? 'rango máximo' : `faltan ${rango.siguiente - p.coronas} para R${rango.rango + 1}`;
+    this.add.text(cx - 170, 250, `Rango ${rango.rango} · 👑 ${p.coronas} (${falta})`, {
+      ...TEXTO, fontSize: '17px', fontStyle: 'bold', color: rango.color, stroke: '#05070d', strokeThickness: 3,
+    }).setOrigin(0, 0.5);
+    if (rango.siguiente !== null) {
+      const parte = (p.coronas - rango.desde) / (rango.siguiente - rango.desde);
+      this.add.rectangle(cx - 190, 272, 380, 6, 0x000000, 0.6).setOrigin(0, 0.5);
+      this.add.rectangle(cx - 190, 272, Math.max(1, 380 * parte), 6, color(rango.color)).setOrigin(0, 0.5);
+    }
+
+    // Monedas de la cuenta y coronas del JUGADOR (la suma de todos sus héroes)
     const m = monedas();
-    this.add.text(cx, 272, `☀️ ${m.intys} intys    🎟️ ${m.fichas} fichas    💎 ${m.rubis} rubís`, {
-      ...TEXTO, fontSize: '19px', stroke: '#05070d', strokeThickness: 3,
+    this.add.text(cx, 298, `☀️ ${m.intys}   🎟️ ${m.fichas}   💎 ${m.rubis}   🔰 ${m.fichasFaccion}   👑 ${coronasJugador()}`, {
+      ...TEXTO, fontSize: '18px', stroke: '#05070d', strokeThickness: 3,
     }).setOrigin(0.5);
 
     // Subir de nivel: cuesta fichas (las fichas salen de los cofres)
@@ -110,34 +125,22 @@ export default class EscenaPersonaje extends Phaser.Scene {
     const costo = costoNivel(b, p.nivel);
     const alcanza = m.fichas >= costo;
     const texto = maximo ? 'Nivel máximo' : `Subir a Nv ${p.nivel + 1} (🎟️ ${costo})`;
-    this.boton(cx, 330, 360, texto, true, () => this.subirNivel(costo), !maximo && alcanza);
+    this.boton(cx, 346, 360, texto, true, () => this.subirNivel(costo), !maximo && alcanza);
     if (!maximo && !alcanza) {
-      this.add.text(cx, 370, 'Gana fichas en los cofres de las mazmorras', { ...TEXTO, fontSize: '15px', color: '#b0bec5' }).setOrigin(0.5);
+      this.add.text(cx, 386, 'Gana fichas 🎟️ en los cofres de las mazmorras', { ...TEXTO, fontSize: '15px', color: '#b0bec5' }).setOrigin(0.5);
     }
 
     // v0.1.4: los poderes de clase + rol (los bloqueados dicen en qué nivel se abren)
-    // y debajo, qué clase nueva se abre después
-    this.add.text(cx, 400, this.textoPoderes(), {
+    this.add.text(cx, 410, this.textoPoderes(), {
       ...TEXTO, fontSize: '16px', color: '#cfd8dc', align: 'center', wordWrap: { width: 440 }, lineSpacing: 4,
     }).setOrigin(0.5, 0);
 
-    // Borrar: hay que tocar dos veces (no se puede deshacer)
-    let confirmar = false;
-    const borrar = this.add.text(cx, H - 115, 'Borrar personaje', {
-      ...TEXTO, fontSize: '18px', color: '#ef9a9a', stroke: '#05070d', strokeThickness: 3,
-    }).setOrigin(0.5).setInteractive();
-    borrar.on('pointerdown', () => {
-      if (!confirmar) {
-        confirmar = true;
-        borrar.setText('¿Seguro? Nivel 1 y mazmorras desde cero. Toca otra vez').setColor('#ff5252');
-        return;
-      }
-      borrarPersonaje();
-      this.scene.start('EscenaHeroe', { volverA: this.volverA, datosVolver: this.datosVolver });
-    });
+    // v0.1.5: ya no se borra el personaje: se cambia de héroe (cada uno guarda su progreso)
+    this.boton(cx, H - 122, 300, '👥 Cambiar héroe', false,
+      () => this.scene.start('EscenaHeroe', { volverA: this.volverA, datosVolver: this.datosVolver }));
   }
 
-  /** Texto con la pasiva, los 3 poderes (y su nivel si están bloqueados) y la próxima clase */
+  /** Texto con la pasiva y los 3 poderes (y su nivel si están bloqueados) */
   textoPoderes() {
     const b = this.balance;
     const p = this.p;
@@ -147,8 +150,6 @@ export default class EscenaPersonaje extends Phaser.Scene {
     set.botones.forEach((poder, i) => {
       lineas.push(`${i + 1}. ${poder.nombre}${niveles[i] > p.nivel ? `  (🔒 Nv ${niveles[i]})` : ''}`);
     });
-    const siguiente = clasesDeRaza(b, p.raza, nivelMaximo()).find((c) => !c.abierta);
-    if (siguiente) lineas.push('', `Nv ${siguiente.necesario}: nueva clase de ${b.razas[p.raza].nombre}: ${b.clases[siguiente.id].nombre}`);
     return lineas.join('\n');
   }
 
@@ -164,13 +165,15 @@ export default class EscenaPersonaje extends Phaser.Scene {
     const b = this.balance;
     const p = this.p;
     const permitidas = estadisticasDeRol(b, p.rol);
-    const bonos = bonosEquipo(b, p); // lo que suma el equipo puesto (se muestra en verde)
+    const bonos = bonosEquipo(b, p);                   // lo que suma el equipo puesto (en verde)
+    const base = estadisticasBase(b, p.rol, p.nivel);  // v0.1.5: lo que da el nivel (Excel)
+    const h = calcularHeroe(b, p);
     const ancho = this.anchoDerecha;
     this.add.rectangle(cx, H / 2 - 25, ancho, H - 120, 0x0b0f1a, 0.75).setStrokeStyle(2, 0xf5c542, 0.5);
     this.add.text(cx, 52, 'Estadísticas', {
       fontFamily: FUENTE_TITULO, fontSize: '32px', fontStyle: 'bold', color: '#f5c542', stroke: '#05070d', strokeThickness: 5,
     }).setOrigin(0.5);
-    this.add.text(cx, 90, p.puntos > 0 ? `Tienes ${p.puntos} ${p.puntos === 1 ? 'punto' : 'puntos'} para repartir` : 'Sube de nivel para ganar puntos', {
+    this.add.text(cx, 90, p.puntos > 0 ? `Tienes ${p.puntos} ${p.puntos === 1 ? 'punto' : 'puntos'} para repartir` : 'Base según tu nivel · verde = tus puntos · celeste = equipo', {
       ...TEXTO, fontSize: '18px', color: p.puntos > 0 ? '#a5d6a7' : '#b0bec5',
     }).setOrigin(0.5);
 
@@ -178,25 +181,30 @@ export default class EscenaPersonaje extends Phaser.Scene {
     Object.entries(b.estadisticas.lista).forEach(([id, est], i) => {
       const y = 138 + i * 62;
       const puede = permitidas.includes(id);
-      const gris = '#666666';
       this.add.text(izq, y, est.nombre, {
-        fontFamily: FUENTE_TITULO, fontSize: '22px', fontStyle: 'bold', color: puede ? est.color : gris,
+        fontFamily: FUENTE_TITULO, fontSize: '22px', fontStyle: 'bold', color: est.color,
       }).setOrigin(0, 0.5);
-      this.add.text(izq, y + 22, puede ? est.texto : `Solo ${b.nombresRol[est.rol]}`, {
-        ...TEXTO, fontSize: '14px', color: puede ? '#cfd8dc' : gris,
-      }).setOrigin(0, 0.5);
-      this.add.text(cx + ancho / 2 - 110, y + 6, String(p.est[id]), {
-        fontFamily: FUENTE_TITULO, fontSize: '28px', fontStyle: 'bold', color: puede ? '#ffffff' : gris,
-      }).setOrigin(0.5);
-      if (bonos[id] > 0) {
-        this.add.text(cx + ancho / 2 - 140, y + 6, `+${bonos[id]}`, {
-          fontFamily: FUENTE_TITULO, fontSize: '20px', fontStyle: 'bold', color: '#66bb6a',
+      this.add.text(izq, y + 22, est.texto, { ...TEXTO, fontSize: '14px', color: '#cfd8dc' }).setOrigin(0, 0.5);
+
+      // Base del Excel (según nivel) y al lado lo que se suma: "20 + 1 + 3"
+      //   verde = puntos repartidos · celeste = equipo. En las de %, 1 punto = 0,20%.
+      const extra = (n) => textoEstadistica(id, esPorcentaje(id) ? n * b.estadisticas.porPunto[id] : n);
+      const piezas = [[textoEstadistica(id, base[id]), '#ffffff', '26px']];
+      if (p.est[id] > 0) piezas.push([` + ${extra(p.est[id])}`, '#66bb6a', '22px']);
+      if (bonos[id] > 0) piezas.push([` + ${extra(bonos[id])}`, '#4fc3f7', '22px']);
+      // Se dibujan de derecha a izquierda, cada una pegada a la anterior
+      let xDerecha = cx + ancho / 2 - 85;
+      for (const [texto, colorTexto, tamano] of piezas.reverse()) {
+        const t = this.add.text(xDerecha, y + 6, texto, {
+          fontFamily: FUENTE_TITULO, fontSize: tamano, fontStyle: 'bold', color: colorTexto,
         }).setOrigin(1, 0.5);
+        xDerecha -= t.width;
       }
-      if (!puede) return;
+      if (!puede) return; // los puntos solo van a las estadísticas del rol
+
       // Botón "+": gasta un punto en esta estadística
       const activo = p.puntos > 0;
-      const mas = this.add.circle(cx + ancho / 2 - 50, y + 6, 22, activo ? 0x66bb6a : 0x333333).setStrokeStyle(2, 0xffffff, activo ? 0.9 : 0.3);
+      const mas = this.add.circle(cx + ancho / 2 - 45, y + 6, 22, activo ? 0x66bb6a : 0x333333).setStrokeStyle(2, 0xffffff, activo ? 0.9 : 0.3);
       this.add.text(mas.x, mas.y, '+', { ...TEXTO, fontSize: '30px', fontStyle: 'bold', color: activo ? '#ffffff' : '#777777' }).setOrigin(0.5);
       if (activo) {
         mas.setInteractive().on('pointerdown', () => {
@@ -208,9 +216,8 @@ export default class EscenaPersonaje extends Phaser.Scene {
     });
 
     // Resumen: así queda el héroe en la partida
-    const h = calcularHeroe(b, p);
     const resumen = `Vida ${h.vidaMax} · Velocidad ${h.velocidad} · Daño ×${h.mult.fisico.toFixed(2)} · Magia ×${h.mult.magia.toFixed(2)}\n`
-      + `Curación ×${h.mult.cura.toFixed(2)} · Recarga ×${h.mult.recarga.toFixed(2)} · Armadura ${Math.round(h.reduccion * 100)}%`;
+      + `Curación ×${h.mult.cura.toFixed(2)} · Recarga ×${h.mult.recarga.toFixed(2)} · Bloqueo ${Math.round(h.reduccion * 100)}%`;
     this.add.text(cx, H - 135, resumen, { ...TEXTO, fontSize: '15px', color: '#ffe082', align: 'center' }).setOrigin(0.5);
   }
 }

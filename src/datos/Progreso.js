@@ -1,19 +1,34 @@
 // =============================================================
 // Progreso del jugador, guardado en el navegador (localStorage)
-// Etapa 6: cuántos mundos superó (y por lo tanto cuáles están abiertos).
 // localStorage puede fallar (modo incógnito), por eso todo va con try/catch.
+//
+// v0.1.5 — COLECCIÓN DE HÉROES
+//   El jugador tiene VARIOS héroes (uno por raza + clase) y elige con cuál juega.
+//   Cada héroe guarda lo suyo: rol, nivel, puntos, equipo, lo que compró,
+//   sus CORONAS y hasta qué mundo/dificultad llegó.
+//   Son de la CUENTA (compartido por todos): monedas, pociones, nombre y
+//   los héroes que se pagaron con fichas de facción.
 // =============================================================
 
-const CLAVE_MUNDOS = 'smilleGod.mundosSuperados';
-
-/** Cuántos mundos superó el jugador (0 = solo el primero está abierto) */
-export function mundosSuperados() {
+/** Lee un objeto guardado como texto JSON; si no hay o está roto, devuelve "porDefecto" */
+function leerJson(clave, porDefecto) {
   try {
-    return Number(localStorage.getItem(CLAVE_MUNDOS)) || 0;
+    const texto = localStorage.getItem(clave);
+    return texto ? JSON.parse(texto) : porDefecto;
   } catch (error) {
-    return 0;
+    return porDefecto;
   }
 }
+
+function guardarJson(clave, valor) {
+  try {
+    localStorage.setItem(clave, JSON.stringify(valor));
+  } catch (error) {
+    // sin memoria del navegador: dura solo esta partida
+  }
+}
+
+// ----------------- Nombre y raza del jugador -----------------
 
 const CLAVE_RAZA = 'smilleGod.raza';
 const CLAVE_NICK = 'smilleGod.nick';
@@ -38,7 +53,7 @@ export function guardarNick(texto) {
   return limpio;
 }
 
-/** La raza que eligió el jugador (Etapa 8); "humano" si todavía no eligió */
+/** La raza del héroe con el que juega (Etapa 8); "humano" si todavía no eligió */
 export function razaElegida() {
   try {
     return localStorage.getItem(CLAVE_RAZA) || 'humano';
@@ -47,88 +62,177 @@ export function razaElegida() {
   }
 }
 
-export function elegirRaza(id) {
+function elegirRaza(id) {
   try {
     localStorage.setItem(CLAVE_RAZA, id);
   } catch (error) {
-    // sin memoria del navegador: la elección dura solo esta partida
+    // sin memoria del navegador
   }
 }
 
-// =============================================================
-// v0.1.2 — PERSONAJE FIJO, MONEDAS Y COFRES
-// El jugador crea UN personaje (raza + clase). Ese personaje sube de nivel
-// gastando FICHAS y en cada nivel reparte puntos de ESTADÍSTICAS.
-// Para cambiar de raza o clase hay que borrarlo y crear otro (vuelve a nivel 1).
-// Las monedas (intys, fichas, rubís) son de la CUENTA: no se pierden al borrar.
-// =============================================================
+// ----------------- Héroes -----------------
 
-const CLAVE_PERSONAJE = 'smilleGod.personaje';
-const CLAVE_MONEDAS = 'smilleGod.monedas';
-const CLAVE_NIVEL_MAX = 'smilleGod.nivelMaximo';
-
-/** Lee un objeto guardado como texto JSON; si no hay o está roto, devuelve "porDefecto" */
-function leerJson(clave, porDefecto) {
-  try {
-    const texto = localStorage.getItem(clave);
-    return texto ? JSON.parse(texto) : porDefecto;
-  } catch (error) {
-    return porDefecto;
-  }
-}
-
-function guardarJson(clave, valor) {
-  try {
-    localStorage.setItem(clave, JSON.stringify(valor));
-  } catch (error) {
-    // sin memoria del navegador: dura solo esta partida
-  }
-}
-
-/** El personaje guardado, o null si todavía no creó uno */
-export function personaje() {
-  return leerJson(CLAVE_PERSONAJE, null);
-}
-
-export function guardarPersonaje(p) {
-  guardarJson(CLAVE_PERSONAJE, p);
-  if (p.nivel > nivelMaximo()) guardarJson(CLAVE_NIVEL_MAX, p.nivel); // abre clases nuevas
-}
+const CLAVE_HEROES = 'smilleGod.heroes';        // { "humano.guerrero": { ...héroe } }
+const CLAVE_ACTUAL = 'smilleGod.heroeActual';   // "humano.guerrero"
+const CLAVE_ABIERTOS = 'smilleGod.heroesAbiertos'; // héroes pagados con fichas de facción
 
 /**
- * Crea un personaje nuevo de nivel 1, sin puntos repartidos.
- * v0.1.4: también guarda el ROL y regala unas pociones para empezar (regalo = { vida: 3, mana: 2 }).
+ * Antes de v0.1.5 había UN personaje (smilleGod.personaje) y el progreso de
+ * mundos era de la cuenta. Si existe, se pasa a la colección (una sola vez).
  */
-export function crearPersonaje(raza, clase, rol, regalo = {}) {
-  const p = {
-    raza, clase, rol, nivel: 1, puntos: 0,
-    est: { fuerza: 0, vida: 0, danio: 0, velocidad: 0, inteligencia: 0, armadura: 0 },
-  };
-  elegirRaza(raza);
-  guardarPersonaje(p);
-  sumarPociones(regalo);
-  return p;
-}
-
-/** Borra el personaje. v0.1.4: las mazmorras y sus dificultades vuelven a empezar. */
-export function borrarPersonaje() {
+function migrarVersionVieja() {
+  const viejo = leerJson('smilleGod.personaje', null);
+  if (!viejo) return;
+  const heroes = leerJson(CLAVE_HEROES, {});
+  const id = `${viejo.raza}.${viejo.clase}`;
+  if (!heroes[id]) {
+    heroes[id] = {
+      ...viejo,
+      equipo: {},       // el equipo de antes ya no existe en la tienda nueva
+      inventario: [],
+      coronas: 0,
+      mundos: Number(leerJson('smilleGod.mundosSuperados', 0)) || 0,
+      dificultades: leerJson('smilleGod.dificultades', {}),
+    };
+    guardarJson(CLAVE_HEROES, heroes);
+    guardarJson(CLAVE_ACTUAL, id);
+  }
   try {
-    localStorage.removeItem(CLAVE_PERSONAJE);
-    localStorage.removeItem(CLAVE_MUNDOS);
-    localStorage.removeItem(CLAVE_DIFICULTADES);
+    for (const clave of ['smilleGod.personaje', 'smilleGod.mundosSuperados', 'smilleGod.dificultades',
+      'smilleGod.inventario', 'smilleGod.nivelMaximo']) localStorage.removeItem(clave);
   } catch (error) {
     // nada que borrar
   }
 }
 
-/** El nivel más alto que alcanzó cualquiera de sus personajes (abre clases) */
-export function nivelMaximo() {
-  return Number(leerJson(CLAVE_NIVEL_MAX, 1)) || 1;
+/** Todos los héroes creados: { "humano.guerrero": {...}, "orco.cazador": {...} } */
+export function heroes() {
+  migrarVersionVieja();
+  return leerJson(CLAVE_HEROES, {});
 }
 
-/** Intys, fichas y rubís de la cuenta */
+/** El héroe con el que juega ahora, o null si todavía no creó ninguno */
+export function personaje() {
+  const todos = heroes();
+  return todos[leerJson(CLAVE_ACTUAL, '')] || Object.values(todos)[0] || null;
+}
+
+/** Cambia el héroe con el que juega */
+export function elegirHeroe(id) {
+  const elegido = heroes()[id];
+  if (!elegido) return;
+  guardarJson(CLAVE_ACTUAL, id);
+  elegirRaza(elegido.raza);
+}
+
+/**
+ * Guarda un héroe. Se MEZCLA con lo que ya tenía guardado ({ ...antes, ...p }),
+ * así no se pierden datos que la escena no conocía (coronas, inventario, mundos...).
+ */
+export function guardarPersonaje(p) {
+  const todos = heroes();
+  const id = `${p.raza}.${p.clase}`;
+  todos[id] = { ...(todos[id] || {}), ...p };
+  guardarJson(CLAVE_HEROES, todos);
+}
+
+/** Cambia algo del héroe actual: cambiarActual((h) => { h.coronas += 5; }) */
+function cambiarActual(cambio) {
+  const h = personaje();
+  if (!h) return null;
+  cambio(h);
+  guardarPersonaje(h);
+  return h;
+}
+
+/**
+ * Crea un héroe nuevo de nivel 1 y juega con él.
+ * v0.1.4: con su ROL y unas pociones de regalo (regalo = { vida: 3, mana: 2 }).
+ */
+export function crearPersonaje(raza, clase, rol, regalo = {}) {
+  const p = {
+    raza, clase, rol, nivel: 1, puntos: 0,
+    est: { fuerza: 0, vida: 0, danio: 0, velocidad: 0, inteligencia: 0, armadura: 0 },
+    equipo: {}, inventario: [], coronas: 0, mundos: 0, dificultades: {},
+  };
+  guardarPersonaje(p);
+  elegirHeroe(`${raza}.${clase}`);
+  sumarPociones(regalo);
+  return p;
+}
+
+/** Los héroes que se abrieron pagando fichas de facción: ["humano.paladin", ...] */
+export function heroesAbiertos() {
+  const lista = leerJson(CLAVE_ABIERTOS, []);
+  return Array.isArray(lista) ? lista : [];
+}
+
+/** Abre un héroe de la escala pagando sus fichas de facción. Devuelve true si se pudo. */
+export function abrirHeroe(id, fichasFaccion) {
+  if (monedas().fichasFaccion < fichasFaccion || heroesAbiertos().includes(id)) return false;
+  sumarMonedas({ fichasFaccion: -fichasFaccion });
+  guardarJson(CLAVE_ABIERTOS, [...heroesAbiertos(), id]);
+  return true;
+}
+
+// ----------------- Coronas (v0.1.5) -----------------
+
+/** Coronas del JUGADOR: la suma de las de todos sus héroes */
+export function coronasJugador() {
+  return Object.values(heroes()).reduce((suma, h) => suma + (h.coronas || 0), 0);
+}
+
+/**
+ * Suma (o resta) coronas al héroe actual; nunca baja de 0.
+ * Devuelve { antes, despues } para mostrar el cambio.
+ */
+export function sumarCoronas(cantidad) {
+  let antes = 0;
+  const h = cambiarActual((heroe) => {
+    antes = heroe.coronas || 0;
+    heroe.coronas = Math.max(0, antes + cantidad);
+  });
+  return { antes, despues: h ? h.coronas : 0 };
+}
+
+/** Todo lo que necesita la pantalla de héroes para saber qué está abierto */
+export function cuentaParaEscala() {
+  return { heroes: heroes(), abiertos: heroesAbiertos(), coronas: coronasJugador(), fichasFaccion: monedas().fichasFaccion };
+}
+
+// ----------------- Mazmorras (por héroe desde v0.1.5) -----------------
+
+/** Cuántos mundos superó el héroe actual (0 = solo el primero está abierto) */
+export function mundosSuperados() {
+  const h = personaje();
+  return (h && h.mundos) || 0;
+}
+
+/** v0.1.4: la dificultad más alta superada en el mundo "indice" (0 si ninguna) */
+export function dificultadSuperada(indice) {
+  const h = personaje();
+  return Number(h && h.dificultades && h.dificultades[indice]) || 0;
+}
+
+/**
+ * Marca como superado el mundo número "indice" (0 = el primero) en la "dificultad" dada.
+ * Superarlo en cualquier dificultad abre el mundo siguiente (en Iniciado).
+ */
+export function marcarSuperado(indice, dificultad = 1) {
+  cambiarActual((h) => {
+    h.mundos = Math.max(h.mundos || 0, indice + 1);
+    h.dificultades = h.dificultades || {};
+    if (dificultad > (Number(h.dificultades[indice]) || 0)) h.dificultades[indice] = dificultad;
+  });
+}
+
+// ----------------- Monedas (de la cuenta) -----------------
+
+const CLAVE_MONEDAS = 'smilleGod.monedas';
+
+/** Intys, fichas, rubís y fichas de facción (v0.1.5) de la cuenta */
 export function monedas() {
-  return { intys: 0, fichas: 0, rubis: 0, ...leerJson(CLAVE_MONEDAS, {}) };
+  return { intys: 0, fichas: 0, rubis: 0, fichasFaccion: 0, ...leerJson(CLAVE_MONEDAS, {}) };
 }
 
 /** Suma (o resta, con números negativos) monedas: sumarMonedas({ fichas: -2 }) */
@@ -139,36 +243,20 @@ export function sumarMonedas(cambio) {
   return m;
 }
 
-// v0.1.4: DIFICULTADES. Por cada mundo se guarda la dificultad más alta superada
-// (0 = ninguna, 1 = Iniciado ... 5 = Divino). Ejemplo: { "0": 2, "1": 1 }
-const CLAVE_DIFICULTADES = 'smilleGod.dificultades';
-
-/** La dificultad más alta superada en el mundo "indice" (0 si ninguna) */
-export function dificultadSuperada(indice) {
-  return Number(leerJson(CLAVE_DIFICULTADES, {})[indice]) || 0;
+/** ¿Alcanza la plata para este precio? */
+function alcanza(precio) {
+  const m = monedas();
+  return Object.entries(precio).every(([moneda, cantidad]) => (m[moneda] || 0) >= cantidad);
 }
 
-/**
- * Marca como superado el mundo número "indice" (0 = el primero) en la "dificultad" dada.
- * Superarlo en cualquier dificultad abre el mundo siguiente (en Iniciado).
- */
-export function marcarSuperado(indice, dificultad = 1) {
-  try {
-    if (indice + 1 > mundosSuperados()) localStorage.setItem(CLAVE_MUNDOS, String(indice + 1));
-  } catch (error) {
-    // sin memoria del navegador: el progreso solo dura esta partida
-  }
-  const todas = leerJson(CLAVE_DIFICULTADES, {});
-  if (dificultad > (Number(todas[indice]) || 0)) {
-    todas[indice] = dificultad;
-    guardarJson(CLAVE_DIFICULTADES, todas);
-  }
+/** Resta un precio de las monedas */
+function pagar(precio) {
+  const resta = {};
+  for (const [moneda, cantidad] of Object.entries(precio)) resta[moneda] = -cantidad;
+  sumarMonedas(resta);
 }
 
-// =============================================================
-// v0.1.4 — POCIONES (reemplazan a la cura)
-// Son de la CUENTA, como las monedas: { vida: 3, mana: 2 }
-// =============================================================
+// ----------------- Pociones (v0.1.4, de la cuenta) -----------------
 
 const CLAVE_POCIONES = 'smilleGod.pociones';
 
@@ -186,39 +274,24 @@ export function sumarPociones(cambio) {
 
 /** Compra UNA poción: resta su precio. Devuelve true si alcanzó. */
 export function comprarPocion(id, precio) {
-  const m = monedas();
-  const alcanza = Object.entries(precio).every(([moneda, cantidad]) => (m[moneda] || 0) >= cantidad);
-  if (!alcanza) return false;
-  const resta = {};
-  for (const [moneda, cantidad] of Object.entries(precio)) resta[moneda] = -cantidad;
-  sumarMonedas(resta);
+  if (!alcanza(precio)) return false;
+  pagar(precio);
   sumarPociones({ [id]: 1 }); // [id]: usa el VALOR de id como nombre de la clave
   return true;
 }
 
-// =============================================================
-// v0.1.3 — TIENDA DE EQUIPO
-// Lo que se COMPRA es de la cuenta (como las monedas): no se pierde al
-// borrar el personaje. Lo que se EQUIPA es del personaje (p.equipo).
-// =============================================================
+// ----------------- Equipo (v0.1.5: de cada héroe) -----------------
 
-const CLAVE_INVENTARIO = 'smilleGod.inventario';
-
-/** Lista de los objetos comprados, por ejemplo ["espadaCorta", "amuletoVida"] */
+/** Lo que compró el héroe actual: ["casco:0", "manoDerecha:1"] (espacio:tier) */
 export function inventario() {
-  const lista = leerJson(CLAVE_INVENTARIO, []);
-  return Array.isArray(lista) ? lista : [];
+  const h = personaje();
+  return (h && Array.isArray(h.inventario)) ? h.inventario : [];
 }
 
-/** Compra un objeto: resta su precio y lo guarda. Devuelve true si se pudo. */
+/** Compra un objeto para el héroe actual: resta su precio y lo guarda. Devuelve true si se pudo. */
 export function comprarObjeto(id, precio) {
-  const m = monedas();
-  // ¿alcanza cada moneda del precio? (every = "todas cumplen")
-  const alcanza = Object.entries(precio).every(([moneda, cantidad]) => (m[moneda] || 0) >= cantidad);
-  if (!alcanza || inventario().includes(id)) return false;
-  const resta = {};
-  for (const [moneda, cantidad] of Object.entries(precio)) resta[moneda] = -cantidad;
-  sumarMonedas(resta);
-  guardarJson(CLAVE_INVENTARIO, [...inventario(), id]);
+  if (!alcanza(precio) || inventario().includes(id)) return false;
+  pagar(precio);
+  cambiarActual((h) => { h.inventario = [...(h.inventario || []), id]; });
   return true;
 }

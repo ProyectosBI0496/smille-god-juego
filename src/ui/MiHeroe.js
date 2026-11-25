@@ -6,13 +6,13 @@
 
 import { FUENTE_TITULO } from '../escenas/EscenaArena.js';
 import { personaje } from '../datos/Progreso.js';
-import { nombrePersonaje, personajeValido } from '../datos/Personaje.js';
+import { nombrePersonaje, personajeValido, rangoDe } from '../datos/Personaje.js';
 
 export function crearMiHeroe(escena, x, y, alPulsar) {
   const balance = escena.cache.json.get('balance');
   const guardado = personaje();
   const p = guardado ? personajeValido(balance, guardado) : null;
-  const texto = p ? `${nombrePersonaje(balance, p)} · Nv ${p.nivel} · Ver` : 'Crear personaje';
+  const texto = p ? `${nombrePersonaje(balance, p)} · Nv ${p.nivel} · R${rangoDe(balance, p.coronas).rango} · Ver` : 'Elegir héroe';
   const boton = escena.add.text(x, y, texto, {
     fontFamily: FUENTE_TITULO, fontSize: '26px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
   }).setOrigin(1, 0.5).setInteractive(); // alineado al borde derecho: nunca se sale

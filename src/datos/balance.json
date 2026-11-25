@@ -37,8 +37,7 @@
       "danio": 1.15,
       "recarga": 1.0,
       "extra": null,
-      "desbloqueo": 0,
-      "clases": ["guerrero", "cazador", "sacerdote", "asesino", "paladin"]
+      "clases": ["asesino", "guerrero", "sacerdote", "paladin", "cazador"]
     },
     "toro": {
       "nombre": "Toro",
@@ -48,9 +47,8 @@
       "danio": 1.1,
       "recarga": 1.0,
       "extra": null,
-      "desbloqueo": 0,
       "empuje": 1.4,
-      "clases": ["guerrero", "druida", "shaman", "cazador"]
+      "clases": ["druida", "guerrero", "cazador", "shaman"]
     },
     "goruk": {
       "nombre": "Goruk",
@@ -60,8 +58,7 @@
       "danio": 1.2,
       "recarga": 0.95,
       "extra": "alas",
-      "desbloqueo": 2,
-      "clases": ["guerrero", "cazador", "asesino", "shaman", "paladin"]
+      "clases": ["cazador", "asesino", "guerrero", "paladin", "shaman"]
     },
     "muerto": {
       "nombre": "Muerto",
@@ -71,8 +68,7 @@
       "danio": 1.05,
       "recarga": 1.0,
       "extra": null,
-      "desbloqueo": 0,
-      "clases": ["asesino", "brujo", "sacerdote", "guerrero", "nigromante"]
+      "clases": ["asesino", "sacerdote", "guerrero", "paladin", "brujo", "nigromante"]
     },
     "elfosangre": {
       "nombre": "Elfo de sangre",
@@ -82,8 +78,7 @@
       "danio": 1.1,
       "recarga": 0.95,
       "extra": null,
-      "desbloqueo": 0,
-      "clases": ["asesino", "mago", "sacerdote", "cazador", "paladin", "guerrero", "brujo"]
+      "clases": ["brujo", "cazador", "asesino", "guerrero", "mago", "sacerdote", "paladin"]
     },
     "troll": {
       "nombre": "Troll",
@@ -93,8 +88,7 @@
       "danio": 1.1,
       "recarga": 0.95,
       "extra": null,
-      "desbloqueo": 0,
-      "clases": ["asesino", "shaman", "cazador", "mago", "sacerdote"]
+      "clases": ["cazador", "mago", "asesino", "sacerdote", "shaman"]
     },
     "humano": {
       "nombre": "Humano",
@@ -104,8 +98,7 @@
       "danio": 1.0,
       "recarga": 0.85,
       "extra": null,
-      "desbloqueo": 0,
-      "clases": ["guerrero", "mago", "sacerdote", "asesino", "paladin", "brujo", "nigromante"]
+      "clases": ["guerrero", "sacerdote", "asesino", "paladin", "brujo", "mago", "nigromante"]
     },
     "elfo": {
       "nombre": "Elfo nocturno",
@@ -115,9 +108,8 @@
       "danio": 1.0,
       "recarga": 0.95,
       "extra": null,
-      "desbloqueo": 0,
       "autoApuntado": 1.3,
-      "clases": ["asesino", "druida", "cazador", "guerrero", "sacerdote"]
+      "clases": ["asesino", "druida", "guerrero", "sacerdote", "cazador"]
     },
     "derial": {
       "nombre": "Derial",
@@ -127,9 +119,8 @@
       "danio": 1.1,
       "recarga": 0.95,
       "extra": "cola",
-      "desbloqueo": 4,
       "cura": 1.5,
-      "clases": ["guerrero", "sacerdote", "brujo", "asesino", "druida"]
+      "clases": ["asesino", "brujo", "druida", "guerrero", "sacerdote"]
     },
     "enano": {
       "nombre": "Enano",
@@ -139,8 +130,7 @@
       "danio": 1.05,
       "recarga": 1.0,
       "extra": null,
-      "desbloqueo": 0,
-      "clases": ["guerrero", "sacerdote", "cazador", "paladin", "asesino"]
+      "clases": ["asesino", "guerrero", "sacerdote", "cazador", "paladin"]
     },
     "lycan": {
       "nombre": "Lycan",
@@ -150,8 +140,7 @@
       "danio": 1.1,
       "recarga": 1.0,
       "extra": null,
-      "desbloqueo": 0,
-      "clases": ["guerrero", "shaman", "druida", "asesino", "cazador"]
+      "clases": ["cazador", "asesino", "druida", "guerrero", "shaman"]
     },
     "gnomo": {
       "nombre": "Gnomo",
@@ -161,8 +150,7 @@
       "danio": 1.0,
       "recarga": 0.85,
       "extra": null,
-      "desbloqueo": 0,
-      "clases": ["asesino", "mago", "brujo", "guerrero"]
+      "clases": ["brujo", "asesino", "guerrero", "mago"]
     }
   },
   "ataqueBasico": {"danio": 25, "alcance": 70, "recargaMs": 400, "empuje": 380, "rangoAutoApuntado": 220},
@@ -177,11 +165,18 @@
     "recargaMs": 10000
   },
   "tiposEnemigo": {
-    "normal": {"textura": "enemigo", "radio": 24, "velocidad": 150, "vidaMax": 60, "danioContacto": 10, "aturdidoMs": 250},
+    "normal": {
+      "textura": "enemigo",
+      "radio": 24,
+      "velocidad": 150,
+      "vidaMax": 60,
+      "danioContacto": 10,
+      "aturdidoMs": 250
+    },
     "rapido": {
       "textura": "enemigo-rapido",
       "radio": 18,
-      "velocidad": 235,
+      "velocidad": 180,
       "vidaMax": 35,
       "danioContacto": 6,
       "aturdidoMs": 300
@@ -242,12 +237,9 @@
       },
       "antorchas": false,
       "clima": ["hojas", "luciernagas"],
-      "decoracionPorSala": [
-        {"tipo": "arbusto", "cantidad": 6},
-        {"tipo": "flores", "cantidad": 6},
-        {"tipo": "roca", "cantidad": 2}
-      ],
-      "cofre": "mediano"
+      "decoracionPorSala": [{"tipo": "arbusto", "cantidad": 6}, {"tipo": "flores", "cantidad": 6}, {"tipo": "roca", "cantidad": 2}],
+      "cofre": "mediano",
+      "velocidadEnemigos": [150, 160, 170, 180, 190]
     },
     {
       "id": "desierto",
@@ -272,11 +264,9 @@
       },
       "antorchas": true,
       "clima": ["polvo"],
-      "decoracionPorSala": [
-        {"tipo": "cactus", "cantidad": 5},
-        {"tipo": "roca", "cantidad": 5}
-      ],
-      "cofre": "mediano"
+      "decoracionPorSala": [{"tipo": "cactus", "cantidad": 5}, {"tipo": "roca", "cantidad": 5}],
+      "cofre": "mediano",
+      "velocidadEnemigos": [160, 170, 180, 190, 200]
     },
     {
       "id": "infierno",
@@ -301,11 +291,9 @@
       },
       "antorchas": true,
       "clima": ["brasas"],
-      "decoracionPorSala": [
-        {"tipo": "lava", "cantidad": 2},
-        {"tipo": "roca", "cantidad": 4}
-      ],
-      "cofre": "grande"
+      "decoracionPorSala": [{"tipo": "lava", "cantidad": 2}, {"tipo": "roca", "cantidad": 4}],
+      "cofre": "grande",
+      "velocidadEnemigos": [170, 180, 190, 200, 210]
     },
     {
       "id": "nevado",
@@ -330,17 +318,20 @@
       },
       "antorchas": true,
       "clima": ["nieve"],
-      "decoracionPorSala": [
-        {"tipo": "hielo", "cantidad": 2},
-        {"tipo": "roca", "cantidad": 3}
-      ],
-      "cofre": "grande"
+      "decoracionPorSala": [{"tipo": "hielo", "cantidad": 2}, {"tipo": "roca", "cantidad": 3}],
+      "cofre": "grande",
+      "velocidadEnemigos": [180, 195, 200, 215, 230]
     }
   ],
   "joystick": {"radioBase": 90, "radioPalanca": 40, "zonaMuerta": 0.15, "seguirDedo": true},
   "botones": {"radio": 70, "radioPequeno": 52, "margen": 60},
   "cooperativo": {"multCantidad": 1.6, "multVida": 1.4, "multVidaJefe": 1.8},
-  "dificultad": {"vidaPorSala": 0.06, "velocidadPorSala": 0.02, "danioPorSala": 0.04},
+  "dificultad": {
+    "vidaPorSala": 0.06,
+    "velocidadPorSala": 0.02,
+    "danioPorSala": 0.04,
+    "_nota": "velocidadEnemigos de cada mundo (una por dificultad) es la velocidad del enemigo NORMAL. Los demás van en proporción a su velocidad en tiposEnemigo (normal 150 = 1×; rápido 180 = 1,2×; resistente 100 = 0,67×; tirador 125 = 0,83×), y el jefe, su embestida y los disparos también. vidaPorSala etc. = cada sala es un poco más difícil."
+  },
   "clases": {
     "guerrero": {
       "nombre": "Guerrero",
@@ -481,35 +472,648 @@
   },
   "estadisticas": {
     "lista": {
-      "fuerza": {"nombre": "Fuerza", "rol": "tanque", "color": "#ff7043", "texto": "+2% daño físico y +3 vida"},
-      "vida": {"nombre": "Vida", "rol": "tanque", "color": "#66bb6a", "texto": "+8 vida máxima"},
-      "danio": {"nombre": "Daño", "rol": "dps", "color": "#ef5350", "texto": "+3% a todo el daño"},
-      "velocidad": {"nombre": "Velocidad", "rol": "dps", "color": "#4fc3f7", "texto": "+1,5% velocidad y -1% recarga"},
-      "inteligencia": {"nombre": "Inteligencia", "rol": "heler", "color": "#b388ff", "texto": "+4% daño mágico y +5% curación"},
-      "armadura": {"nombre": "Armadura", "rol": "heler", "color": "#b0bec5", "texto": "-2% daño recibido"}
+      "fuerza": {
+        "nombre": "Fuerza",
+        "rol": "tanque",
+        "color": "#ff7043",
+        "texto": "% de aturdir 1 s al enemigo cada 3 golpes"
+      },
+      "vida": {"nombre": "Vida", "rol": "tanque", "color": "#66bb6a", "texto": "Puntos de vida"},
+      "danio": {"nombre": "Daño", "rol": "dps", "color": "#ef5350", "texto": "Daño de cada golpe"},
+      "velocidad": {
+        "nombre": "Velocidad",
+        "rol": "dps",
+        "color": "#4fc3f7",
+        "texto": "% de velocidad de movimiento y de ataque"
+      },
+      "inteligencia": {"nombre": "Inteligencia", "rol": "heler", "color": "#b388ff", "texto": "Puntos de maná y curación"},
+      "armadura": {
+        "nombre": "Armadura",
+        "rol": "heler",
+        "color": "#b0bec5",
+        "texto": "% de bloqueo de los golpes enemigos"
+      }
     },
-    "porPunto": {
-      "fuerzaDanio": 0.02,
-      "fuerzaVida": 3,
-      "vida": 8,
-      "danio": 0.03,
-      "velocidad": 0.015,
-      "recarga": 0.01,
-      "inteligenciaMagia": 0.04,
-      "inteligenciaCura": 0.05,
-      "armadura": 0.02
+    "porPunto": {"fuerza": 0.002, "vida": 1, "danio": 1, "velocidad": 0.002, "inteligencia": 1, "armadura": 0.002},
+    "_nota": "v0.1.5: la base sale del Excel (porNivel, según rol y nivel). Cada punto repartido o del equipo suma porPunto: 1 en Vida, Daño e Inteligencia; 0.002 (= 0,20%) en Fuerza, Velocidad y Armadura, que son porcentajes. conversion = cómo se usan en la partida.",
+    "conversion": {
+      "_nota": "Vida = puntos de vida. Daño = daño del botón 1 (los demás poderes en la misma proporción). Inteligencia = maná máximo; curación ×(Inteligencia / curaRef, mínimo 1). Velocidad: movimiento = velocidadRef × %; ataque: recarga × (1 + ataqueRef) / (1 + %) (50% = normal). Armadura = % de daño bloqueado (tope armaduraMax). Fuerza = probabilidad de aturdir aturdirMs cada aturdirCada golpes.",
+      "velocidadRef": 300,
+      "ataqueRef": 0.5,
+      "recargaMin": 0.5,
+      "curaRef": 200,
+      "armaduraMax": 0.75,
+      "aturdirCada": 3,
+      "aturdirMs": 1000
     },
-    "limites": {"recargaMin": 0.7, "armaduraMax": 0.5}
+    "porNivel": {
+      "tanque": [
+        {"fuerza": 0.2, "vida": 200, "danio": 30, "velocidad": 0.55, "inteligencia": 40, "armadura": 0.15},
+        {
+          "fuerza": 0.224,
+          "vida": 240,
+          "danio": 33,
+          "velocidad": 0.5665,
+          "inteligencia": 42,
+          "armadura": 0.162
+        },
+        {
+          "fuerza": 0.2509,
+          "vida": 288,
+          "danio": 37,
+          "velocidad": 0.5835,
+          "inteligencia": 45,
+          "armadura": 0.175
+        },
+        {"fuerza": 0.281, "vida": 346, "danio": 41, "velocidad": 0.601, "inteligencia": 48, "armadura": 0.189},
+        {
+          "fuerza": 0.3147,
+          "vida": 416,
+          "danio": 46,
+          "velocidad": 0.619,
+          "inteligencia": 51,
+          "armadura": 0.2041
+        },
+        {
+          "fuerza": 0.3462,
+          "vida": 458,
+          "danio": 50,
+          "velocidad": 0.6376,
+          "inteligencia": 54,
+          "armadura": 0.2163
+        },
+        {
+          "fuerza": 0.3808,
+          "vida": 504,
+          "danio": 54,
+          "velocidad": 0.6567,
+          "inteligencia": 57,
+          "armadura": 0.2293
+        },
+        {
+          "fuerza": 0.4189,
+          "vida": 555,
+          "danio": 59,
+          "velocidad": 0.6764,
+          "inteligencia": 60,
+          "armadura": 0.2431
+        },
+        {
+          "fuerza": 0.4608,
+          "vida": 611,
+          "danio": 64,
+          "velocidad": 0.6967,
+          "inteligencia": 63,
+          "armadura": 0.2576
+        },
+        {
+          "fuerza": 0.5068,
+          "vida": 673,
+          "danio": 70,
+          "velocidad": 0.7176,
+          "inteligencia": 67,
+          "armadura": 0.2731
+        },
+        {
+          "fuerza": 0.5423,
+          "vida": 727,
+          "danio": 74,
+          "velocidad": 0.7392,
+          "inteligencia": 71,
+          "armadura": 0.2868
+        },
+        {
+          "fuerza": 0.5803,
+          "vida": 786,
+          "danio": 78,
+          "velocidad": 0.7613,
+          "inteligencia": 75,
+          "armadura": 0.3011
+        },
+        {
+          "fuerza": 0.6209,
+          "vida": 849,
+          "danio": 82,
+          "velocidad": 0.7842,
+          "inteligencia": 79,
+          "armadura": 0.3161
+        },
+        {
+          "fuerza": 0.6644,
+          "vida": 917,
+          "danio": 87,
+          "velocidad": 0.8077,
+          "inteligencia": 83,
+          "armadura": 0.332
+        },
+        {
+          "fuerza": 0.7109,
+          "vida": 991,
+          "danio": 92,
+          "velocidad": 0.8319,
+          "inteligencia": 88,
+          "armadura": 0.3485
+        },
+        {
+          "fuerza": 0.7464,
+          "vida": 1051,
+          "danio": 95,
+          "velocidad": 0.8569,
+          "inteligencia": 93,
+          "armadura": 0.359
+        },
+        {
+          "fuerza": 0.7837,
+          "vida": 1115,
+          "danio": 98,
+          "velocidad": 0.8826,
+          "inteligencia": 98,
+          "armadura": 0.3698
+        },
+        {
+          "fuerza": 0.8229,
+          "vida": 1182,
+          "danio": 101,
+          "velocidad": 0.9091,
+          "inteligencia": 103,
+          "armadura": 0.3809
+        },
+        {
+          "fuerza": 0.8641,
+          "vida": 1253,
+          "danio": 105,
+          "velocidad": 0.9363,
+          "inteligencia": 109,
+          "armadura": 0.3923
+        },
+        {
+          "fuerza": 0.9073,
+          "vida": 1329,
+          "danio": 109,
+          "velocidad": 0.9644,
+          "inteligencia": 115,
+          "armadura": 0.4041
+        },
+        {
+          "fuerza": 0.9254,
+          "vida": 1369,
+          "danio": 112,
+          "velocidad": 0.9934,
+          "inteligencia": 121,
+          "armadura": 0.4081
+        },
+        {
+          "fuerza": 0.9439,
+          "vida": 1411,
+          "danio": 115,
+          "velocidad": 1.0232,
+          "inteligencia": 128,
+          "armadura": 0.4122
+        },
+        {
+          "fuerza": 0.9628,
+          "vida": 1454,
+          "danio": 118,
+          "velocidad": 1.0539,
+          "inteligencia": 135,
+          "armadura": 0.4163
+        },
+        {
+          "fuerza": 0.982,
+          "vida": 1498,
+          "danio": 121,
+          "velocidad": 1.0855,
+          "inteligencia": 142,
+          "armadura": 0.4205
+        },
+        {
+          "fuerza": 1.0017,
+          "vida": 1543,
+          "danio": 124,
+          "velocidad": 1.118,
+          "inteligencia": 150,
+          "armadura": 0.4247
+        }
+      ],
+      "dps": [
+        {"fuerza": 0.1, "vida": 120, "danio": 45, "velocidad": 0.6, "inteligencia": 60, "armadura": 0.15},
+        {"fuerza": 0.108, "vida": 126, "danio": 54, "velocidad": 0.618, "inteligencia": 66, "armadura": 0.162},
+        {
+          "fuerza": 0.1166,
+          "vida": 133,
+          "danio": 65,
+          "velocidad": 0.6365,
+          "inteligencia": 73,
+          "armadura": 0.175
+        },
+        {
+          "fuerza": 0.126,
+          "vida": 140,
+          "danio": 78,
+          "velocidad": 0.6556,
+          "inteligencia": 81,
+          "armadura": 0.189
+        },
+        {
+          "fuerza": 0.136,
+          "vida": 147,
+          "danio": 94,
+          "velocidad": 0.6753,
+          "inteligencia": 90,
+          "armadura": 0.2041
+        },
+        {
+          "fuerza": 0.1442,
+          "vida": 153,
+          "danio": 109,
+          "velocidad": 0.6956,
+          "inteligencia": 98,
+          "armadura": 0.2163
+        },
+        {
+          "fuerza": 0.1529,
+          "vida": 160,
+          "danio": 126,
+          "velocidad": 0.7164,
+          "inteligencia": 106,
+          "armadura": 0.2293
+        },
+        {
+          "fuerza": 0.162,
+          "vida": 167,
+          "danio": 145,
+          "velocidad": 0.7379,
+          "inteligencia": 115,
+          "armadura": 0.2431
+        },
+        {
+          "fuerza": 0.1718,
+          "vida": 174,
+          "danio": 167,
+          "velocidad": 0.7601,
+          "inteligencia": 125,
+          "armadura": 0.2576
+        },
+        {
+          "fuerza": 0.1821,
+          "vida": 181,
+          "danio": 193,
+          "velocidad": 0.7829,
+          "inteligencia": 135,
+          "armadura": 0.2731
+        },
+        {
+          "fuerza": 0.1893,
+          "vida": 187,
+          "danio": 213,
+          "velocidad": 0.8063,
+          "inteligencia": 144,
+          "armadura": 0.2868
+        },
+        {
+          "fuerza": 0.1969,
+          "vida": 193,
+          "danio": 235,
+          "velocidad": 0.8305,
+          "inteligencia": 153,
+          "armadura": 0.3011
+        },
+        {
+          "fuerza": 0.2048,
+          "vida": 199,
+          "danio": 259,
+          "velocidad": 0.8555,
+          "inteligencia": 163,
+          "armadura": 0.3161
+        },
+        {
+          "fuerza": 0.213,
+          "vida": 205,
+          "danio": 285,
+          "velocidad": 0.8811,
+          "inteligencia": 173,
+          "armadura": 0.332
+        },
+        {
+          "fuerza": 0.2215,
+          "vida": 212,
+          "danio": 314,
+          "velocidad": 0.9076,
+          "inteligencia": 184,
+          "armadura": 0.3485
+        },
+        {
+          "fuerza": 0.2259,
+          "vida": 217,
+          "danio": 336,
+          "velocidad": 0.9348,
+          "inteligencia": 192,
+          "armadura": 0.359
+        },
+        {
+          "fuerza": 0.2305,
+          "vida": 222,
+          "danio": 360,
+          "velocidad": 0.9628,
+          "inteligencia": 200,
+          "armadura": 0.3698
+        },
+        {
+          "fuerza": 0.2351,
+          "vida": 227,
+          "danio": 386,
+          "velocidad": 0.9917,
+          "inteligencia": 208,
+          "armadura": 0.3809
+        },
+        {
+          "fuerza": 0.2398,
+          "vida": 232,
+          "danio": 414,
+          "velocidad": 1.0215,
+          "inteligencia": 217,
+          "armadura": 0.3923
+        },
+        {
+          "fuerza": 0.2446,
+          "vida": 237,
+          "danio": 443,
+          "velocidad": 1.0521,
+          "inteligencia": 226,
+          "armadura": 0.4041
+        },
+        {
+          "fuerza": 0.247,
+          "vida": 240,
+          "danio": 466,
+          "velocidad": 1.0837,
+          "inteligencia": 231,
+          "armadura": 0.4081
+        },
+        {
+          "fuerza": 0.2495,
+          "vida": 243,
+          "danio": 490,
+          "velocidad": 1.1162,
+          "inteligencia": 236,
+          "armadura": 0.4122
+        },
+        {
+          "fuerza": 0.252,
+          "vida": 246,
+          "danio": 515,
+          "velocidad": 1.1497,
+          "inteligencia": 241,
+          "armadura": 0.4163
+        },
+        {
+          "fuerza": 0.2545,
+          "vida": 249,
+          "danio": 541,
+          "velocidad": 1.1842,
+          "inteligencia": 246,
+          "armadura": 0.4205
+        },
+        {
+          "fuerza": 0.257,
+          "vida": 252,
+          "danio": 569,
+          "velocidad": 1.2197,
+          "inteligencia": 251,
+          "armadura": 0.4247
+        }
+      ],
+      "heler": [
+        {"fuerza": 0.05, "vida": 150, "danio": 20, "velocidad": 0.5, "inteligencia": 200, "armadura": 0.2},
+        {
+          "fuerza": 0.0525,
+          "vida": 165,
+          "danio": 21,
+          "velocidad": 0.515,
+          "inteligencia": 230,
+          "armadura": 0.22
+        },
+        {
+          "fuerza": 0.0551,
+          "vida": 182,
+          "danio": 23,
+          "velocidad": 0.5304,
+          "inteligencia": 265,
+          "armadura": 0.242
+        },
+        {
+          "fuerza": 0.0579,
+          "vida": 201,
+          "danio": 25,
+          "velocidad": 0.5464,
+          "inteligencia": 305,
+          "armadura": 0.2662
+        },
+        {
+          "fuerza": 0.0608,
+          "vida": 222,
+          "danio": 27,
+          "velocidad": 0.5628,
+          "inteligencia": 351,
+          "armadura": 0.2928
+        },
+        {
+          "fuerza": 0.0632,
+          "vida": 240,
+          "danio": 29,
+          "velocidad": 0.5796,
+          "inteligencia": 394,
+          "armadura": 0.3162
+        },
+        {
+          "fuerza": 0.0657,
+          "vida": 260,
+          "danio": 31,
+          "velocidad": 0.597,
+          "inteligencia": 442,
+          "armadura": 0.3415
+        },
+        {
+          "fuerza": 0.0684,
+          "vida": 281,
+          "danio": 33,
+          "velocidad": 0.6149,
+          "inteligencia": 496,
+          "armadura": 0.3689
+        },
+        {
+          "fuerza": 0.0711,
+          "vida": 304,
+          "danio": 35,
+          "velocidad": 0.6334,
+          "inteligencia": 556,
+          "armadura": 0.3984
+        },
+        {
+          "fuerza": 0.0739,
+          "vida": 329,
+          "danio": 37,
+          "velocidad": 0.6524,
+          "inteligencia": 623,
+          "armadura": 0.4302
+        },
+        {
+          "fuerza": 0.0762,
+          "vida": 349,
+          "danio": 39,
+          "velocidad": 0.672,
+          "inteligencia": 686,
+          "armadura": 0.4561
+        },
+        {
+          "fuerza": 0.0784,
+          "vida": 370,
+          "danio": 41,
+          "velocidad": 0.6921,
+          "inteligencia": 755,
+          "armadura": 0.4834
+        },
+        {
+          "fuerza": 0.0808,
+          "vida": 393,
+          "danio": 44,
+          "velocidad": 0.7129,
+          "inteligencia": 831,
+          "armadura": 0.5124
+        },
+        {
+          "fuerza": 0.0832,
+          "vida": 417,
+          "danio": 47,
+          "velocidad": 0.7343,
+          "inteligencia": 915,
+          "armadura": 0.5432
+        },
+        {
+          "fuerza": 0.0857,
+          "vida": 443,
+          "danio": 50,
+          "velocidad": 0.7563,
+          "inteligencia": 1007,
+          "armadura": 0.5758
+        },
+        {
+          "fuerza": 0.0874,
+          "vida": 466,
+          "danio": 53,
+          "velocidad": 0.779,
+          "inteligencia": 1088,
+          "armadura": 0.6046
+        },
+        {
+          "fuerza": 0.0892,
+          "vida": 490,
+          "danio": 56,
+          "velocidad": 0.8024,
+          "inteligencia": 1176,
+          "armadura": 0.6348
+        },
+        {
+          "fuerza": 0.091,
+          "vida": 515,
+          "danio": 59,
+          "velocidad": 0.8264,
+          "inteligencia": 1271,
+          "armadura": 0.6665
+        },
+        {
+          "fuerza": 0.0928,
+          "vida": 541,
+          "danio": 62,
+          "velocidad": 0.8512,
+          "inteligencia": 1373,
+          "armadura": 0.6999
+        },
+        {
+          "fuerza": 0.0946,
+          "vida": 569,
+          "danio": 66,
+          "velocidad": 0.8768,
+          "inteligencia": 1483,
+          "armadura": 0.7348
+        },
+        {
+          "fuerza": 0.0956,
+          "vida": 592,
+          "danio": 70,
+          "velocidad": 0.9031,
+          "inteligencia": 1558,
+          "armadura": 0.7495
+        },
+        {
+          "fuerza": 0.0965,
+          "vida": 616,
+          "danio": 74,
+          "velocidad": 0.9301,
+          "inteligencia": 1636,
+          "armadura": 0.7645
+        },
+        {
+          "fuerza": 0.0975,
+          "vida": 641,
+          "danio": 78,
+          "velocidad": 0.9581,
+          "inteligencia": 1718,
+          "armadura": 0.7798
+        },
+        {
+          "fuerza": 0.0985,
+          "vida": 667,
+          "danio": 82,
+          "velocidad": 0.9868,
+          "inteligencia": 1804,
+          "armadura": 0.7954
+        },
+        {
+          "fuerza": 0.0995,
+          "vida": 694,
+          "danio": 87,
+          "velocidad": 1.0164,
+          "inteligencia": 1895,
+          "armadura": 0.8113
+        }
+      ]
+    }
   },
-  "coloresRol": { "tanque": "#64b5f6", "dps": "#ef5350", "heler": "#81c784" },
+  "coloresRol": {"tanque": "#64b5f6", "dps": "#ef5350", "heler": "#81c784"},
   "nombresRol": {"tanque": "Tanque", "dps": "DPS", "heler": "Sanador"},
   "progreso": {
-    "nivelMax": 20,
-    "fichasBase": 1,
-    "fichasPorNivel": 1,
+    "nivelMax": 25,
     "puntosPorNivel": 3,
     "nivelBotones": [1, 2, 3],
-    "desbloqueoClases": [1, 1, 3, 5, 7, 9, 11]
+    "_nota": "fichasPorNivel[n] = fichas para pasar del nivel n al n+1 (Excel Escala_Fichas_Nivel_25). Cada nivel da puntosPorNivel para repartir.",
+    "fichasPorNivel": [
+      0,
+      2,
+      4,
+      8,
+      12,
+      20,
+      28,
+      44,
+      60,
+      92,
+      124,
+      164,
+      204,
+      264,
+      324,
+      414,
+      504,
+      624,
+      744,
+      924,
+      1104,
+      1314,
+      1524,
+      1774,
+      2074
+    ]
   },
   "cofres": {
     "porJefe": "pequeno",
@@ -520,7 +1124,8 @@
         "intys": [20, 40],
         "fichas": [1, 1],
         "probRubi": 0.05,
-        "rubis": [1, 1]
+        "rubis": [1, 1],
+        "fichasFaccion": [1, 2]
       },
       "mediano": {
         "nombre": "Cofre mediano",
@@ -528,7 +1133,8 @@
         "intys": [50, 90],
         "fichas": [1, 2],
         "probRubi": 0.15,
-        "rubis": [1, 2]
+        "rubis": [1, 2],
+        "fichasFaccion": [3, 5]
       },
       "grande": {
         "nombre": "Cofre grande",
@@ -536,37 +1142,84 @@
         "intys": [100, 180],
         "fichas": [2, 3],
         "probRubi": 0.3,
-        "rubis": [1, 3]
+        "rubis": [1, 3],
+        "fichasFaccion": [6, 10]
       }
     }
   },
   "equipo": {
+    "_nota": "v0.1.5: 8 espacios. Cada objeto tiene un tier (nivel 1, 6, 11, 16, 21; Excel Ropa_Accesorios). Da 2 estadísticas: la 1ª suma el máximo del tier y la 2ª el mínimo. Los nombres y estadísticas cambian según el ROL. Las manos salen de 'armas'. dosManos = el arma a 2 manos suma más (no hay nada en la izquierda).",
     "ranuras": {
-      "arma": { "nombre": "Arma", "icono": "⚔️" },
-      "armadura": { "nombre": "Armadura", "icono": "🛡️" },
-      "accesorio": { "nombre": "Accesorio", "icono": "💍" }
+      "manoDerecha": {
+        "nombre": "Mano derecha",
+        "icono": "🗡️",
+        "precio": 1.5,
+        "bonos": {"tanque": ["fuerza", "danio"], "dps": ["danio", "velocidad"], "heler": ["inteligencia", "danio"]}
+      },
+      "manoIzquierda": {
+        "nombre": "Mano izquierda",
+        "icono": "🛡️",
+        "porTipo": {"escudo": ["armadura", "vida"], "arma": ["danio", "velocidad"], "foco": ["inteligencia", "armadura"]}
+      },
+      "casco": {
+        "nombre": "Casco",
+        "icono": "⛑️",
+        "nombres": {"tanque": "Yelmo de placas", "dps": "Capucha de cuero", "heler": "Diadema mística"},
+        "bonos": {"tanque": ["armadura", "vida"], "dps": ["velocidad", "danio"], "heler": ["inteligencia", "armadura"]}
+      },
+      "pecho": {
+        "nombre": "Pecho",
+        "icono": "🥋",
+        "nombres": {"tanque": "Coraza de acero", "dps": "Jubón de cuero", "heler": "Túnica sagrada"},
+        "bonos": {"tanque": ["vida", "armadura"], "dps": ["danio", "vida"], "heler": ["vida", "inteligencia"]}
+      },
+      "capa": {
+        "nombre": "Capa",
+        "icono": "🧣",
+        "nombres": {"tanque": "Capa del guardián", "dps": "Capa de sombras", "heler": "Manto de luz"},
+        "bonos": {
+          "tanque": ["fuerza", "armadura"],
+          "dps": ["velocidad", "danio"],
+          "heler": ["inteligencia", "velocidad"]
+        }
+      },
+      "pantalon": {
+        "nombre": "Pantalón",
+        "icono": "👖",
+        "nombres": {"tanque": "Grebas de hierro", "dps": "Pantalón de viaje", "heler": "Faldón de seda"},
+        "bonos": {"tanque": ["vida", "fuerza"], "dps": ["velocidad", "vida"], "heler": ["armadura", "inteligencia"]}
+      },
+      "anillo": {
+        "nombre": "Anillo",
+        "icono": "💍",
+        "nombres": {"tanque": "Anillo de hierro", "dps": "Anillo afilado", "heler": "Anillo de savia"},
+        "bonos": {"tanque": ["fuerza", "vida"], "dps": ["danio", "fuerza"], "heler": ["inteligencia", "vida"]}
+      },
+      "amuleto": {
+        "nombre": "Amuleto",
+        "icono": "📿",
+        "nombres": {"tanque": "Amuleto del baluarte", "dps": "Amuleto del cazador", "heler": "Amuleto del alba"},
+        "bonos": {"tanque": ["vida", "armadura"], "dps": ["danio", "velocidad"], "heler": ["inteligencia", "armadura"]}
+      }
     },
-    "objetos": {
-      "espadaCorta":   { "nombre": "Espada corta",       "ranura": "arma",      "nivel": 1,  "precio": { "intys": 60 },  "bonos": { "danio": 2 } },
-      "bastonRoble":   { "nombre": "Bastón de roble",    "ranura": "arma",      "nivel": 1,  "precio": { "intys": 60 },  "bonos": { "inteligencia": 2 } },
-      "hachaGuerra":   { "nombre": "Hacha de guerra",    "ranura": "arma",      "nivel": 4,  "precio": { "intys": 200 }, "bonos": { "fuerza": 3, "danio": 2 } },
-      "baculoRunico":  { "nombre": "Báculo rúnico",      "ranura": "arma",      "nivel": 4,  "precio": { "intys": 200 }, "bonos": { "inteligencia": 4, "danio": 1 } },
-      "tunicaCuero":   { "nombre": "Túnica de cuero",    "ranura": "armadura",  "nivel": 1,  "precio": { "intys": 60 },  "bonos": { "velocidad": 2 } },
-      "cotaMalla":     { "nombre": "Cota de malla",      "ranura": "armadura",  "nivel": 2,  "precio": { "intys": 100 }, "bonos": { "armadura": 2, "vida": 2 } },
-      "placasHierro":  { "nombre": "Placas de hierro",   "ranura": "armadura",  "nivel": 5,  "precio": { "intys": 260 }, "bonos": { "armadura": 4, "vida": 4 } },
-      "amuletoVida":   { "nombre": "Amuleto de vida",    "ranura": "accesorio", "nivel": 1,  "precio": { "intys": 70 },  "bonos": { "vida": 3 } },
-      "anilloVeloz":   { "nombre": "Anillo veloz",       "ranura": "accesorio", "nivel": 2,  "precio": { "intys": 90 },  "bonos": { "velocidad": 3 } },
-      "colganteSabio": { "nombre": "Colgante del sabio", "ranura": "accesorio", "nivel": 4,  "precio": { "intys": 200 }, "bonos": { "inteligencia": 2, "armadura": 2 } },
-      "coronaSolar":   { "nombre": "Corona solar",       "ranura": "accesorio", "nivel": 1,  "precio": { "rubis": 3 },   "bonos": { "fuerza": 1, "vida": 1, "danio": 1, "velocidad": 1, "inteligencia": 1, "armadura": 1 }, "especial": true }
-    }
+    "dosManos": 1.5,
+    "tiers": [
+      {"nivel": 1, "bono": [1, 3], "nombre": "Común", "color": "#b0bec5", "precio": {"intys": 60}},
+      {"nivel": 6, "bono": [4, 8], "nombre": "Raro", "color": "#4fc3f7", "precio": {"intys": 250}},
+      {"nivel": 11, "bono": [9, 12], "nombre": "Épico", "color": "#b388ff", "precio": {"intys": 700}},
+      {"nivel": 16, "bono": [13, 18], "nombre": "Heroico", "color": "#ff9800", "precio": {"intys": 1600}},
+      {
+        "nivel": 21,
+        "bono": [19, 30],
+        "nombre": "Legendario",
+        "color": "#f5c542",
+        "precio": {"intys": 3500, "rubis": 3}
+      }
+    ]
   },
   "poderes": {
     "_nota": "Poderes por CLASE y ROL (Excel del creador: Propuesta_Poderes_Clases_y_Roles-v2). \"accion\" = habilidad del prototipo que usa por ahora; cdSeg/alcanceM/potencia son los del Excel. La recarga de los botones 2 y 3 = cdSeg × escalaRecarga.",
-    "escalaRecarga": [
-      null,
-      0.5,
-      0.33
-    ],
+    "escalaRecarga": [null, 0.5, 0.33],
     "asesino": {
       "dps": {
         "id": "ASE-DPS",
@@ -1320,53 +1973,58 @@
     }
   },
   "dificultades": {
-    "_nota": "5 dificultades por mazmorra: las mismas oleadas y el mismo jefe, pero más fuertes. Multiplican vida, daño y velocidad de enemigos y jefes, y los premios de los cofres. La dificultad N+1 de un mundo se abre al superar la N.",
+    "_nota": "5 dificultades por mazmorra: las mismas oleadas y el mismo jefe, pero más fuertes. Multiplican la vida, el daño y la CANTIDAD de enemigos (v0.1.5) y los premios. La velocidad de los enemigos la da cada mundo (velocidadEnemigos). La dificultad N+1 de un mundo se abre al superar la N. coronas = las que gana el héroe al superar la mazmorra; al perder pierde coronasPerder (80%) de ese número, sin decimales.",
     "lista": [
       {
         "nombre": "Iniciado",
         "color": "#a5d6a7",
         "vida": 1.0,
         "danio": 1.0,
-        "velocidad": 1.0,
-        "premios": 1.0
+        "premios": 1.0,
+        "coronas": 5,
+        "cantidad": 1
       },
       {
         "nombre": "Veterano",
         "color": "#4fc3f7",
         "vida": 1.4,
         "danio": 1.25,
-        "velocidad": 1.05,
-        "premios": 1.4
+        "premios": 1.4,
+        "coronas": 8,
+        "cantidad": 1.25
       },
       {
         "nombre": "Campeón",
         "color": "#ffd54f",
         "vida": 1.9,
         "danio": 1.55,
-        "velocidad": 1.1,
-        "premios": 1.9
+        "premios": 1.9,
+        "coronas": 10,
+        "cantidad": 1.5
       },
       {
         "nombre": "Pesadilla",
         "color": "#ff7043",
         "vida": 2.6,
         "danio": 1.9,
-        "velocidad": 1.15,
-        "premios": 2.6
+        "premios": 2.6,
+        "coronas": 12,
+        "cantidad": 1.75
       },
       {
         "nombre": "Divino",
         "color": "#e040fb",
         "vida": 3.5,
         "danio": 2.4,
-        "velocidad": 1.2,
-        "premios": 3.5
+        "premios": 3.5,
+        "coronas": 15,
+        "cantidad": 2
       }
-    ]
+    ],
+    "coronasPerder": 0.8
   },
   "mana": {
-    "_nota": "Cada poder cuesta maná (columna 'costo' de poderes). Se recupera regenPorSegundo (2% del máximo) por segundo si no te golpean durante sinDanioMs.",
-    "max": 100,
+    "_nota": "El máximo de maná = Inteligencia (v0.1.5). Cada poder cuesta maná (columna 'costo'). Se recupera regenPorSegundo (2% del máximo) por segundo si no te golpean durante sinDanioMs.",
     "regenPorSegundo": 0.02,
     "sinDanioMs": 2000,
     "color": "#42a5f5"
@@ -1374,29 +2032,648 @@
   "pociones": {
     "_nota": "Reemplazan a la cura. Se compran en la tienda y son de la cuenta. vida/mana = parte del máximo que devuelven.",
     "recargaMs": 1500,
-    "regaloAlCrear": {
-      "vida": 3,
-      "mana": 2
-    },
+    "regaloAlCrear": {"vida": 3, "mana": 2},
     "tipos": {
       "vida": {
         "nombre": "Poción de vida",
         "texto": "Devuelve 40% de la vida",
         "vida": 0.4,
-        "precio": {
-          "intys": 25
-        },
+        "precio": {"intys": 25},
         "color": "#ef5350"
       },
       "mana": {
         "nombre": "Poción de maná",
         "texto": "Devuelve 50% del maná",
         "mana": 0.5,
-        "precio": {
-          "intys": 20
-        },
+        "precio": {"intys": 20},
         "color": "#42a5f5"
       }
     }
+  },
+  "armas": {
+    "_nota": "Excel Armas_y_Escudos. Clave raza.clase.rol. mano = lo que va en la mano izquierda: escudo, arma (doble arma), foco (tomo, orbe, tótem, carcaj...) o ninguno (arma a 2 manos). Si una combinación no está, se usa porClase[clase.rol].",
+    "porClase": {
+      "guerrero.dps": {
+        "principal": "Hacha de Guerra a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Maestro de armas agresivo",
+        "alcanceM": 3.5,
+        "velAtaque": 1.1
+      },
+      "guerrero.tanque": {
+        "principal": "Espada Ancha de Guardia",
+        "secundaria": "Escudo Pesado Reforzado",
+        "mano": "escudo",
+        "estilo": "Soldado de línea defensiva",
+        "alcanceM": 3,
+        "velAtaque": 1
+      },
+      "asesino.dps": {
+        "principal": "Dagas Gemelas",
+        "secundaria": "Daga de Mano Izquierda",
+        "mano": "arma",
+        "estilo": "Acechador veloz de flanqueo",
+        "alcanceM": 2.5,
+        "velAtaque": 1.25
+      },
+      "paladin.dps": {
+        "principal": "Mandoble Sagrado a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Inquisidor de golpes amplios",
+        "alcanceM": 3.5,
+        "velAtaque": 1.05
+      },
+      "paladin.tanque": {
+        "principal": "Espada Larga de Batalla",
+        "secundaria": "Escudo Pesado de Torre",
+        "mano": "escudo",
+        "estilo": "Guardia de falange",
+        "alcanceM": 3,
+        "velAtaque": 1
+      },
+      "paladin.heler": {
+        "principal": "Maza Consagrada a 1 Mano",
+        "secundaria": "Tomo Sagrado",
+        "mano": "foco",
+        "estilo": "Clérigo de combate",
+        "alcanceM": 18,
+        "velAtaque": 1.05
+      },
+      "druida.dps": {
+        "principal": "Garras Gemelas",
+        "secundaria": "Ninguno (Doble Arma)",
+        "mano": "arma",
+        "estilo": "Acechador ágil",
+        "alcanceM": 2.5,
+        "velAtaque": 1.2
+      },
+      "druida.tanque": {
+        "principal": "Maza de Madera Ancestral",
+        "secundaria": "Broquel de Corteza",
+        "mano": "escudo",
+        "estilo": "Guardián silvestre",
+        "alcanceM": 3.5,
+        "velAtaque": 1.05
+      },
+      "druida.heler": {
+        "principal": "Báculo de Savia a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Tejedor de curación",
+        "alcanceM": 22,
+        "velAtaque": 1.05
+      },
+      "sacerdote.dps": {
+        "principal": "Báculo de Penitencia a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Canalizador de luz y vacío",
+        "alcanceM": 22,
+        "velAtaque": 0.95
+      },
+      "sacerdote.heler": {
+        "principal": "Cetro Sagrado",
+        "secundaria": "Tomo de Luz",
+        "mano": "foco",
+        "estilo": "Sanador táctico",
+        "alcanceM": 22,
+        "velAtaque": 1
+      },
+      "shaman.dps": {
+        "principal": "Maza Elemental",
+        "secundaria": "Tótem de Mano Izquierda",
+        "mano": "foco",
+        "estilo": "Invocador elemental",
+        "alcanceM": 18,
+        "velAtaque": 1
+      },
+      "shaman.heler": {
+        "principal": "Cetro Espiritual",
+        "secundaria": "Tótem Ancestral",
+        "mano": "foco",
+        "estilo": "Soporte elemental",
+        "alcanceM": 18,
+        "velAtaque": 1
+      },
+      "mago.dps": {
+        "principal": "Báculo Arcano a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Artillero arcano",
+        "alcanceM": 22,
+        "velAtaque": 0.95
+      },
+      "brujo.dps": {
+        "principal": "Bastón de Maldiciones",
+        "secundaria": "Grimorio Oscuro",
+        "mano": "foco",
+        "estilo": "Señor de las maldiciones",
+        "alcanceM": 20,
+        "velAtaque": 1
+      },
+      "nigromante.dps": {
+        "principal": "Guadaña de Hueso a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Amo de los muertos",
+        "alcanceM": 18,
+        "velAtaque": 0.95
+      },
+      "cazador.dps": {
+        "principal": "Arco Largo a 2 Manos",
+        "secundaria": "Carcaj de Flechas",
+        "mano": "foco",
+        "estilo": "Tirador de precisión",
+        "alcanceM": 24,
+        "velAtaque": 1.15
+      }
+    },
+    "lista": {
+      "humano.paladin.tanque": {
+        "principal": "Espada Larga de Batalla",
+        "secundaria": "Escudo Pesado de Torre",
+        "mano": "escudo",
+        "estilo": "Guardia de falange disciplinada y bloqueo frontal",
+        "alcanceM": 3,
+        "velAtaque": 1
+      },
+      "humano.paladin.heler": {
+        "principal": "Maza Consagrada a 1 Mano",
+        "secundaria": "Escudo Ligero / Tomo Sagrado",
+        "mano": "escudo",
+        "estilo": "Clérigo de combate con apoyo defensivo cercano",
+        "alcanceM": 18,
+        "velAtaque": 1.05
+      },
+      "humano.paladin.dps": {
+        "principal": "Mandoble / Espadón a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Inquisidor ofensivo de golpes amplios",
+        "alcanceM": 3.5,
+        "velAtaque": 1.05
+      },
+      "humano.sacerdote.heler": {
+        "principal": "Cetro Sagrado / Báculo Ligero",
+        "secundaria": "Tomo / Foco de Luz (Mano Izquierda)",
+        "mano": "foco",
+        "estilo": "Sanador táctico de escudos y canalización",
+        "alcanceM": 22,
+        "velAtaque": 1
+      },
+      "humano.sacerdote.dps": {
+        "principal": "Báculo de Penitencia a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Canalizador de energía dual (Luz/Vacío)",
+        "alcanceM": 22,
+        "velAtaque": 0.95
+      },
+      "humano.guerrero.tanque": {
+        "principal": "Espada Ancha / Hacha de Guardia",
+        "secundaria": "Escudo Pesado Reforzado",
+        "mano": "escudo",
+        "estilo": "Soldado de línea con postura defensiva",
+        "alcanceM": 3,
+        "velAtaque": 1
+      },
+      "humano.guerrero.dps": {
+        "principal": "Hacha de Guerra a 2 Manos / Mandoble",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Maestro de armas versátil y agresivo",
+        "alcanceM": 3.5,
+        "velAtaque": 1.1
+      },
+      "humano.mago.dps": {
+        "principal": "Báculo Arcano a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Artillero arcano de alta potencia",
+        "alcanceM": 22,
+        "velAtaque": 0.95
+      },
+      "elfo.druida.tanque": {
+        "principal": "Garra / Maza de Madera Ancestral",
+        "secundaria": "Broquel de Corteza / Escudo Natural",
+        "mano": "escudo",
+        "estilo": "Guardián silvestre de movilidad y mitigación",
+        "alcanceM": 3.5,
+        "velAtaque": 1.1
+      },
+      "elfo.druida.heler": {
+        "principal": "Báculo de Savia a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Tejedor natural de curación progresiva (HoT)",
+        "alcanceM": 22,
+        "velAtaque": 1.05
+      },
+      "elfo.druida.dps": {
+        "principal": "Dagas / Garras Gemelas (Dual)",
+        "secundaria": "Ninguno (Doble Arma)",
+        "mano": "arma",
+        "estilo": "Acechador ágil de flanqueo",
+        "alcanceM": 2.5,
+        "velAtaque": 1.25
+      },
+      "elfo.cazador.dps": {
+        "principal": "Arco Largo Silvano a 2 Manos",
+        "secundaria": "Carcaj de Flechas Especiales",
+        "mano": "foco",
+        "estilo": "Tirador de precisión a larga distancia",
+        "alcanceM": 24,
+        "velAtaque": 1.15
+      },
+      "elfo.sacerdote.heler": {
+        "principal": "Báculo de Rocío a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Sanador de armonía y flujo continuo",
+        "alcanceM": 22,
+        "velAtaque": 1.05
+      },
+      "elfo.sacerdote.dps": {
+        "principal": "Cetro Lunar",
+        "secundaria": "Orbe / Foco Silvano",
+        "mano": "foco",
+        "estilo": "Hostigador mágico de media-larga distancia",
+        "alcanceM": 20,
+        "velAtaque": 1.05
+      },
+      "enano.guerrero.tanque": {
+        "principal": "Martillo de Piedra / Maza Pesada",
+        "secundaria": "Gran Escudo de Roca",
+        "mano": "escudo",
+        "estilo": "Baluarte inamovible de alta masa",
+        "alcanceM": 3,
+        "velAtaque": 0.9
+      },
+      "enano.guerrero.dps": {
+        "principal": "Martillo de Guerra a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Demoledor de armaduras",
+        "alcanceM": 3.5,
+        "velAtaque": 0.95
+      },
+      "enano.paladin.tanque": {
+        "principal": "Maza Rúnica a 1 Mano",
+        "secundaria": "Gran Escudo Sagrado",
+        "mano": "escudo",
+        "estilo": "Centinela pétreo de la línea frontal",
+        "alcanceM": 3,
+        "velAtaque": 0.95
+      },
+      "enano.paladin.dps": {
+        "principal": "Gran Martillo Sagrado a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Juez contundente de impacto único",
+        "alcanceM": 3.5,
+        "velAtaque": 0.95
+      },
+      "enano.cazador.dps": {
+        "principal": "Ballesta Pesada / Arponero",
+        "secundaria": "Mochila de Trampas y ViNotes",
+        "mano": "foco",
+        "estilo": "Artillero de trampa y disparo perforante",
+        "alcanceM": 20,
+        "velAtaque": 0.95
+      },
+      "gnomo.mago.dps": {
+        "principal": "Varita / Cetro Resonador a 1 Mano",
+        "secundaria": "Núcleo / Bobina Arcana",
+        "mano": "foco",
+        "estilo": "Ingeniero arcano de alta cadencia",
+        "alcanceM": 20,
+        "velAtaque": 1.15
+      },
+      "gnomo.cazador.dps": {
+        "principal": "Arcabuz / Ballesta Mecánica",
+        "secundaria": "Cinturón de Trampas Mecánicas",
+        "mano": "foco",
+        "estilo": "Hostigador táctico con artilugios",
+        "alcanceM": 20,
+        "velAtaque": 1.1
+      },
+      "gnomo.sacerdote.heler": {
+        "principal": "Cetro Canalizador",
+        "secundaria": "Dispositivo / Foco de Pulso",
+        "mano": "foco",
+        "estilo": "Soporte técnico de respuesta rápida",
+        "alcanceM": 20,
+        "velAtaque": 1.1
+      },
+      "gnomo.sacerdote.dps": {
+        "principal": "Varita de Energía",
+        "secundaria": "Foco Arcano-Sagrado",
+        "mano": "foco",
+        "estilo": "Lanzador móvil de ráfagas",
+        "alcanceM": 20,
+        "velAtaque": 1.1
+      },
+      "elfosangre.mago.dps": {
+        "principal": "Báculo de Ascuas a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Piro-canalizador de alto daño explosivo",
+        "alcanceM": 22,
+        "velAtaque": 1.05
+      },
+      "elfosangre.sacerdote.heler": {
+        "principal": "Cetro Carmesí",
+        "secundaria": "Foco de Sangre / Luz",
+        "mano": "foco",
+        "estilo": "Sanador de riesgo y transferencia vital",
+        "alcanceM": 20,
+        "velAtaque": 1.1
+      },
+      "elfosangre.sacerdote.dps": {
+        "principal": "Báculo de Vacío / Sombras a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Especialista en aflicción y drenaje",
+        "alcanceM": 22,
+        "velAtaque": 1.05
+      },
+      "elfosangre.cazador.dps": {
+        "principal": "Arco Recurvo Carmesí a 2 Manos",
+        "secundaria": "Carcaj de Flechas Ígneas/Letales",
+        "mano": "foco",
+        "estilo": "Arquero móvil de presión sostenida",
+        "alcanceM": 22,
+        "velAtaque": 1.15
+      },
+      "toro.druida.tanque": {
+        "principal": "Hacha-Astas / Maza Bestial",
+        "secundaria": "Escudo de Cuerno / Bastión Salvaje",
+        "mano": "escudo",
+        "estilo": "Bestia de choque y control de masas",
+        "alcanceM": 3.5,
+        "velAtaque": 1
+      },
+      "toro.druida.heler": {
+        "principal": "Báculo Telúrico a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Guía ancestral de regeneración grupal",
+        "alcanceM": 20,
+        "velAtaque": 0.95
+      },
+      "toro.druida.dps": {
+        "principal": "Hachas Gemelas / Garras Brutales (Dual)",
+        "secundaria": "Ninguno (Doble Arma)",
+        "mano": "arma",
+        "estilo": "Depredador de embestida frontal",
+        "alcanceM": 3,
+        "velAtaque": 1.1
+      },
+      "toro.shaman.dps": {
+        "principal": "Maza Elemental / Cetro de Trueno",
+        "secundaria": "Tótem de Mano Izquierda / Foco",
+        "mano": "foco",
+        "estilo": "Invocador elemental de choque",
+        "alcanceM": 18,
+        "velAtaque": 1
+      },
+      "toro.shaman.heler": {
+        "principal": "Cetro Espiritual",
+        "secundaria": "Tótem Ancestral de Agua/Tierra",
+        "mano": "foco",
+        "estilo": "Soporte elemental de área y vínculo",
+        "alcanceM": 18,
+        "velAtaque": 1
+      },
+      "toro.guerrero.tanque": {
+        "principal": "Hacha Pesada a 1 Mano",
+        "secundaria": "Gran Escudo de Hierro y Cuerno",
+        "mano": "escudo",
+        "estilo": "Coloso de carga y ruptura",
+        "alcanceM": 3.5,
+        "velAtaque": 0.95
+      },
+      "toro.guerrero.dps": {
+        "principal": "Gran Hacha de Batalla a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Verdugo de barrido masivo",
+        "alcanceM": 4,
+        "velAtaque": 1
+      },
+      "toro.cazador.dps": {
+        "principal": "Ballesta de Asedio / Lanzador Pesado",
+        "secundaria": "Reserva de Trampas Pesadas",
+        "mano": "foco",
+        "estilo": "Cazador de largo alcance y emboscada",
+        "alcanceM": 20,
+        "velAtaque": 0.95
+      },
+      "orco.guerrero.tanque": {
+        "principal": "Cuchilla / Hacha de Guerra a 1 Mano",
+        "secundaria": "Escudo Forjado de Hierro",
+        "mano": "escudo",
+        "estilo": "Vanguardia férrea de choque directo",
+        "alcanceM": 3,
+        "velAtaque": 1
+      },
+      "orco.guerrero.dps": {
+        "principal": "Hachas Gemelas / Gran Hacha a 2 Manos",
+        "secundaria": "Ninguno (Doble Arma o 2 Manos)",
+        "mano": "arma",
+        "estilo": "Berserker de presión implacable",
+        "alcanceM": 3.5,
+        "velAtaque": 1.15
+      },
+      "orco.shaman.dps": {
+        "principal": "Hacha-Cetro de Forja / Tormenta",
+        "secundaria": "Tótem de Magma / Foco",
+        "mano": "foco",
+        "estilo": "Chamán de guerra elemental",
+        "alcanceM": 18,
+        "velAtaque": 1.05
+      },
+      "orco.shaman.heler": {
+        "principal": "Cetro de Hierro Espiritual",
+        "secundaria": "Tótem de Vitalidad",
+        "mano": "foco",
+        "estilo": "Soporte resistente de primera/segunda línea",
+        "alcanceM": 18,
+        "velAtaque": 1
+      },
+      "orco.cazador.dps": {
+        "principal": "Arco Compuesto de Hierro / Ballesta",
+        "secundaria": "Aljaba de Flechas Pesadas",
+        "mano": "foco",
+        "estilo": "Tirador de impacto directo",
+        "alcanceM": 22,
+        "velAtaque": 1.05
+      },
+      "troll.shaman.dps": {
+        "principal": "Cetro Vudú / Bastón de Pantano",
+        "secundaria": "Tótem de Espinas / Foco",
+        "mano": "foco",
+        "estilo": "Hostigador elemental y de veneno/rayo",
+        "alcanceM": 18,
+        "velAtaque": 1.05
+      },
+      "troll.shaman.heler": {
+        "principal": "Báculo Ritual a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Sanador de flujos y tótems de marea",
+        "alcanceM": 20,
+        "velAtaque": 1.05
+      },
+      "troll.druida.tanque": {
+        "principal": "Lanza / Maza de Pantano",
+        "secundaria": "Escudo de Corteza y Musgo",
+        "mano": "escudo",
+        "estilo": "Guardián ágil y regenerativo",
+        "alcanceM": 3.5,
+        "velAtaque": 1.05
+      },
+      "troll.druida.heler": {
+        "principal": "Báculo de Esporas a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Sanador de curación continua y toxinas",
+        "alcanceM": 22,
+        "velAtaque": 1.05
+      },
+      "troll.druida.dps": {
+        "principal": "Dagas / Lanza Ligera (Dual o Ágil)",
+        "secundaria": "Ninguno (Doble Arma)",
+        "mano": "arma",
+        "estilo": "Acechador de daño progresivo y movilidad",
+        "alcanceM": 3,
+        "velAtaque": 1.2
+      },
+      "troll.cazador.dps": {
+        "principal": "Arco Largo / Cerbatana-Arco",
+        "secundaria": "Aljaba de Dardos/Flechas",
+        "mano": "foco",
+        "estilo": "Tirador hostigador de largo alcance",
+        "alcanceM": 22,
+        "velAtaque": 1.1
+      },
+      "troll.sacerdote.heler": {
+        "principal": "Cetro de Sombras y Luz",
+        "secundaria": "Foco Ritual",
+        "mano": "foco",
+        "estilo": "Sanador de absorción y pulso",
+        "alcanceM": 20,
+        "velAtaque": 1.05
+      },
+      "troll.sacerdote.dps": {
+        "principal": "Báculo de Maldiciones a 2 Manos",
+        "secundaria": "Ninguno (A 2 Manos)",
+        "mano": "ninguno",
+        "estilo": "Canalizador de maldiciones y drenaje",
+        "alcanceM": 22,
+        "velAtaque": 1
+      }
+    }
+  },
+  "monedas": {
+    "intys": {"nombre": "intys", "icono": "☀️"},
+    "fichas": {"nombre": "fichas", "icono": "🎟️"},
+    "rubis": {"nombre": "rubís", "icono": "💎"},
+    "fichasFaccion": {"nombre": "fichas de facción", "icono": "🔰"}
+  },
+  "escala": {
+    "_nota": "Excel Escala_Desbloqueo_Razas_Clases. Orden en que se muestran los héroes. Para abrir uno hace falta: las CORONAS del jugador (suma de todos sus héroes), que algún héroe tenga ese RANGO y pagar las FICHAS DE FACCIÓN. Los de 0 coronas son gratis desde el inicio.",
+    "lista": [
+      {"raza": "elfo", "clase": "asesino", "coronas": 0, "rango": 0, "fichasFaccion": 0},
+      {"raza": "elfo", "clase": "druida", "coronas": 0, "rango": 0, "fichasFaccion": 0},
+      {"raza": "elfo", "clase": "guerrero", "coronas": 0, "rango": 0, "fichasFaccion": 0},
+      {"raza": "elfo", "clase": "sacerdote", "coronas": 0, "rango": 0, "fichasFaccion": 0},
+      {"raza": "humano", "clase": "guerrero", "coronas": 0, "rango": 0, "fichasFaccion": 0},
+      {"raza": "humano", "clase": "sacerdote", "coronas": 0, "rango": 0, "fichasFaccion": 0},
+      {"raza": "humano", "clase": "asesino", "coronas": 0, "rango": 0, "fichasFaccion": 0},
+      {"raza": "orco", "clase": "asesino", "coronas": 0, "rango": 0, "fichasFaccion": 0},
+      {"raza": "orco", "clase": "guerrero", "coronas": 0, "rango": 0, "fichasFaccion": 0},
+      {"raza": "orco", "clase": "sacerdote", "coronas": 0, "rango": 0, "fichasFaccion": 0},
+      {"raza": "toro", "clase": "druida", "coronas": 0, "rango": 0, "fichasFaccion": 0},
+      {"raza": "toro", "clase": "guerrero", "coronas": 0, "rango": 0, "fichasFaccion": 0},
+      {"raza": "humano", "clase": "paladin", "coronas": 5000, "rango": 5, "fichasFaccion": 150},
+      {"raza": "orco", "clase": "paladin", "coronas": 5000, "rango": 5, "fichasFaccion": 150},
+      {"raza": "elfo", "clase": "cazador", "coronas": 7000, "rango": 7, "fichasFaccion": 250},
+      {"raza": "enano", "clase": "asesino", "coronas": 7000, "rango": 7, "fichasFaccion": 250},
+      {"raza": "enano", "clase": "guerrero", "coronas": 8000, "rango": 7, "fichasFaccion": 250},
+      {"raza": "enano", "clase": "sacerdote", "coronas": 8000, "rango": 7, "fichasFaccion": 250},
+      {"raza": "enano", "clase": "cazador", "coronas": 8000, "rango": 7, "fichasFaccion": 250},
+      {"raza": "enano", "clase": "paladin", "coronas": 8000, "rango": 7, "fichasFaccion": 250},
+      {"raza": "muerto", "clase": "asesino", "coronas": 8000, "rango": 7, "fichasFaccion": 250},
+      {"raza": "muerto", "clase": "sacerdote", "coronas": 8000, "rango": 7, "fichasFaccion": 250},
+      {"raza": "muerto", "clase": "guerrero", "coronas": 8000, "rango": 7, "fichasFaccion": 250},
+      {"raza": "muerto", "clase": "paladin", "coronas": 8000, "rango": 7, "fichasFaccion": 250},
+      {"raza": "orco", "clase": "cazador", "coronas": 8000, "rango": 7, "fichasFaccion": 250},
+      {"raza": "toro", "clase": "cazador", "coronas": 8000, "rango": 7, "fichasFaccion": 250},
+      {"raza": "humano", "clase": "brujo", "coronas": 10000, "rango": 8, "fichasFaccion": 500},
+      {"raza": "muerto", "clase": "brujo", "coronas": 10000, "rango": 8, "fichasFaccion": 500},
+      {"raza": "gnomo", "clase": "brujo", "coronas": 12000, "rango": 10, "fichasFaccion": 750},
+      {"raza": "gnomo", "clase": "asesino", "coronas": 12000, "rango": 10, "fichasFaccion": 750},
+      {"raza": "gnomo", "clase": "guerrero", "coronas": 12000, "rango": 10, "fichasFaccion": 750},
+      {"raza": "gnomo", "clase": "mago", "coronas": 12000, "rango": 10, "fichasFaccion": 750},
+      {"raza": "humano", "clase": "mago", "coronas": 12000, "rango": 10, "fichasFaccion": 750},
+      {"raza": "troll", "clase": "cazador", "coronas": 12000, "rango": 10, "fichasFaccion": 750},
+      {"raza": "troll", "clase": "mago", "coronas": 12000, "rango": 10, "fichasFaccion": 750},
+      {"raza": "troll", "clase": "asesino", "coronas": 12000, "rango": 10, "fichasFaccion": 750},
+      {"raza": "troll", "clase": "sacerdote", "coronas": 12000, "rango": 10, "fichasFaccion": 750},
+      {"raza": "toro", "clase": "shaman", "coronas": 15000, "rango": 11, "fichasFaccion": 1200},
+      {"raza": "troll", "clase": "shaman", "coronas": 15000, "rango": 11, "fichasFaccion": 1200},
+      {"raza": "humano", "clase": "nigromante", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "lycan", "clase": "cazador", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "lycan", "clase": "asesino", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "lycan", "clase": "druida", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "lycan", "clase": "guerrero", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "lycan", "clase": "shaman", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "elfosangre", "clase": "brujo", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "elfosangre", "clase": "cazador", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "elfosangre", "clase": "asesino", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "elfosangre", "clase": "guerrero", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "elfosangre", "clase": "mago", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "elfosangre", "clase": "sacerdote", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "elfosangre", "clase": "paladin", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "muerto", "clase": "nigromante", "coronas": 17500, "rango": 13, "fichasFaccion": 1600},
+      {"raza": "derial", "clase": "asesino", "coronas": 25000, "rango": 15, "fichasFaccion": 2000},
+      {"raza": "derial", "clase": "brujo", "coronas": 25000, "rango": 15, "fichasFaccion": 2000},
+      {"raza": "derial", "clase": "druida", "coronas": 25000, "rango": 15, "fichasFaccion": 2000},
+      {"raza": "derial", "clase": "guerrero", "coronas": 25000, "rango": 15, "fichasFaccion": 2000},
+      {"raza": "derial", "clase": "sacerdote", "coronas": 25000, "rango": 15, "fichasFaccion": 2000},
+      {"raza": "goruk", "clase": "cazador", "coronas": 25000, "rango": 15, "fichasFaccion": 2000},
+      {"raza": "goruk", "clase": "asesino", "coronas": 25000, "rango": 15, "fichasFaccion": 2000},
+      {"raza": "goruk", "clase": "guerrero", "coronas": 25000, "rango": 15, "fichasFaccion": 2000},
+      {"raza": "goruk", "clase": "paladin", "coronas": 25000, "rango": 15, "fichasFaccion": 2000},
+      {"raza": "goruk", "clase": "shaman", "coronas": 25000, "rango": 15, "fichasFaccion": 2000}
+    ]
+  },
+  "rangos": {
+    "_nota": "Excel Escala_Rangos_Heroes. Cada héroe tiene sus coronas; \"desde\" = coronas para llegar a ese rango.",
+    "lista": [
+      {"rango": 1, "insignia": "gris", "color": "#9e9e9e", "desde": 0},
+      {"rango": 2, "insignia": "gris", "color": "#9e9e9e", "desde": 11},
+      {"rango": 3, "insignia": "gris", "color": "#9e9e9e", "desde": 26},
+      {"rango": 4, "insignia": "gris", "color": "#9e9e9e", "desde": 46},
+      {"rango": 5, "insignia": "dorada", "color": "#f5c542", "desde": 66},
+      {"rango": 6, "insignia": "dorada", "color": "#f5c542", "desde": 86},
+      {"rango": 7, "insignia": "dorada", "color": "#f5c542", "desde": 136},
+      {"rango": 8, "insignia": "dorada", "color": "#f5c542", "desde": 186},
+      {"rango": 9, "insignia": "celeste", "color": "#4fc3f7", "desde": 261},
+      {"rango": 10, "insignia": "celeste", "color": "#4fc3f7", "desde": 361},
+      {"rango": 11, "insignia": "celeste", "color": "#4fc3f7", "desde": 461},
+      {"rango": 12, "insignia": "celeste", "color": "#4fc3f7", "desde": 581},
+      {"rango": 13, "insignia": "morada", "color": "#b388ff", "desde": 701},
+      {"rango": 14, "insignia": "morada", "color": "#b388ff", "desde": 821},
+      {"rango": 15, "insignia": "morada", "color": "#b388ff", "desde": 941},
+      {"rango": 16, "insignia": "morada", "color": "#b388ff", "desde": 1091},
+      {"rango": 17, "insignia": "rojo", "color": "#ef5350", "desde": 1241},
+      {"rango": 18, "insignia": "rojo", "color": "#ef5350", "desde": 1421},
+      {"rango": 19, "insignia": "rojo", "color": "#ef5350", "desde": 1601},
+      {"rango": 20, "insignia": "blanca", "color": "#ffffff", "desde": 1801}
+    ]
   }
 }

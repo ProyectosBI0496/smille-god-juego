@@ -35,9 +35,9 @@ import BotonHabilidad from '../controles/BotonHabilidad.js';
 import Mazmorra from '../mundo/Mazmorra.js';
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
-import { marcarSuperado, personaje, nick, sumarMonedas, pociones, sumarPociones } from '../datos/Progreso.js';
+import { marcarSuperado, personaje, nick, sumarMonedas, pociones, sumarPociones, sumarCoronas } from '../datos/Progreso.js';
 import BarraVida from '../ui/BarraVida.js';
-import { calcularHeroe, recargaPoder } from '../datos/Personaje.js';
+import { calcularHeroe, recargaPoder, rangoDe } from '../datos/Personaje.js';
 import { redActual } from '../red/Red.js';
 import Cooperativo from '../red/Cooperativo.js';
 
@@ -183,12 +183,13 @@ export default class EscenaArena extends Phaser.Scene {
     this.jefesVencidos = 0;
     // v0.1.4: MANÁ. Cada jugador lleva el suyo en su celular (los poderes cuestan maná).
     // "ultimoDanio" sirve para saber si lo están atacando (si no, el maná se recupera).
-    this.heroe.manaMax = this.balance.mana.max;
+    this.heroe.manaMax = Math.max(1, this.datosHeroe.manaMax); // v0.1.5: maná máximo = Inteligencia
     this.heroe.mana = this.heroe.manaMax;
     this.heroe.ultimoDanio = -Infinity;
     this.barraMana = new BarraVida(this, this.heroe.radio * 2.4, color(this.balance.mana.color));
     this.magias = [];             // v0.1.2: proyectiles de los héroes
     this.cofresAbiertos = false;
+    this.coronasDadas = false; // v0.1.5: las coronas se dan una sola vez por partida
     this.numerosLibres = [];     // "pool": números de daño guardados para reutilizar
     this.terminado = false;      // true al ganar el mundo
     this.caido = false;          // true al perder (hay que reiniciarlo: restart reutiliza la escena)
@@ -254,6 +255,8 @@ export default class EscenaArena extends Phaser.Scene {
     h.tipo = datos.tipo;
     h.mult = datos.mult;
     h.reduccion = datos.reduccion;
+    h.aturdir = datos.aturdir; // v0.1.5: FUERZA = probabilidad de aturdir cada 3 golpes
+    h.golpes = 0;
   }
 
   /** Los héroes en juego: el mío y, en pareja, el del compañero */
@@ -307,7 +310,7 @@ export default class EscenaArena extends Phaser.Scene {
         for (const h of this.heroes()) {
           if (!h.vivo) continue;
           const distancia = Phaser.Math.Distance.Between(enemigo.cuerpo.x, enemigo.cuerpo.y, h.cuerpo.x, h.cuerpo.y);
-          if (distancia < enemigo.radio + h.radio) this.danarHeroe(enemigo.config.danioContacto, h);
+          if (distancia < enemigo.radio + h.radio && !(this.time.now < enemigo.dormidoHasta)) this.danarHeroe(enemigo.config.danioContacto, h);
         }
       }
     }
@@ -452,7 +455,8 @@ export default class EscenaArena extends Phaser.Scene {
     const resultado = {};
     for (const [tipo, [min, max]] of Object.entries(this.mundo.enemigos)) {
       // En pareja hay más enemigos (balance.json → cooperativo)
-      const extra = this.cooperativo ? this.balance.cooperativo.multCantidad : 1;
+      // v0.1.5: más dificultad = más enemigos (balance.json → dificultades → cantidad)
+      const extra = (this.cooperativo ? this.balance.cooperativo.multCantidad : 1) * (this.dif.cantidad || 1);
       resultado[tipo] = Math.round((min + (max - min) * avance) * extra);
     }
     return resultado;
@@ -467,15 +471,38 @@ export default class EscenaArena extends Phaser.Scene {
     const d = this.balance.dificultad;
     const dif = this.dif; // v0.1.4: la dificultad elegida (Iniciado, Veterano...)
     const fuerza = this.mundo.fuerza;
+    const f = this.factorVelocidad();
     return {
       ...base, // "..." copia todos los datos del tipo; luego cambiamos algunos
       vidaMax: Math.round(base.vidaMax * fuerza * dif.vida * (1 + nivel * d.vidaPorSala) * (this.cooperativo ? this.balance.cooperativo.multVida : 1)),
-      velocidad: Math.round(base.velocidad * dif.velocidad * (1 + (fuerza - 1) / 2) * (1 + nivel * d.velocidadPorSala)),
+      velocidad: Math.round(base.velocidad * f * (1 + nivel * d.velocidadPorSala)),
       danioContacto: Math.round(base.danioContacto * dif.danio * (1 + nivel * d.danioPorSala)),
       // el tirador también dispara más fuerte
-      disparo: base.disparo ? { ...base.disparo, danio: Math.round(base.disparo.danio * dif.danio) } : undefined,
+      disparo: base.disparo ? this.disparoLento(base.disparo, dif.danio, f) : undefined,
       color: this.mundo.colores[tipo],
       colorProyectil: color(this.mundo.colores[tipo]),
+    };
+  }
+
+  /**
+   * v0.1.5: VELOCIDAD de los enemigos. Cada mundo dice a qué velocidad va el enemigo
+   * NORMAL en cada dificultad (balance.json → mundos → velocidadEnemigos, ej. 40, 50, 60...).
+   * Este factor = esa velocidad / la del normal (150): todos los demás enemigos, el jefe,
+   * su embestida y los disparos se multiplican por él (así mantienen su proporción).
+   */
+  factorVelocidad() {
+    const tabla = this.mundo.velocidadEnemigos;
+    if (!tabla) return 1;
+    return tabla[this.dificultad - 1] / this.balance.tiposEnemigo.normal.velocidad;
+  }
+
+  /** Un disparo más lento que dura más tiempo (así llega igual de lejos) */
+  disparoLento(disparo, multDanio, f) {
+    return {
+      ...disparo,
+      danio: Math.round(disparo.danio * multDanio),
+      velocidad: Math.round(disparo.velocidad * f),
+      duracionMs: Math.round(disparo.duracionMs / f),
     };
   }
 
@@ -483,14 +510,17 @@ export default class EscenaArena extends Phaser.Scene {
   configJefe(n) {
     const comun = this.balance.jefe;
     const propio = this.mundo.jefe;
+    const f = this.factorVelocidad();
     return {
       ...comun,  // comportamiento común (embestida, aviso...)
       ...propio, // tamaño, vida y velocidad de los jefes de ESTE mundo
       vidaMax: Math.round(propio.vidaMax * this.dif.vida * (1 + (n - 1) * comun.aumentoVidaPorJefe) * (this.cooperativo ? this.balance.cooperativo.multVidaJefe : 1)),
-      // v0.1.4: con más dificultad, el jefe pega más fuerte y corre un poco más
-      velocidad: Math.round(propio.velocidad * this.dif.velocidad),
+      // v0.1.4: con más dificultad, el jefe pega más fuerte; v0.1.5: su velocidad sigue la del mundo
+      velocidad: Math.round(propio.velocidad * f),
+      velocidadEmbestida: Math.round(comun.velocidadEmbestida * f),
+      duracionEmbestidaMs: Math.round(comun.duracionEmbestidaMs / f), // recorre la misma distancia
       danioContacto: Math.round(propio.danioContacto * this.dif.danio),
-      rafaga: { ...comun.rafaga, danio: Math.round(comun.rafaga.danio * this.dif.danio) },
+      rafaga: this.disparoLento(comun.rafaga, this.dif.danio, f),
       radioTextura: 50,
       color: this.mundo.colores.jefe,
     };
@@ -780,14 +810,23 @@ export default class EscenaArena extends Phaser.Scene {
       if (direccion.lengthSq() === 0) direccion.set(1, 0); // por si están en el mismo punto
       direccion.normalize();
 
-      this.danarEnemigo(enemigo, danio, direccion, empuje);
+      this.danarEnemigo(enemigo, danio, direccion, empuje, undefined, h);
     }
   }
 
   /** Daña a UN enemigo, muestra el número y lo elimina si se queda sin vida */
-  danarEnemigo(enemigo, danio, direccion, empuje, colorNumero = '#ffeb3b') {
+  danarEnemigo(enemigo, danio, direccion, empuje, colorNumero = '#ffeb3b', h = this.heroe) {
     enemigo.recibirDanio(danio, direccion, empuje);
     this.mostrarNumero(enemigo.cuerpo.x, enemigo.cuerpo.y - enemigo.radio, `-${danio}`, colorNumero);
+    // v0.1.5: FUERZA. Cada 3 golpes del héroe, una probabilidad (su % de Fuerza)
+    // de dejar al enemigo aturdido 1 segundo (no se mueve ni ataca).
+    const cv = this.balance.estadisticas.conversion;
+    h.golpes = (h.golpes || 0) + 1;
+    if (enemigo.vida > 0 && h.golpes % cv.aturdirCada === 0 && Math.random() < (h.aturdir || 0)) {
+      enemigo.aturdidoHasta = this.time.now + cv.aturdirMs;
+      enemigo.dormidoHasta = enemigo.aturdidoHasta; // dormido: tampoco hace daño al tocar
+      this.mostrarNumero(enemigo.cuerpo.x, enemigo.cuerpo.y - enemigo.radio - 26, 'Aturdido', '#ffd54f');
+    }
     if (enemigo.vida <= 0) this.eliminarEnemigo(enemigo);
   }
 
@@ -1082,7 +1121,7 @@ export default class EscenaArena extends Phaser.Scene {
           if (!this.esInvitado) { // el daño lo calcula quien juega solo o el anfitrión
             const h = bola.duenio;
             const direccion = new Phaser.Math.Vector2(bola.vx, bola.vy).normalize();
-            this.danarEnemigo(enemigo, Math.round(bola.cfg.danio * multDanio(h)), direccion, bola.cfg.empuje * (h.raza.empuje || 1), '#e1bee7');
+            this.danarEnemigo(enemigo, Math.round(bola.cfg.danio * multDanio(h)), direccion, bola.cfg.empuje * (h.raza.empuje || 1), '#e1bee7', h);
           }
           break;
         }
@@ -1111,20 +1150,49 @@ export default class EscenaArena extends Phaser.Scene {
     if (victoria && this.mundo.cofre) lista.push(this.mundo.cofre);
     if (!lista.length) return 'Sin cofres: vence a un jefe para ganar uno';
     const entre = ([min, max]) => Phaser.Math.Between(min, max);
-    const total = { intys: 0, fichas: 0, rubis: 0 };
+    const total = { intys: 0, fichas: 0, rubis: 0, fichasFaccion: 0 };
     const lineas = lista.map((id) => {
       const cofre = c.tipos[id];
       // v0.1.4: más dificultad = más premio
       const intys = Math.round(entre(cofre.intys) * this.dif.premios);
       const fichas = Math.round(entre(cofre.fichas) * this.dif.premios);
       const rubis = Math.random() < cofre.probRubi ? entre(cofre.rubis) : 0;
+      // v0.1.5: fichas de facción (sirven para abrir héroes nuevos)
+      const faccion = Math.round(entre(cofre.fichasFaccion || [0, 0]) * this.dif.premios);
       total.intys += intys;
       total.fichas += fichas;
       total.rubis += rubis;
-      return `${cofre.nombre}: +${intys} ☀️  +${fichas} 🎟️${rubis ? `  +${rubis} 💎` : ''}`;
+      total.fichasFaccion += faccion;
+      return `${cofre.nombre}: +${intys} ☀️  +${fichas} 🎟️  +${faccion} 🔰${rubis ? `  +${rubis} 💎` : ''}`;
     });
     sumarMonedas(total); // se guarda en el navegador
     return lineas.join('\n');
+  }
+
+  // =============================================================
+  // CORONAS (v0.1.5): cada héroe gana coronas al superar una mazmorra y
+  // pierde el 80% (sin decimales) de ese número al caer. Más dificultad,
+  // más coronas (balance.json → dificultades). Cada jugador suma las suyas.
+  // Devuelve el texto para la pantalla final.
+  // =============================================================
+  darCoronas(victoria) {
+    if (this.coronasDadas) return '';
+    this.coronasDadas = true;
+    const ganar = this.dif.coronas || 0;
+    const cambio = victoria ? ganar : -Math.floor(ganar * this.balance.dificultades.coronasPerder);
+    const { antes, despues } = sumarCoronas(cambio);
+    const rangoAntes = rangoDe(this.balance, antes).rango;
+    const rango = rangoDe(this.balance, despues).rango;
+    const real = despues - antes; // con 0 coronas no se puede perder más
+    let texto = `👑 ${real >= 0 ? '+' : ''}${real} coronas (${despues} · Rango ${rango})`;
+    if (rango > rangoAntes) texto += `  ¡Subiste a Rango ${rango}!`;
+    if (rango < rangoAntes) texto += '  Bajaste de rango';
+    return texto;
+  }
+
+  /** Coronas y cofres juntos, para la pantalla final */
+  premiosFinales(victoria) {
+    return [this.darCoronas(victoria), this.abrirCofres(victoria)].filter(Boolean).join('\n');
   }
 
   /** true si un círculo en (x, y) no toca muros ni rejas (para no aparecer dentro de una pared) */
@@ -1160,7 +1228,7 @@ export default class EscenaArena extends Phaser.Scene {
     if (direccion.lengthSq() === 0) direccion.set(1, 0);
     direccion.normalize();
     const danio = Math.round(c.danio * multDanio(h));
-    this.danarEnemigo(objetivo, danio, direccion, c.empuje * (h.raza.empuje || 1), '#ff5252');
+    this.danarEnemigo(objetivo, danio, direccion, c.empuje * (h.raza.empuje || 1), '#ff5252', h);
   }
 
   /**
@@ -1260,7 +1328,7 @@ export default class EscenaArena extends Phaser.Scene {
     const titulo = this.cooperativo ? 'Han caído' : 'Has caído';
     const texto = `${detalle}\nDerrotados: ${this.derrotados}`;
     if (this.cooperativo) this.cooperativo.enviar({ t: 'fin', tipo: 'derrota', titulo, texto });
-    this.pantallaFinal(titulo, texto, this.abrirCofres(false), [
+    this.pantallaFinal(titulo, texto, this.premiosFinales(false), [
       { texto: 'Reintentar', principal: true, accion: () => this.jugarMundo(this.indiceMundo, this.dificultad) },
       { texto: 'Mapa', accion: () => this.irAlMapa() },
     ]);
@@ -1327,7 +1395,7 @@ export default class EscenaArena extends Phaser.Scene {
     const titulo = `¡${this.mundo.nombre} (${this.dif.nombre}) superado!`;
     const texto = `${mensaje}\nDerrotados: ${this.derrotados}`;
     if (this.cooperativo) this.cooperativo.enviar({ t: 'fin', tipo: 'victoria', titulo, texto });
-    this.pantallaFinal(titulo, texto, this.abrirCofres(true), botones);
+    this.pantallaFinal(titulo, texto, this.premiosFinales(true), botones);
   }
 
   /**

@@ -33,6 +33,7 @@ export default class Jefe extends Enemigo {
 
     if (this.estado === 'perseguir') {
       super.actualizar(heroe); // persigue como un enemigo normal
+      if (ahora < this.dormidoHasta) return; // v0.1.5: aturdido por la Fuerza del héroe: no ataca
       const distancia = Phaser.Math.Distance.Between(x, y, heroe.cuerpo.x, heroe.cuerpo.y);
       if (this.ataques.includes('embestida') && ahora >= this.embestidaListaEn && distancia < this.config.distanciaEmbestida) {
         this.empezarAviso(heroe);
