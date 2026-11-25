@@ -287,5 +287,64 @@ function decoracion(escena, id, tipo, c) {
       g.lineBetween(30, 30, 60, 50);
       g.lineBetween(70, 30, 95, 55);
     });
+  // ---------- v0.1.6: adornos de los mundos nuevos (arte provisional) ----------
+  } else if (tipo === 'auto') { // Ciudad: un auto abandonado visto desde arriba
+    dibujar(escena, clave, 120, 70, (g) => {
+      g.fillStyle(0x000000, 0.3);
+      g.fillRoundedRect(8, 10, 110, 56, 14);
+      g.fillStyle(0x8d3b32);
+      g.fillRoundedRect(4, 6, 108, 54, 14);
+      g.fillStyle(0x263238); // vidrios
+      g.fillRoundedRect(26, 12, 22, 42, 6);
+      g.fillRoundedRect(70, 12, 18, 42, 6);
+      g.fillStyle(0xffeb3b); // faros
+      g.fillCircle(108, 16, 4);
+      g.fillCircle(108, 50, 4);
+    });
+  } else if (tipo === 'crater') { // Espacio: cráter con borde claro
+    dibujar(escena, clave, 110, 80, (g) => {
+      g.fillStyle(color(c.piedra));
+      g.fillEllipse(55, 40, 104, 74);
+      g.fillStyle(color(c.manchas[0]));
+      g.fillEllipse(58, 44, 80, 54);
+      g.fillStyle(0xffffff, 0.15);
+      g.fillEllipse(44, 30, 40, 18);
+    });
+  } else if (tipo === 'cristal') { // Espacio, Congelado, Reino y Trono: cristal del color "detalle"
+    dibujar(escena, clave, 70, 80, (g) => {
+      g.fillStyle(0x000000, 0.3);
+      g.fillEllipse(36, 70, 56, 16);
+      g.fillStyle(color(c.detalle), 0.85);
+      poligono(g, [[20, 70], [14, 34], [26, 10], [34, 40], [30, 70]]);
+      poligono(g, [[32, 70], [38, 20], [50, 4], [56, 36], [48, 70]]);
+      g.fillStyle(0xffffff, 0.45);
+      poligono(g, [[40, 30], [50, 8], [50, 40]]);
+    });
+  } else if (tipo === 'nube') { // Cielo: nubecita blanca
+    dibujar(escena, clave, 130, 80, (g) => {
+      g.fillStyle(0x9fb7d4, 0.4);
+      g.fillEllipse(68, 56, 120, 34);
+      g.fillStyle(0xffffff, 0.95);
+      for (const [x, y, r] of [[34, 44, 22], [62, 34, 28], [92, 44, 22], [64, 52, 24]]) g.fillCircle(x, y, r);
+    });
+  } else if (tipo === 'hueso') { // PreHistórico: hueso gigante
+    dibujar(escena, clave, 120, 50, (g) => {
+      g.fillStyle(0x000000, 0.25);
+      g.fillRoundedRect(18, 22, 90, 18, 8);
+      g.fillStyle(0xefe6d2);
+      g.fillRoundedRect(20, 16, 80, 16, 8);
+      for (const [x, y] of [[16, 14], [16, 32], [104, 14], [104, 32]]) g.fillCircle(x, y, 10);
+    });
+  } else if (tipo === 'coral') { // Abismo Marino: coral de ramas
+    dibujar(escena, clave, 90, 90, (g) => {
+      g.fillStyle(0x000000, 0.3);
+      g.fillEllipse(46, 80, 60, 14);
+      g.lineStyle(9, 0xff7043);
+      g.lineBetween(45, 80, 45, 30);
+      g.lineBetween(45, 55, 22, 30);
+      g.lineBetween(45, 50, 70, 22);
+      g.fillStyle(0xffab91);
+      for (const [x, y] of [[45, 28], [22, 28], [70, 20]]) g.fillCircle(x, y, 8);
+    });
   }
 }

@@ -9,7 +9,8 @@
     "pasilloLargo": 320,
     "pasilloAncho": 240,
     "distanciaActivar": 90,
-    "distanciaMinimaAparicion": 350
+    "distanciaMinimaAparicion": 350,
+    "_nota": "v0.1.6: las salas van en una cuadrícula. mundos[i].forma = linea, escalera, serpiente, espiral, laberinto o cruz (plaza con 2 jefes en brazos opuestos y el último al centro-arriba; necesita 3 jefes o más)."
   },
   "heroe": {"radio": 28, "velocidad": 320, "color": "#4fc3f7", "vidaMax": 100, "invulnerableMs": 600},
   "bandos": [
@@ -239,13 +240,16 @@
       "clima": ["hojas", "luciernagas"],
       "decoracionPorSala": [{"tipo": "arbusto", "cantidad": 6}, {"tipo": "flores", "cantidad": 6}, {"tipo": "roca", "cantidad": 2}],
       "cofre": "mediano",
-      "velocidadEnemigos": [150, 160, 170, 180, 190]
+      "velocidadEnemigos": [150, 160, 170, 180, 190],
+      "forma": "linea",
+      "danioEnemigos": [15, 30, 45, 60, 75],
+      "danioJefes": [60, 75, 90, 105, 120]
     },
     {
       "id": "desierto",
       "nombre": "Desierto",
       "fuerza": 1.15,
-      "oleadas": 6,
+      "oleadas": 3,
       "oleadasPorJefe": 3,
       "enemigos": {"normal": [3, 4], "rapido": [1, 3], "resistente": [0, 1], "tirador": [0, 2]},
       "jefe": {"radio": 58, "vidaMax": 500, "velocidad": 110, "danioContacto": 20, "ataques": ["embestida", "rafaga"]},
@@ -266,13 +270,16 @@
       "clima": ["polvo"],
       "decoracionPorSala": [{"tipo": "cactus", "cantidad": 5}, {"tipo": "roca", "cantidad": 5}],
       "cofre": "mediano",
-      "velocidadEnemigos": [160, 170, 180, 190, 200]
+      "velocidadEnemigos": [160, 170, 180, 190, 200],
+      "forma": "escalera",
+      "danioEnemigos": [30, 45, 60, 75, 90],
+      "danioJefes": [75, 90, 105, 120, 135]
     },
     {
       "id": "infierno",
       "nombre": "Infierno",
       "fuerza": 1.3,
-      "oleadas": 9,
+      "oleadas": 6,
       "oleadasPorJefe": 3,
       "enemigos": {"normal": [3, 5], "rapido": [1, 3], "resistente": [0, 2], "tirador": [1, 3]},
       "jefe": {"radio": 58, "vidaMax": 550, "velocidad": 115, "danioContacto": 22, "ataques": ["embestida", "rafaga"]},
@@ -293,14 +300,17 @@
       "clima": ["brasas"],
       "decoracionPorSala": [{"tipo": "lava", "cantidad": 2}, {"tipo": "roca", "cantidad": 4}],
       "cofre": "grande",
-      "velocidadEnemigos": [170, 180, 190, 200, 210]
+      "velocidadEnemigos": [170, 180, 190, 200, 210],
+      "forma": "serpiente",
+      "danioEnemigos": [45, 60, 75, 90, 105],
+      "danioJefes": [90, 105, 120, 135, 150]
     },
     {
       "id": "nevado",
       "nombre": "Nevado",
       "fuerza": 1.45,
-      "oleadas": 12,
-      "oleadasPorJefe": 4,
+      "oleadas": 6,
+      "oleadasPorJefe": 2,
       "enemigos": {"normal": [4, 5], "rapido": [2, 3], "resistente": [1, 3], "tirador": [1, 3]},
       "jefe": {"radio": 60, "vidaMax": 600, "velocidad": 115, "danioContacto": 22, "ataques": ["embestida", "rafaga"]},
       "colores": {
@@ -320,7 +330,256 @@
       "clima": ["nieve"],
       "decoracionPorSala": [{"tipo": "hielo", "cantidad": 2}, {"tipo": "roca", "cantidad": 3}],
       "cofre": "grande",
-      "velocidadEnemigos": [180, 195, 200, 215, 230]
+      "velocidadEnemigos": [180, 190, 200, 210, 220],
+      "forma": "cruz",
+      "danioEnemigos": [60, 75, 90, 105, 120],
+      "danioJefes": [105, 120, 135, 150, 165]
+    },
+    {
+      "id": "ciudad",
+      "nombre": "Ciudad",
+      "fuerza": 1.6,
+      "oleadas": 9,
+      "oleadasPorJefe": 3,
+      "enemigos": {"normal": [4, 6], "rapido": [2, 3], "resistente": [1, 3], "tirador": [1, 3]},
+      "jefe": {"radio": 60, "vidaMax": 650, "velocidad": 120, "danioContacto": 24, "ataques": ["embestida", "rafaga"]},
+      "colores": {
+        "estilo": "baldosa",
+        "suelo": "#4a4f57",
+        "manchas": ["#3a3e45", "#5a606a"],
+        "detalle": "#f5c542",
+        "muro": "#2b2e33",
+        "piedra": "#6b717b",
+        "normal": "#90a4ae",
+        "rapido": "#ffca28",
+        "resistente": "#5d4037",
+        "jefe": "#37474f",
+        "tirador": "#ef5350"
+      },
+      "antorchas": true,
+      "clima": ["polvo"],
+      "decoracionPorSala": [{"tipo": "auto", "cantidad": 2}, {"tipo": "roca", "cantidad": 2}],
+      "cofre": "grande",
+      "forma": "laberinto",
+      "velocidadEnemigos": [190, 200, 210, 220, 230],
+      "danioEnemigos": [75, 90, 105, 120, 135],
+      "danioJefes": [120, 135, 150, 165, 180]
+    },
+    {
+      "id": "espacio",
+      "nombre": "Espacio",
+      "fuerza": 1.75,
+      "oleadas": 9,
+      "oleadasPorJefe": 3,
+      "enemigos": {"normal": [4, 6], "rapido": [2, 3], "resistente": [1, 3], "tirador": [2, 4]},
+      "jefe": {"radio": 60, "vidaMax": 700, "velocidad": 120, "danioContacto": 24, "ataques": ["embestida", "rafaga"]},
+      "colores": {
+        "estilo": "baldosa",
+        "suelo": "#1c1f3a",
+        "manchas": ["#15172c", "#262a4d"],
+        "detalle": "#7c4dff",
+        "muro": "#0d0f1e",
+        "piedra": "#3a3f6b",
+        "normal": "#b388ff",
+        "rapido": "#18ffff",
+        "resistente": "#5e35b1",
+        "jefe": "#311b92",
+        "tirador": "#ff4081"
+      },
+      "antorchas": false,
+      "clima": ["estrellas"],
+      "decoracionPorSala": [{"tipo": "crater", "cantidad": 2}, {"tipo": "cristal", "cantidad": 3}],
+      "cofre": "grande",
+      "forma": "espiral",
+      "velocidadEnemigos": [200, 210, 220, 230, 240],
+      "danioEnemigos": [90, 105, 120, 135, 150],
+      "danioJefes": [135, 150, 165, 180, 195]
+    },
+    {
+      "id": "cielo",
+      "nombre": "Cielo",
+      "fuerza": 1.9,
+      "oleadas": 12,
+      "oleadasPorJefe": 3,
+      "enemigos": {"normal": [4, 6], "rapido": [3, 4], "resistente": [1, 3], "tirador": [2, 3]},
+      "jefe": {"radio": 60, "vidaMax": 750, "velocidad": 120, "danioContacto": 24, "ataques": ["embestida", "rafaga"]},
+      "colores": {
+        "estilo": "natural",
+        "suelo": "#dfe9f5",
+        "manchas": ["#ffffff", "#c5d6ea"],
+        "detalle": "#9ec3e6",
+        "muro": "#8fa9c9",
+        "piedra": "#e8f0fa",
+        "normal": "#ffd54f",
+        "rapido": "#81d4fa",
+        "resistente": "#90a4ae",
+        "jefe": "#f9a825",
+        "tirador": "#ff8a65"
+      },
+      "antorchas": false,
+      "clima": ["polvo"],
+      "decoracionPorSala": [{"tipo": "nube", "cantidad": 4}, {"tipo": "flores", "cantidad": 3}],
+      "cofre": "grande",
+      "forma": "escalera",
+      "velocidadEnemigos": [210, 220, 230, 240, 250],
+      "danioEnemigos": [105, 120, 135, 150, 165],
+      "danioJefes": [150, 165, 180, 195, 210]
+    },
+    {
+      "id": "prehistorico",
+      "nombre": "PreHistórico",
+      "fuerza": 2.05,
+      "oleadas": 12,
+      "oleadasPorJefe": 3,
+      "enemigos": {"normal": [5, 6], "rapido": [2, 3], "resistente": [2, 4], "tirador": [1, 3]},
+      "jefe": {"radio": 60, "vidaMax": 800, "velocidad": 120, "danioContacto": 24, "ataques": ["embestida", "rafaga"]},
+      "colores": {
+        "estilo": "natural",
+        "suelo": "#6d7f3a",
+        "manchas": ["#5b6b2f", "#7f9146"],
+        "detalle": "#a5b65a",
+        "muro": "#4e3b26",
+        "piedra": "#7a6045",
+        "normal": "#8d6e63",
+        "rapido": "#c0ca33",
+        "resistente": "#5d4037",
+        "jefe": "#3e2723",
+        "tirador": "#ff7043"
+      },
+      "antorchas": false,
+      "clima": ["hojas"],
+      "decoracionPorSala": [{"tipo": "arbusto", "cantidad": 5}, {"tipo": "hueso", "cantidad": 2}, {"tipo": "roca", "cantidad": 2}],
+      "cofre": "grande",
+      "forma": "laberinto",
+      "velocidadEnemigos": [220, 230, 240, 250, 260],
+      "danioEnemigos": [120, 135, 150, 165, 180],
+      "danioJefes": [165, 180, 195, 210, 225]
+    },
+    {
+      "id": "congelado",
+      "nombre": "Congelado",
+      "fuerza": 2.2,
+      "oleadas": 15,
+      "oleadasPorJefe": 3,
+      "enemigos": {"normal": [5, 7], "rapido": [2, 4], "resistente": [2, 4], "tirador": [2, 3]},
+      "jefe": {"radio": 60, "vidaMax": 850, "velocidad": 120, "danioContacto": 24, "ataques": ["embestida", "rafaga"]},
+      "colores": {
+        "estilo": "baldosa",
+        "suelo": "#9fd3f0",
+        "manchas": ["#7fc2e8", "#c3e6fa"],
+        "detalle": "#ffffff",
+        "muro": "#3f6f9a",
+        "piedra": "#7fb3d9",
+        "normal": "#4fc3f7",
+        "rapido": "#e1f5fe",
+        "resistente": "#0277bd",
+        "jefe": "#01579b",
+        "tirador": "#b3e5fc"
+      },
+      "antorchas": true,
+      "clima": ["nieve"],
+      "decoracionPorSala": [{"tipo": "hielo", "cantidad": 3}, {"tipo": "cristal", "cantidad": 3}],
+      "cofre": "grande",
+      "forma": "espiral",
+      "velocidadEnemigos": [230, 240, 250, 260, 270],
+      "danioEnemigos": [135, 150, 165, 180, 195],
+      "danioJefes": [180, 195, 210, 225, 240]
+    },
+    {
+      "id": "abismo",
+      "nombre": "Abismo Marino",
+      "fuerza": 2.35,
+      "oleadas": 15,
+      "oleadasPorJefe": 3,
+      "enemigos": {"normal": [5, 7], "rapido": [3, 4], "resistente": [2, 4], "tirador": [2, 4]},
+      "jefe": {"radio": 60, "vidaMax": 900, "velocidad": 120, "danioContacto": 24, "ataques": ["embestida", "rafaga"]},
+      "colores": {
+        "estilo": "natural",
+        "suelo": "#0e3a4f",
+        "manchas": ["#0b2f40", "#145068"],
+        "detalle": "#26c6da",
+        "muro": "#062330",
+        "piedra": "#1d5a6e",
+        "normal": "#26a69a",
+        "rapido": "#80deea",
+        "resistente": "#00695c",
+        "jefe": "#004d40",
+        "tirador": "#ff8a80"
+      },
+      "antorchas": false,
+      "clima": ["burbujas"],
+      "decoracionPorSala": [{"tipo": "coral", "cantidad": 4}, {"tipo": "roca", "cantidad": 2}],
+      "cofre": "grande",
+      "forma": "serpiente",
+      "velocidadEnemigos": [240, 250, 260, 270, 280],
+      "danioEnemigos": [150, 165, 180, 195, 210],
+      "danioJefes": [195, 210, 225, 240, 255]
+    },
+    {
+      "id": "reino",
+      "nombre": "Reino Sombrío",
+      "fuerza": 2.5,
+      "oleadas": 18,
+      "oleadasPorJefe": 3,
+      "enemigos": {"normal": [6, 7], "rapido": [3, 4], "resistente": [2, 4], "tirador": [2, 4]},
+      "jefe": {"radio": 60, "vidaMax": 950, "velocidad": 120, "danioContacto": 24, "ataques": ["embestida", "rafaga"]},
+      "colores": {
+        "estilo": "baldosa",
+        "suelo": "#2a2233",
+        "manchas": ["#1f1927", "#352b40"],
+        "detalle": "#9c27b0",
+        "muro": "#120e17",
+        "piedra": "#3d3148",
+        "normal": "#7e57c2",
+        "rapido": "#ce93d8",
+        "resistente": "#4a148c",
+        "jefe": "#1a0033",
+        "tirador": "#e040fb"
+      },
+      "antorchas": true,
+      "clima": ["brasas"],
+      "decoracionPorSala": [{"tipo": "cristal", "cantidad": 3}, {"tipo": "roca", "cantidad": 3}],
+      "cofre": "grande",
+      "forma": "laberinto",
+      "velocidadEnemigos": [250, 260, 270, 280, 290],
+      "danioEnemigos": [165, 180, 195, 210, 225],
+      "danioJefes": [210, 225, 240, 255, 270]
+    },
+    {
+      "id": "trono",
+      "nombre": "Trono de Smille",
+      "fuerza": 2.65,
+      "oleadas": 18,
+      "oleadasPorJefe": 3,
+      "enemigos": {"normal": [6, 8], "rapido": [3, 5], "resistente": [3, 4], "tirador": [2, 4]},
+      "jefe": {
+        "radio": 60,
+        "vidaMax": 1000,
+        "velocidad": 120,
+        "danioContacto": 24,
+        "ataques": ["embestida", "rafaga"]
+      },
+      "colores": {
+        "estilo": "baldosa",
+        "suelo": "#8a6d2f",
+        "manchas": ["#6f5726", "#a8873c"],
+        "detalle": "#fff176",
+        "muro": "#3b2c0f",
+        "piedra": "#c9a94a",
+        "normal": "#ffd54f",
+        "rapido": "#fff9c4",
+        "resistente": "#ff8f00",
+        "jefe": "#e65100",
+        "tirador": "#ff5252"
+      },
+      "antorchas": true,
+      "clima": ["luciernagas"],
+      "decoracionPorSala": [{"tipo": "cristal", "cantidad": 3}, {"tipo": "flores", "cantidad": 2}],
+      "cofre": "grande",
+      "forma": "cruz",
+      "velocidadEnemigos": [260, 270, 280, 290, 300],
+      "danioEnemigos": [180, 195, 210, 225, 240],
+      "danioJefes": [225, 240, 255, 270, 285]
     }
   ],
   "joystick": {"radioBase": 90, "radioPalanca": 40, "zonaMuerta": 0.15, "seguirDedo": true},
@@ -508,13 +767,13 @@
     },
     "porNivel": {
       "tanque": [
-        {"fuerza": 0.2, "vida": 200, "danio": 30, "velocidad": 0.55, "inteligencia": 40, "armadura": 0.15},
+        {"fuerza": 0.2, "vida": 200, "danio": 30, "velocidad": 0.55, "inteligencia": 80, "armadura": 0.15},
         {
           "fuerza": 0.224,
           "vida": 240,
           "danio": 33,
           "velocidad": 0.5665,
-          "inteligencia": 42,
+          "inteligencia": 84,
           "armadura": 0.162
         },
         {
@@ -522,16 +781,16 @@
           "vida": 288,
           "danio": 37,
           "velocidad": 0.5835,
-          "inteligencia": 45,
+          "inteligencia": 89,
           "armadura": 0.175
         },
-        {"fuerza": 0.281, "vida": 346, "danio": 41, "velocidad": 0.601, "inteligencia": 48, "armadura": 0.189},
+        {"fuerza": 0.281, "vida": 346, "danio": 41, "velocidad": 0.601, "inteligencia": 94, "armadura": 0.189},
         {
           "fuerza": 0.3147,
           "vida": 416,
           "danio": 46,
           "velocidad": 0.619,
-          "inteligencia": 51,
+          "inteligencia": 99,
           "armadura": 0.2041
         },
         {
@@ -539,7 +798,7 @@
           "vida": 458,
           "danio": 50,
           "velocidad": 0.6376,
-          "inteligencia": 54,
+          "inteligencia": 104,
           "armadura": 0.2163
         },
         {
@@ -547,7 +806,7 @@
           "vida": 504,
           "danio": 54,
           "velocidad": 0.6567,
-          "inteligencia": 57,
+          "inteligencia": 110,
           "armadura": 0.2293
         },
         {
@@ -555,7 +814,7 @@
           "vida": 555,
           "danio": 59,
           "velocidad": 0.6764,
-          "inteligencia": 60,
+          "inteligencia": 116,
           "armadura": 0.2431
         },
         {
@@ -563,7 +822,7 @@
           "vida": 611,
           "danio": 64,
           "velocidad": 0.6967,
-          "inteligencia": 63,
+          "inteligencia": 122,
           "armadura": 0.2576
         },
         {
@@ -571,7 +830,7 @@
           "vida": 673,
           "danio": 70,
           "velocidad": 0.7176,
-          "inteligencia": 67,
+          "inteligencia": 129,
           "armadura": 0.2731
         },
         {
@@ -579,7 +838,7 @@
           "vida": 727,
           "danio": 74,
           "velocidad": 0.7392,
-          "inteligencia": 71,
+          "inteligencia": 136,
           "armadura": 0.2868
         },
         {
@@ -587,7 +846,7 @@
           "vida": 786,
           "danio": 78,
           "velocidad": 0.7613,
-          "inteligencia": 75,
+          "inteligencia": 143,
           "armadura": 0.3011
         },
         {
@@ -595,7 +854,7 @@
           "vida": 849,
           "danio": 82,
           "velocidad": 0.7842,
-          "inteligencia": 79,
+          "inteligencia": 151,
           "armadura": 0.3161
         },
         {
@@ -603,7 +862,7 @@
           "vida": 917,
           "danio": 87,
           "velocidad": 0.8077,
-          "inteligencia": 83,
+          "inteligencia": 159,
           "armadura": 0.332
         },
         {
@@ -611,7 +870,7 @@
           "vida": 991,
           "danio": 92,
           "velocidad": 0.8319,
-          "inteligencia": 88,
+          "inteligencia": 167,
           "armadura": 0.3485
         },
         {
@@ -619,7 +878,7 @@
           "vida": 1051,
           "danio": 95,
           "velocidad": 0.8569,
-          "inteligencia": 93,
+          "inteligencia": 176,
           "armadura": 0.359
         },
         {
@@ -627,7 +886,7 @@
           "vida": 1115,
           "danio": 98,
           "velocidad": 0.8826,
-          "inteligencia": 98,
+          "inteligencia": 185,
           "armadura": 0.3698
         },
         {
@@ -635,7 +894,7 @@
           "vida": 1182,
           "danio": 101,
           "velocidad": 0.9091,
-          "inteligencia": 103,
+          "inteligencia": 195,
           "armadura": 0.3809
         },
         {
@@ -643,7 +902,7 @@
           "vida": 1253,
           "danio": 105,
           "velocidad": 0.9363,
-          "inteligencia": 109,
+          "inteligencia": 205,
           "armadura": 0.3923
         },
         {
@@ -651,7 +910,7 @@
           "vida": 1329,
           "danio": 109,
           "velocidad": 0.9644,
-          "inteligencia": 115,
+          "inteligencia": 216,
           "armadura": 0.4041
         },
         {
@@ -659,7 +918,7 @@
           "vida": 1369,
           "danio": 112,
           "velocidad": 0.9934,
-          "inteligencia": 121,
+          "inteligencia": 227,
           "armadura": 0.4081
         },
         {
@@ -667,7 +926,7 @@
           "vida": 1411,
           "danio": 115,
           "velocidad": 1.0232,
-          "inteligencia": 128,
+          "inteligencia": 239,
           "armadura": 0.4122
         },
         {
@@ -675,7 +934,7 @@
           "vida": 1454,
           "danio": 118,
           "velocidad": 1.0539,
-          "inteligencia": 135,
+          "inteligencia": 251,
           "armadura": 0.4163
         },
         {
@@ -683,7 +942,7 @@
           "vida": 1498,
           "danio": 121,
           "velocidad": 1.0855,
-          "inteligencia": 142,
+          "inteligencia": 264,
           "armadura": 0.4205
         },
         {
@@ -691,19 +950,26 @@
           "vida": 1543,
           "danio": 124,
           "velocidad": 1.118,
-          "inteligencia": 150,
+          "inteligencia": 278,
           "armadura": 0.4247
         }
       ],
       "dps": [
-        {"fuerza": 0.1, "vida": 120, "danio": 45, "velocidad": 0.6, "inteligencia": 60, "armadura": 0.15},
-        {"fuerza": 0.108, "vida": 126, "danio": 54, "velocidad": 0.618, "inteligencia": 66, "armadura": 0.162},
+        {"fuerza": 0.1, "vida": 120, "danio": 45, "velocidad": 0.6, "inteligencia": 110, "armadura": 0.15},
+        {
+          "fuerza": 0.108,
+          "vida": 126,
+          "danio": 54,
+          "velocidad": 0.618,
+          "inteligencia": 121,
+          "armadura": 0.162
+        },
         {
           "fuerza": 0.1166,
           "vida": 133,
           "danio": 65,
           "velocidad": 0.6365,
-          "inteligencia": 73,
+          "inteligencia": 134,
           "armadura": 0.175
         },
         {
@@ -711,7 +977,7 @@
           "vida": 140,
           "danio": 78,
           "velocidad": 0.6556,
-          "inteligencia": 81,
+          "inteligencia": 148,
           "armadura": 0.189
         },
         {
@@ -719,7 +985,7 @@
           "vida": 147,
           "danio": 94,
           "velocidad": 0.6753,
-          "inteligencia": 90,
+          "inteligencia": 163,
           "armadura": 0.2041
         },
         {
@@ -727,7 +993,7 @@
           "vida": 153,
           "danio": 109,
           "velocidad": 0.6956,
-          "inteligencia": 98,
+          "inteligencia": 177,
           "armadura": 0.2163
         },
         {
@@ -735,7 +1001,7 @@
           "vida": 160,
           "danio": 126,
           "velocidad": 0.7164,
-          "inteligencia": 106,
+          "inteligencia": 192,
           "armadura": 0.2293
         },
         {
@@ -743,7 +1009,7 @@
           "vida": 167,
           "danio": 145,
           "velocidad": 0.7379,
-          "inteligencia": 115,
+          "inteligencia": 208,
           "armadura": 0.2431
         },
         {
@@ -751,7 +1017,7 @@
           "vida": 174,
           "danio": 167,
           "velocidad": 0.7601,
-          "inteligencia": 125,
+          "inteligencia": 225,
           "armadura": 0.2576
         },
         {
@@ -759,7 +1025,7 @@
           "vida": 181,
           "danio": 193,
           "velocidad": 0.7829,
-          "inteligencia": 135,
+          "inteligencia": 243,
           "armadura": 0.2731
         },
         {
@@ -767,7 +1033,7 @@
           "vida": 187,
           "danio": 213,
           "velocidad": 0.8063,
-          "inteligencia": 144,
+          "inteligencia": 258,
           "armadura": 0.2868
         },
         {
@@ -775,7 +1041,7 @@
           "vida": 193,
           "danio": 235,
           "velocidad": 0.8305,
-          "inteligencia": 153,
+          "inteligencia": 274,
           "armadura": 0.3011
         },
         {
@@ -783,7 +1049,7 @@
           "vida": 199,
           "danio": 259,
           "velocidad": 0.8555,
-          "inteligencia": 163,
+          "inteligencia": 291,
           "armadura": 0.3161
         },
         {
@@ -791,7 +1057,7 @@
           "vida": 205,
           "danio": 285,
           "velocidad": 0.8811,
-          "inteligencia": 173,
+          "inteligencia": 309,
           "armadura": 0.332
         },
         {
@@ -799,7 +1065,7 @@
           "vida": 212,
           "danio": 314,
           "velocidad": 0.9076,
-          "inteligencia": 184,
+          "inteligencia": 328,
           "armadura": 0.3485
         },
         {
@@ -807,7 +1073,7 @@
           "vida": 217,
           "danio": 336,
           "velocidad": 0.9348,
-          "inteligencia": 192,
+          "inteligencia": 342,
           "armadura": 0.359
         },
         {
@@ -815,7 +1081,7 @@
           "vida": 222,
           "danio": 360,
           "velocidad": 0.9628,
-          "inteligencia": 200,
+          "inteligencia": 356,
           "armadura": 0.3698
         },
         {
@@ -823,7 +1089,7 @@
           "vida": 227,
           "danio": 386,
           "velocidad": 0.9917,
-          "inteligencia": 208,
+          "inteligencia": 371,
           "armadura": 0.3809
         },
         {
@@ -831,7 +1097,7 @@
           "vida": 232,
           "danio": 414,
           "velocidad": 1.0215,
-          "inteligencia": 217,
+          "inteligencia": 386,
           "armadura": 0.3923
         },
         {
@@ -839,7 +1105,7 @@
           "vida": 237,
           "danio": 443,
           "velocidad": 1.0521,
-          "inteligencia": 226,
+          "inteligencia": 402,
           "armadura": 0.4041
         },
         {
@@ -847,7 +1113,7 @@
           "vida": 240,
           "danio": 466,
           "velocidad": 1.0837,
-          "inteligencia": 231,
+          "inteligencia": 411,
           "armadura": 0.4081
         },
         {
@@ -855,7 +1121,7 @@
           "vida": 243,
           "danio": 490,
           "velocidad": 1.1162,
-          "inteligencia": 236,
+          "inteligencia": 420,
           "armadura": 0.4122
         },
         {
@@ -863,7 +1129,7 @@
           "vida": 246,
           "danio": 515,
           "velocidad": 1.1497,
-          "inteligencia": 241,
+          "inteligencia": 429,
           "armadura": 0.4163
         },
         {
@@ -871,7 +1137,7 @@
           "vida": 249,
           "danio": 541,
           "velocidad": 1.1842,
-          "inteligencia": 246,
+          "inteligencia": 438,
           "armadura": 0.4205
         },
         {
@@ -879,7 +1145,7 @@
           "vida": 252,
           "danio": 569,
           "velocidad": 1.2197,
-          "inteligencia": 251,
+          "inteligencia": 447,
           "armadura": 0.4247
         }
       ],

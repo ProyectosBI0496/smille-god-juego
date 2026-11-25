@@ -43,7 +43,7 @@ export default class Cooperativo {
       oir('efecto', (m) => escena.efectoRemoto(m));
       oir('disparo', (m) => escena.dispararProyectil(m.x, m.y, m.a, { velocidad: m.v, danio: 0, duracionMs: m.ms }, m.c));
       oir('aviso', (m) => this.dibujarAviso(m));
-      oir('puerta', (m) => escena.mazmorra.abrirPuerta(m.i));
+      oir('puerta', (m) => escena.mazmorra.vencerSala(m.i));
       oir('anuncio', (m) => escena.mostrarAnuncio(m.texto, true));
       oir('fin', (m) => this.fin(m));
       oir('iniciar', (m) => escena.scene.restart({ mundo: m.mundo, dificultad: m.dificultad, coop: true, invitado: true }));
@@ -175,7 +175,7 @@ export default class Cooperativo {
     e.enemigos = [];
     this.remotos.clear();
     for (const datos of m.en) this.crearRemoto(datos);
-    for (const i of m.v) e.mazmorra.abrirPuerta(i);
+    for (const i of m.v) e.mazmorra.vencerSala(i);
   }
 
   aviso(x, y, angulo, largo, ancho, ms) {

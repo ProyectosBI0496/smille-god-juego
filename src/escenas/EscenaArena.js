@@ -118,7 +118,7 @@ export default class EscenaArena extends Phaser.Scene {
 
     // El héroe aparece en la sala de entrada
     const entrada = salas[0];
-    this.heroe = new Heroe(this, entrada.x + 150, entrada.medio, configHeroe);
+    this.heroe = new Heroe(this, entrada.cx, entrada.cy, configHeroe);
     this.prepararHeroe(this.heroe, this.datosHeroe);
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.muros);
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.puertas.filter(Boolean));
@@ -130,7 +130,7 @@ export default class EscenaArena extends Phaser.Scene {
     if (this.coop && red && red.conectado) {
       // El compañero, con SU personaje (lo mandó al conectarse: mensaje "hola")
       const datosOtro = calcularHeroe(this.balance, red.personajeCompanero);
-      this.companero = new Heroe(this, entrada.x + 150, entrada.medio + 70, this.configDeHeroe(datosOtro));
+      this.companero = new Heroe(this, entrada.cx, entrada.cy + 70, this.configDeHeroe(datosOtro));
       this.prepararHeroe(this.companero, datosOtro);
       this.companero.nombre = red.nickCompanero || 'Compañero';
       this.companero.ponerEtiqueta(this.companero.nombre);
@@ -416,7 +416,10 @@ export default class EscenaArena extends Phaser.Scene {
       const i = this.mazmorra.salaEn(x, y);
       if (i < 0) continue;
       const sala = this.mazmorra.salas[i];
-      if (sala.estado !== 'esperando' || x < sala.x + this.balance.mazmorra.distanciaActivar) continue;
+      // v0.1.6: se entra por cualquier lado, así que se pide estar un poco ADENTRO por los 4 lados
+      const d = this.balance.mazmorra.distanciaActivar;
+      if (sala.estado !== 'esperando') continue;
+      if (x < sala.x + d || x > sala.x + sala.ancho - d || y < sala.y + d || y > sala.y + sala.alto - d) continue;
       this.activarSala(sala, i);
       return;
     }
@@ -472,13 +475,14 @@ export default class EscenaArena extends Phaser.Scene {
     const dif = this.dif; // v0.1.4: la dificultad elegida (Iniciado, Veterano...)
     const fuerza = this.mundo.fuerza;
     const f = this.factorVelocidad();
+    const fd = this.factorDanio();
     return {
       ...base, // "..." copia todos los datos del tipo; luego cambiamos algunos
       vidaMax: Math.round(base.vidaMax * fuerza * dif.vida * (1 + nivel * d.vidaPorSala) * (this.cooperativo ? this.balance.cooperativo.multVida : 1)),
       velocidad: Math.round(base.velocidad * f * (1 + nivel * d.velocidadPorSala)),
-      danioContacto: Math.round(base.danioContacto * dif.danio * (1 + nivel * d.danioPorSala)),
+      danioContacto: Math.round(base.danioContacto * fd * (1 + nivel * d.danioPorSala)),
       // el tirador también dispara más fuerte
-      disparo: base.disparo ? this.disparoLento(base.disparo, dif.danio, f) : undefined,
+      disparo: base.disparo ? this.disparoLento(base.disparo, fd, f) : undefined,
       color: this.mundo.colores[tipo],
       colorProyectil: color(this.mundo.colores[tipo]),
     };
@@ -494,6 +498,18 @@ export default class EscenaArena extends Phaser.Scene {
     const tabla = this.mundo.velocidadEnemigos;
     if (!tabla) return 1;
     return tabla[this.dificultad - 1] / this.balance.tiposEnemigo.normal.velocidad;
+  }
+
+  /**
+   * v0.1.6: DAÑO de los enemigos. Cada mundo dice cuánto pega el enemigo NORMAL en cada
+   * dificultad (Excel Mundos_Moustruos → balance.json → mundos → danioEnemigos, ej. 15, 30, 45...).
+   * Igual que la velocidad: factor = ese daño / el del normal (10); los demás tipos y los
+   * disparos se multiplican por él. Si el mundo no tiene tabla, se usa el de la dificultad.
+   */
+  factorDanio() {
+    const tabla = this.mundo.danioEnemigos;
+    if (!tabla) return this.dif.danio;
+    return tabla[this.dificultad - 1] / this.balance.tiposEnemigo.normal.danioContacto;
   }
 
   /** Un disparo más lento que dura más tiempo (así llega igual de lejos) */
@@ -519,8 +535,9 @@ export default class EscenaArena extends Phaser.Scene {
       velocidad: Math.round(propio.velocidad * f),
       velocidadEmbestida: Math.round(comun.velocidadEmbestida * f),
       duracionEmbestidaMs: Math.round(comun.duracionEmbestidaMs / f), // recorre la misma distancia
-      danioContacto: Math.round(propio.danioContacto * this.dif.danio),
-      rafaga: this.disparoLento(comun.rafaga, this.dif.danio, f),
+      // v0.1.6: el golpe del jefe sale del Excel (danioJefes); su ráfaga sigue el daño del mundo
+      danioContacto: this.mundo.danioJefes ? this.mundo.danioJefes[this.dificultad - 1] : Math.round(propio.danioContacto * this.dif.danio),
+      rafaga: this.disparoLento(comun.rafaga, this.factorDanio(), f),
       radioTextura: 50,
       color: this.mundo.colores.jefe,
     };
@@ -583,8 +600,10 @@ export default class EscenaArena extends Phaser.Scene {
     if (sala.tipo === 'oleada') this.oleadasVencidas += 1;
     else this.jefesVencidos += 1;
 
-    const ultima = sala.indice === this.mazmorra.salas.length - 1;
-    if (ultima) {
+    // v0.1.6: la mazmorra abre las puertas que tocan (en la cruz, la del centro pide 2 jefes)
+    const abiertas = this.mazmorra.vencerSala(sala.indice);
+    if (this.cooperativo) this.cooperativo.enviar({ t: 'puerta', i: sala.indice });
+    if (this.mazmorra.terminada) {
       this.terminado = true;
       this.time.delayedCall(900, () => this.victoria());
       return;
@@ -593,9 +612,11 @@ export default class EscenaArena extends Phaser.Scene {
       if (!h.vivo) h.vida = Math.round(h.config.vidaMax / 2); // en pareja: el caído se levanta
       else h.vida = Math.min(h.vida + this.balance.oleadas.curacionPorSala, h.config.vidaMax);
     }
-    this.mazmorra.abrirPuerta(sala.indice);
-    if (this.cooperativo) this.cooperativo.enviar({ t: 'puerta', i: sala.indice });
-    this.mostrarAnuncio(sala.tipo === 'jefe' ? '¡Jefe vencido! →' : '¡Sigue adelante! →');
+    // ¿Se abrió una puerta que pedía varias salas? (la del centro de la cruz)
+    const grande = abiertas.some((i) => this.mazmorra.salas[i].requiere.length > 1);
+    if (grande) this.mostrarAnuncio('¡Se abrió la puerta del centro!');
+    else if (sala.tipo === 'jefe' && !abiertas.length) this.mostrarAnuncio('¡Jefe vencido! Busca el otro camino');
+    else this.mostrarAnuncio(sala.tipo === 'jefe' ? '¡Jefe vencido!' : '¡Sigue adelante!');
   }
 
   // =============================================================
@@ -1461,6 +1482,11 @@ export default class EscenaArena extends Phaser.Scene {
         tint: [0xff7043, 0xffb74d], scale: { start: 0.6, end: 0 }, alpha: { start: 0.7, end: 0 }, lifespan: 4000, frequency: 120, blendMode: 'ADD' },
       nieve: { textura: 'chispa', speedY: { min: 40, max: 90 }, speedX: { min: 10, max: 40 },
         tint: 0xffffff, scale: { start: 0.9, end: 0.5 }, alpha: { start: 0.9, end: 0 }, lifespan: 5000, frequency: 40 },
+      // v0.1.6: climas de los mundos nuevos
+      estrellas: { textura: 'brillo', speedX: { min: -5, max: 5 }, speedY: { min: -5, max: 5 },
+        tint: [0xffffff, 0xb388ff, 0x80d8ff], scale: { start: 0.08, end: 0.02 }, alpha: { start: 1, end: 0 }, lifespan: 2500, frequency: 90, blendMode: 'ADD' },
+      burbujas: { textura: 'chispa', speedY: { min: -70, max: -30 }, speedX: { min: -8, max: 8 },
+        tint: 0xb2ebf2, scale: { start: 0.5, end: 1.1 }, alpha: { start: 0.6, end: 0 }, lifespan: 4500, frequency: 110 },
     };
     // En celular, la mitad de partículas (optimización): "frequency" más alta = menos seguido
     const factor = this.sys.game.device.os.desktop ? 1 : 2;

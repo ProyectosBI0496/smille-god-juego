@@ -17,6 +17,11 @@ export default class EscenaMundos extends Phaser.Scene {
     super('EscenaMundos');
   }
 
+  /** v0.1.6: "data.pagina" llega al cambiar de página; si no viene, se elige sola */
+  init(data) {
+    this.pagina = data ? data.pagina : undefined;
+  }
+
   create() {
     // v0.1.2: sin personaje no se puede jugar: primero hay que crearlo
     if (!personaje()) {
@@ -50,17 +55,40 @@ export default class EscenaMundos extends Phaser.Scene {
       stroke: '#3a1500', strokeThickness: 8,
     }).setOrigin(0.5);
 
+    // v0.1.6: 12 mundos no caben en fila: van en PÁGINAS de 4.
+    // Se abre en la página del mundo que toca jugar (el primero sin superar).
+    const porPagina = 4;
+    const paginas = Math.ceil(mundos.length / porPagina);
+    if (this.pagina === undefined) this.pagina = Math.min(Math.floor(superados / porPagina), paginas - 1);
+    const visibles = mundos.slice(this.pagina * porPagina, (this.pagina + 1) * porPagina);
+
     // Tarjetas en fila, centradas
     const anchoTarjeta = 250;
     const separacion = 30;
-    const total = mundos.length * anchoTarjeta + (mundos.length - 1) * separacion;
+    const total = visibles.length * anchoTarjeta + (visibles.length - 1) * separacion;
     const x0 = (W - total) / 2 + anchoTarjeta / 2;
 
-    mundos.forEach((mundo, i) => {
+    visibles.forEach((mundo, k) => {
+      const i = this.pagina * porPagina + k; // índice real del mundo
       crearTexturasMundo(this, mundo);
       const estado = i < superados ? 'superado' : i === superados ? 'abierto' : 'bloqueado';
-      this.crearTarjeta(x0 + i * (anchoTarjeta + separacion), 370, anchoTarjeta, mundo, i, estado);
+      this.crearTarjeta(x0 + k * (anchoTarjeta + separacion), 370, anchoTarjeta, mundo, i, estado);
     });
+
+    // Flechas para cambiar de página y "1 / 3"
+    if (paginas > 1) {
+      const estilo = { fontFamily: FUENTE_TITULO, fontSize: '56px', fontStyle: 'bold', stroke: '#05070d', strokeThickness: 6 };
+      this.add.text(W / 2, 580, `${this.pagina + 1} / ${paginas}`, { ...estilo, fontSize: '26px', color: '#ffffff' }).setOrigin(0.5);
+      for (const [x, texto, cambio] of [[34, '‹', -1], [W - 34, '›', 1]]) {
+        const destino = this.pagina + cambio;
+        const activa = destino >= 0 && destino < paginas;
+        const flecha = this.add.text(x, 370, texto, { ...estilo, color: activa ? '#f5c542' : '#444444' }).setOrigin(0.5);
+        if (!activa) continue;
+        flecha.setInteractive().on('pointerdown', () => {
+          this.scene.restart({ pagina: destino }); // se rearma la pantalla con la otra página
+        });
+      }
+    }
 
     // Mi personaje (abajo a la derecha): al tocarlo se abre su ficha (nivel, estadísticas)
     crearMiHeroe(this, W - 24, H - 60, () => this.scene.start('EscenaPersonaje'));
@@ -85,7 +113,8 @@ export default class EscenaMundos extends Phaser.Scene {
     this.add.rectangle(x, y, ancho, alto).setStrokeStyle(4, bloqueado ? 0x555555 : 0xf5c542);
 
     this.add.text(x, y + 90, mundo.nombre, {
-      fontFamily: FUENTE_TITULO, fontSize: '34px', fontStyle: 'bold',
+      // v0.1.6: los nombres largos ("Trono de Smille") con letra más chica para que quepan
+      fontFamily: FUENTE_TITULO, fontSize: mundo.nombre.length > 10 ? '24px' : '34px', fontStyle: 'bold',
       color: bloqueado ? '#777777' : '#f5c542', stroke: '#05070d', strokeThickness: 5,
     }).setOrigin(0.5);
     const jefes = Math.floor(mundo.oleadas / mundo.oleadasPorJefe);
