@@ -352,4 +352,26 @@ function iconos(escena) {
     g.fillRect(26, 14, 12, 36);
     g.fillRect(14, 26, 36, 12);
   });
+
+  // v0.1.4 — pasiva y pociones
+  dibujar(escena, 'icono-pasiva', 64, 64, (g) => {
+    // Una estrella de 8 puntas (algo que está siempre encendido)
+    g.fillStyle(0xffffff);
+    const puntos = [];
+    for (let i = 0; i < 16; i++) {
+      const r = i % 2 === 0 ? 28 : 12; // puntas largas y cortas, alternadas
+      const a = (i / 16) * Math.PI * 2 - Math.PI / 2;
+      puntos.push([32 + Math.cos(a) * r, 32 + Math.sin(a) * r]);
+    }
+    poligono(g, puntos);
+  });
+
+  dibujar(escena, 'icono-pocion', 64, 64, (g) => {
+    // Un frasco redondo con cuello y tapón
+    g.fillStyle(0xffffff);
+    g.fillCircle(32, 40, 18);
+    g.fillRect(26, 12, 12, 16);
+    g.fillStyle(0xffffff, 0.6);
+    g.fillRect(22, 6, 20, 7);
+  });
 }

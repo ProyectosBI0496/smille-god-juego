@@ -2,7 +2,7 @@
 // Ficha del personaje (v0.1.2)
 //   Izquierda: quién es, su nivel, las monedas y el botón SUBIR DE NIVEL
 //              (cuesta FICHAS; cada nivel da puntos para repartir).
-//   Derecha:   las 6 estadísticas. Solo se suben las de los ROLES de la clase:
+//   Derecha:   las 6 estadísticas. Solo se suben las del ROL elegido (v0.1.4):
 //              Tanque → Fuerza y Vida · DPS → Daño y Velocidad ·
 //              Sanador → Inteligencia y Armadura.
 // Cada cambio se guarda al instante y se vuelve a dibujar la escena.
@@ -16,7 +16,7 @@ import {
   personaje, guardarPersonaje, borrarPersonaje, monedas, sumarMonedas, nivelMaximo,
 } from '../datos/Progreso.js';
 import {
-  personajeValido, calcularHeroe, estadisticasDeClase, costoNivel, nombrePersonaje, clasesDeRaza, bonosEquipo,
+  personajeValido, calcularHeroe, estadisticasDeRol, costoNivel, nombrePersonaje, clasesDeRaza, bonosEquipo, poderesDe,
 } from '../datos/Personaje.js';
 import { redActual, seguirPareja } from '../red/Red.js';
 
@@ -60,7 +60,7 @@ export default class EscenaPersonaje extends Phaser.Scene {
     volver.on('pointerdown', () => this.scene.start(this.volverA === 'EscenaSala' ? 'EscenaSala' : 'EscenaTitulo', this.datosVolver));
     this.boton(W - 160, H - 50, 260, 'Jugar →', true, () => this.scene.start(this.volverA, this.datosVolver));
     // v0.1.3: la tienda de equipo (se le pasa a dónde volver para que la ficha lo recuerde)
-    this.boton(W - 450, H - 50, 260, '🛒 Equipo', false, () => this.scene.start('EscenaTienda', { volverA: this.volverA, datosVolver: this.datosVolver }));
+    this.boton(W - 450, H - 50, 260, '🛒 Tienda', false, () => this.scene.start('EscenaTienda', { volverA: this.volverA, datosVolver: this.datosVolver }));
     seguirPareja(this);
   }
 
@@ -97,8 +97,7 @@ export default class EscenaPersonaje extends Phaser.Scene {
     this.add.text(cx, 190, nombrePersonaje(b, p), {
       fontFamily: FUENTE_TITULO, fontSize: '30px', fontStyle: 'bold', color: clase.color, stroke: '#05070d', strokeThickness: 5,
     }).setOrigin(0.5);
-    const roles = clase.roles.map((r) => b.nombresRol[r]).join(' / ');
-    this.add.text(cx, 228, `Nivel ${p.nivel} · ${roles}`, { ...TEXTO, fontSize: '20px', color: '#ffe082' }).setOrigin(0.5);
+    this.add.text(cx, 228, `Nivel ${p.nivel} · ${b.nombresRol[p.rol]}`, { ...TEXTO, fontSize: '20px', color: '#ffe082' }).setOrigin(0.5);
 
     // Monedas de la cuenta
     const m = monedas();
@@ -116,8 +115,9 @@ export default class EscenaPersonaje extends Phaser.Scene {
       this.add.text(cx, 370, 'Gana fichas en los cofres de las mazmorras', { ...TEXTO, fontSize: '15px', color: '#b0bec5' }).setOrigin(0.5);
     }
 
-    // Qué se abre después (botones de la clase y clases nuevas)
-    this.add.text(cx, 420, this.proximosDesbloqueos(), {
+    // v0.1.4: los poderes de clase + rol (los bloqueados dicen en qué nivel se abren)
+    // y debajo, qué clase nueva se abre después
+    this.add.text(cx, 400, this.textoPoderes(), {
       ...TEXTO, fontSize: '16px', color: '#cfd8dc', align: 'center', wordWrap: { width: 440 }, lineSpacing: 4,
     }).setOrigin(0.5, 0);
 
@@ -129,7 +129,7 @@ export default class EscenaPersonaje extends Phaser.Scene {
     borrar.on('pointerdown', () => {
       if (!confirmar) {
         confirmar = true;
-        borrar.setText('¿Seguro? Vuelves a nivel 1. Toca otra vez').setColor('#ff5252');
+        borrar.setText('¿Seguro? Nivel 1 y mazmorras desde cero. Toca otra vez').setColor('#ff5252');
         return;
       }
       borrarPersonaje();
@@ -137,17 +137,19 @@ export default class EscenaPersonaje extends Phaser.Scene {
     });
   }
 
-  /** Texto con lo que se abre en los próximos niveles */
-  proximosDesbloqueos() {
+  /** Texto con la pasiva, los 3 poderes (y su nivel si están bloqueados) y la próxima clase */
+  textoPoderes() {
     const b = this.balance;
     const p = this.p;
-    const lineas = [];
-    b.progreso.nivelBotones.forEach((nivel, i) => {
-      if (nivel > p.nivel) lineas.push(`Nv ${nivel}: se abre el botón ${i + 1}`);
+    const set = poderesDe(b, p.clase, p.rol);
+    const niveles = b.progreso.nivelBotones;
+    const lineas = [`Pasiva: ${set.pasiva.nombre}`];
+    set.botones.forEach((poder, i) => {
+      lineas.push(`${i + 1}. ${poder.nombre}${niveles[i] > p.nivel ? `  (🔒 Nv ${niveles[i]})` : ''}`);
     });
     const siguiente = clasesDeRaza(b, p.raza, nivelMaximo()).find((c) => !c.abierta);
-    if (siguiente) lineas.push(`Nv ${siguiente.necesario}: nueva clase de ${b.razas[p.raza].nombre}: ${b.clases[siguiente.id].nombre}`);
-    return lineas.length ? `Próximo:\n${lineas.join('\n')}` : 'Tienes todo abierto';
+    if (siguiente) lineas.push('', `Nv ${siguiente.necesario}: nueva clase de ${b.razas[p.raza].nombre}: ${b.clases[siguiente.id].nombre}`);
+    return lineas.join('\n');
   }
 
   subirNivel(costo) {
@@ -161,7 +163,7 @@ export default class EscenaPersonaje extends Phaser.Scene {
   crearEstadisticas(cx, H) {
     const b = this.balance;
     const p = this.p;
-    const permitidas = estadisticasDeClase(b, p.clase);
+    const permitidas = estadisticasDeRol(b, p.rol);
     const bonos = bonosEquipo(b, p); // lo que suma el equipo puesto (se muestra en verde)
     const ancho = this.anchoDerecha;
     this.add.rectangle(cx, H / 2 - 25, ancho, H - 120, 0x0b0f1a, 0.75).setStrokeStyle(2, 0xf5c542, 0.5);

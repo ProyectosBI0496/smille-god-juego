@@ -1,7 +1,8 @@
 // =============================================================
 // Personaje (v0.1.2): las CUENTAS del personaje, sin dibujar nada.
 //   - Qué clases puede elegir cada raza (y cuáles están bloqueadas).
-//   - Qué estadísticas puede subir cada clase (según sus ROLES).
+//   - Qué estadísticas puede subir el personaje (según su ROL, v0.1.4).
+//   - Qué poderes tiene (clase + rol → balance.json → "poderes", v0.1.4).
 //   - Cuánto cuesta subir de nivel.
 //   - Los números finales del héroe en la partida (vida, velocidad, daño...).
 // Todos los números salen de balance.json → "clases", "estadisticas", "progreso".
@@ -19,12 +20,19 @@ export function clasesDeRaza(balance, idRaza, nivelMaximo) {
   });
 }
 
-/** Las estadísticas que la clase puede subir: las de sus roles (tanque, dps, sanador) */
-export function estadisticasDeClase(balance, idClase) {
-  const roles = balance.clases[idClase].roles;
+/**
+ * v0.1.4: las estadísticas que se pueden subir son las del ROL elegido
+ * (un Paladín Tanque sube Fuerza y Vida; un Paladín Sanador, Inteligencia y Armadura).
+ */
+export function estadisticasDeRol(balance, idRol) {
   return Object.entries(balance.estadisticas.lista)
-    .filter(([, est]) => roles.includes(est.rol))
+    .filter(([, est]) => est.rol === idRol)
     .map(([id]) => id);
+}
+
+/** v0.1.4: el set de poderes de una clase con un rol (balance.json → poderes) */
+export function poderesDe(balance, idClase, idRol) {
+  return balance.poderes[idClase][idRol];
 }
 
 /** Fichas necesarias para pasar del nivel "nivel" al siguiente */
@@ -33,15 +41,20 @@ export function costoNivel(balance, nivel) {
   return p.fichasBase + nivel * p.fichasPorNivel;
 }
 
-/** "Humano Guerrero" */
-export function nombrePersonaje(balance, p) {
-  return `${balance.razas[p.raza].nombre} ${balance.clases[p.clase].nombre}`;
+/** "Humano Guerrero" (con conRol: "Humano Guerrero · Tanque") */
+export function nombrePersonaje(balance, p, conRol = false) {
+  const nombre = `${balance.razas[p.raza].nombre} ${balance.clases[p.clase].nombre}`;
+  return conRol && p.rol ? `${nombre} · ${balance.nombresRol[p.rol]}` : nombre;
 }
 
 /** Corrige un personaje que llegó mal (por la red o de una versión vieja) */
 export function personajeValido(balance, p) {
   const raza = p && balance.razas[p.raza] ? p.raza : 'humano';
   const clase = p && balance.clases[p.clase] ? p.clase : 'guerrero';
+  // v0.1.4: el ROL tiene que ser uno de los de la clase. Los personajes de antes
+  // no tenían rol: reciben el primero de su clase (DPS).
+  const rolesClase = balance.clases[clase].roles;
+  const rol = p && rolesClase.includes(p.rol) ? p.rol : rolesClase[0];
   const est = {};
   for (const id of Object.keys(balance.estadisticas.lista)) {
     est[id] = Math.max(0, Math.floor(Number(p && p.est && p.est[id]) || 0));
@@ -54,7 +67,7 @@ export function personajeValido(balance, p) {
     const obj = balance.equipo.objetos[id];
     if (obj && obj.ranura === ranura) equipo[ranura] = id;
   }
-  return { raza, clase, nivel, puntos: Math.max(0, Number(p && p.puntos) || 0), est, equipo };
+  return { raza, clase, rol, nivel, puntos: Math.max(0, Number(p && p.puntos) || 0), est, equipo };
 }
 
 /**
@@ -95,6 +108,7 @@ export function calcularHeroe(balance, entrada) {
   const p = personajeValido(balance, entrada);
   const raza = balance.razas[p.raza];
   const clase = balance.clases[p.clase];
+  const poderes = poderesDe(balance, p.clase, p.rol);
   const pp = balance.estadisticas.porPunto;
   const lim = balance.estadisticas.limites;
   // Estadísticas finales = puntos repartidos + bonos del equipo
@@ -107,8 +121,11 @@ export function calcularHeroe(balance, entrada) {
     personaje: p,
     idRaza: p.raza,
     idClase: p.clase,
+    idRol: p.rol,
     raza,
     clase,
+    poderes,               // v0.1.4: pasiva y 3 poderes de clase + rol
+    tipo: poderes.tipo,    // melee o caster: lo decide el rol (el Paladín Sanador es caster)
     botones,
     vidaMax: Math.round(raza.vidaMax * clase.vida + e.vida * pp.vida + e.fuerza * pp.fuerzaVida),
     velocidad: Math.round(raza.velocidad * clase.velocidad * (1 + e.velocidad * pp.velocidad)),
@@ -126,10 +143,20 @@ export function calcularHeroe(balance, entrada) {
 
 /** Lo que se le cuenta al compañero por la red: solo lo necesario */
 export function paraLaRed(p) {
-  return { raza: p.raza, clase: p.clase, nivel: p.nivel, est: p.est, equipo: p.equipo || {} };
+  return { raza: p.raza, clase: p.clase, rol: p.rol, nivel: p.nivel, est: p.est, equipo: p.equipo || {} };
 }
 
-/** Nombre corto de cada habilidad (para mostrarlo en los menús) */
+/**
+ * v0.1.4: recarga (ms) del botón i (0, 1, 2) de un set de poderes.
+ * Botón 1: la de la habilidad "molde" (el ataque básico tiene que ser rápido).
+ * Botones 2 y 3: el CD del Excel × escalaRecarga (un poder de 30 s tarda ~10 s).
+ */
+export function recargaPoder(balance, poder, i, recargaMolde) {
+  const escala = balance.poderes.escalaRecarga[i];
+  return escala ? Math.round(poder.cdSeg * 1000 * escala) : recargaMolde;
+}
+
+/** Nombre de la habilidad del prototipo que usa cada poder por ahora (su "molde") */
 export const NOMBRE_HABILIDAD = {
   atq: 'Golpe', onda: 'Onda', torb: 'Torbellino',
   cuch: 'Cuchilladas', paso: 'Paso sombrío', crit: 'Golpe crítico',

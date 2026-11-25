@@ -46,7 +46,7 @@ export default class Cooperativo {
       oir('puerta', (m) => escena.mazmorra.abrirPuerta(m.i));
       oir('anuncio', (m) => escena.mostrarAnuncio(m.texto, true));
       oir('fin', (m) => this.fin(m));
-      oir('iniciar', (m) => escena.scene.restart({ mundo: m.mundo, coop: true, invitado: true }));
+      oir('iniciar', (m) => escena.scene.restart({ mundo: m.mundo, dificultad: m.dificultad, coop: true, invitado: true }));
       oir('esperar', () => escena.scene.start('EscenaSala', { esperando: true }));
     }
     oir('desconectado', () => escena.companeroDesconectado());
@@ -110,7 +110,7 @@ export default class Cooperativo {
       a: [Math.round(h.cuerpo.x), Math.round(h.cuerpo.y), +h.mirando.x.toFixed(2), +h.mirando.y.toFixed(2), Math.round(h.vida), h.cuerpo.body.velocity.lengthSq() > 0 ? 1 : 0],
       b: e.companero ? Math.round(e.companero.vida) : 0,
       e: e.enemigos.map((en) => [en.id, Math.round(en.cuerpo.x), Math.round(en.cuerpo.y), +en.sprite.rotation.toFixed(2), Math.round(en.vida)]),
-      h: [e.oleadasVencidas, e.jefesVencidos, e.companero ? e.companero.curas : 0, e.derrotados], // curas = las del invitado
+      h: [e.oleadasVencidas, e.jefesVencidos, e.derrotados], // v0.1.4: sin curas (ahora hay pociones)
     };
   }
 
@@ -133,7 +133,7 @@ export default class Cooperativo {
       en.vida = evida;
       en.colocarDibujo(ang);
     }
-    [e.oleadasVencidas, e.jefesVencidos, e.heroe.curas, e.derrotados] = m.h; // mis curas las cuenta el anfitrión
+    [e.oleadasVencidas, e.jefesVencidos, e.derrotados] = m.h;
     e.actualizarHud();
     this.ultimoEstado = null; // ya aplicada
   }
@@ -214,7 +214,7 @@ export default class Cooperativo {
   /** Fin de la partida (victoria o derrota), decidido por el anfitrión */
   fin(m) {
     const e = this.escena;
-    if (m.tipo === 'victoria') marcarSuperado(e.indiceMundo); // el invitado también avanza
+    if (m.tipo === 'victoria') marcarSuperado(e.indiceMundo, e.dificultad); // el invitado también avanza
     e.terminado = true;
     // Mis cofres los abro yo, en mi celular (los jefes vencidos llegan en cada "foto")
     e.pantallaFinal(m.titulo, `${m.texto}\nEsperando a tu compañero...`, e.abrirCofres(m.tipo === 'victoria'), [

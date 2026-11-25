@@ -6,15 +6,16 @@
 // Cada raza tiene sus clases (Excel del creador). Las 2 primeras salen
 // al empezar; las demás se abren poco a poco al alcanzar cierto NIVEL
 // (balance.json → progreso.desbloqueoClases).
+// v0.1.4: después de la clase viene el paso 3, elegir el ROL (EscenaRol).
 // =============================================================
 
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { color } from '../graficos/TexturasMundo.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
-import { nivelMaximo, crearPersonaje } from '../datos/Progreso.js';
-import { clasesDeRaza, NOMBRE_HABILIDAD } from '../datos/Personaje.js';
-import { redActual, seguirPareja } from '../red/Red.js';
+import { nivelMaximo } from '../datos/Progreso.js';
+import { clasesDeRaza } from '../datos/Personaje.js';
+import { seguirPareja } from '../red/Red.js';
 
 export default class EscenaClase extends Phaser.Scene {
   constructor() {
@@ -88,10 +89,11 @@ export default class EscenaClase extends Phaser.Scene {
       align: 'center', wordWrap: { width: ancho - 16 },
     }).setOrigin(0.5, 0);
 
-    // Los 3 botones y en qué nivel se abre cada uno
-    const niveles = this.balance.progreso.nivelBotones;
-    clase.botones.forEach((hab, i) => {
-      this.add.text(x - ancho / 2 + 12, y + 20 + i * 40, `${i + 1}. ${NOMBRE_HABILIDAD[hab]}${niveles[i] > 1 ? `  (Nv ${niveles[i]})` : ''}`, {
+    // v0.1.4: los roles que puede tener, con su especialidad (el rol se elige en el paso 3)
+    clase.roles.forEach((rol, i) => {
+      const set = this.balance.poderes[id][rol];
+      const especialidad = set.especialidad.replace(/^.*\((.*)\)$/, '$1'); // "Tanque Melee (Coloso de Acero)" → "Coloso de Acero"
+      this.add.text(x - ancho / 2 + 12, y + 20 + i * 44, `• ${this.balance.nombresRol[rol]}\n  ${especialidad}`, {
         fontFamily: 'Arial, sans-serif', fontSize: '14px', color: abierta ? '#ffffff' : gris,
         wordWrap: { width: ancho - 20 },
       });
@@ -109,20 +111,17 @@ export default class EscenaClase extends Phaser.Scene {
     }
 
     const boton = this.add.rectangle(x, y + alto / 2 - 40, ancho - 30, 52, 0xf5c542).setStrokeStyle(3, 0xfff3c4);
-    this.add.text(x, y + alto / 2 - 40, 'Crear', {
+    this.add.text(x, y + alto / 2 - 40, 'Elegir', {
       fontFamily: FUENTE_TITULO, fontSize: '24px', color: '#1a0f00', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    // Toda la tarjeta es un botón: crea el personaje (nivel 1) y abre su ficha
+    // Toda la tarjeta es un botón: pasa al paso 3, elegir el ROL (v0.1.4)
     const zona = this.add.zone(x, y, ancho, alto).setInteractive();
     zona.on('pointerdown', () => {
-      crearPersonaje(this.raza, id);
-      const red = redActual();
-      if (red && red.conectado) red.presentarme(); // el compañero se entera
       this.tweens.add({ targets: [cuerpo, boton], scale: 1.3, duration: 150, yoyo: true });
-      this.cameras.main.fadeOut(350);
-      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaPersonaje', {
-        volverA: this.volverA, datosVolver: this.datosVolver,
+      this.cameras.main.fadeOut(300);
+      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaRol', {
+        raza: this.raza, clase: id, volverA: this.volverA, datosVolver: this.datosVolver,
       }));
     });
   }

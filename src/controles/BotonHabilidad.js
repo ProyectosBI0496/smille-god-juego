@@ -58,8 +58,10 @@ export default class BotonHabilidad {
   /** Intenta usar la habilidad (desde el toque o desde el teclado) */
   usar() {
     if (!this.listo) return false;
+    // v0.1.4: si alPulsar devuelve false (por ejemplo, no alcanza el maná),
+    // el botón no entra en recarga
+    if (this.alPulsar() === false) return false;
     this.listoEn = this.escena.time.now + this.recargaMs;
-    this.alPulsar();
     // Pequeño "juice": el botón se encoge un instante
     this.escena.tweens.add({ targets: this.circulo, scale: 0.88, duration: 60, yoyo: true });
     return true;

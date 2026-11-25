@@ -173,7 +173,7 @@ export default class EscenaSala extends Phaser.Scene {
 
   /** El invitado espera a que el anfitrión empiece una partida */
   escucharPartida(red) {
-    red.escuchar(this, 'iniciar', (m) => this.scene.start('EscenaArena', { mundo: m.mundo, coop: true, invitado: true }));
+    red.escuchar(this, 'iniciar', (m) => this.scene.start('EscenaArena', { mundo: m.mundo, dificultad: m.dificultad, coop: true, invitado: true }));
     red.escuchar(this, 'desconectado', () => this.fallo({ type: 'desconectado' }));
   }
 

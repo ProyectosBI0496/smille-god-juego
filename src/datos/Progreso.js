@@ -95,20 +95,27 @@ export function guardarPersonaje(p) {
   if (p.nivel > nivelMaximo()) guardarJson(CLAVE_NIVEL_MAX, p.nivel); // abre clases nuevas
 }
 
-/** Crea un personaje nuevo de nivel 1, sin puntos repartidos */
-export function crearPersonaje(raza, clase) {
+/**
+ * Crea un personaje nuevo de nivel 1, sin puntos repartidos.
+ * v0.1.4: también guarda el ROL y regala unas pociones para empezar (regalo = { vida: 3, mana: 2 }).
+ */
+export function crearPersonaje(raza, clase, rol, regalo = {}) {
   const p = {
-    raza, clase, nivel: 1, puntos: 0,
+    raza, clase, rol, nivel: 1, puntos: 0,
     est: { fuerza: 0, vida: 0, danio: 0, velocidad: 0, inteligencia: 0, armadura: 0 },
   };
   elegirRaza(raza);
   guardarPersonaje(p);
+  sumarPociones(regalo);
   return p;
 }
 
+/** Borra el personaje. v0.1.4: las mazmorras y sus dificultades vuelven a empezar. */
 export function borrarPersonaje() {
   try {
     localStorage.removeItem(CLAVE_PERSONAJE);
+    localStorage.removeItem(CLAVE_MUNDOS);
+    localStorage.removeItem(CLAVE_DIFICULTADES);
   } catch (error) {
     // nada que borrar
   }
@@ -132,13 +139,61 @@ export function sumarMonedas(cambio) {
   return m;
 }
 
-/** Marca como superado el mundo número "indice" (0 = el primero) */
-export function marcarSuperado(indice) {
+// v0.1.4: DIFICULTADES. Por cada mundo se guarda la dificultad más alta superada
+// (0 = ninguna, 1 = Iniciado ... 5 = Divino). Ejemplo: { "0": 2, "1": 1 }
+const CLAVE_DIFICULTADES = 'smilleGod.dificultades';
+
+/** La dificultad más alta superada en el mundo "indice" (0 si ninguna) */
+export function dificultadSuperada(indice) {
+  return Number(leerJson(CLAVE_DIFICULTADES, {})[indice]) || 0;
+}
+
+/**
+ * Marca como superado el mundo número "indice" (0 = el primero) en la "dificultad" dada.
+ * Superarlo en cualquier dificultad abre el mundo siguiente (en Iniciado).
+ */
+export function marcarSuperado(indice, dificultad = 1) {
   try {
     if (indice + 1 > mundosSuperados()) localStorage.setItem(CLAVE_MUNDOS, String(indice + 1));
   } catch (error) {
     // sin memoria del navegador: el progreso solo dura esta partida
   }
+  const todas = leerJson(CLAVE_DIFICULTADES, {});
+  if (dificultad > (Number(todas[indice]) || 0)) {
+    todas[indice] = dificultad;
+    guardarJson(CLAVE_DIFICULTADES, todas);
+  }
+}
+
+// =============================================================
+// v0.1.4 — POCIONES (reemplazan a la cura)
+// Son de la CUENTA, como las monedas: { vida: 3, mana: 2 }
+// =============================================================
+
+const CLAVE_POCIONES = 'smilleGod.pociones';
+
+export function pociones() {
+  return { vida: 0, mana: 0, ...leerJson(CLAVE_POCIONES, {}) };
+}
+
+/** Suma (o resta) pociones: sumarPociones({ vida: -1 }) */
+export function sumarPociones(cambio) {
+  const p = pociones();
+  for (const [clave, cantidad] of Object.entries(cambio)) p[clave] = Math.max(0, (p[clave] || 0) + cantidad);
+  guardarJson(CLAVE_POCIONES, p);
+  return p;
+}
+
+/** Compra UNA poción: resta su precio. Devuelve true si alcanzó. */
+export function comprarPocion(id, precio) {
+  const m = monedas();
+  const alcanza = Object.entries(precio).every(([moneda, cantidad]) => (m[moneda] || 0) >= cantidad);
+  if (!alcanza) return false;
+  const resta = {};
+  for (const [moneda, cantidad] of Object.entries(precio)) resta[moneda] = -cantidad;
+  sumarMonedas(resta);
+  sumarPociones({ [id]: 1 }); // [id]: usa el VALOR de id como nombre de la clave
+  return true;
 }
 
 // =============================================================

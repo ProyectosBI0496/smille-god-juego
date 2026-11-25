@@ -225,7 +225,6 @@
       "fuerza": 1,
       "oleadas": 3,
       "oleadasPorJefe": 3,
-      "curas": 1,
       "enemigos": {"normal": [2, 4], "rapido": [0, 1], "tirador": [0, 1]},
       "jefe": {"radio": 60, "vidaMax": 450, "velocidad": 105, "danioContacto": 20, "ataques": ["embestida"]},
       "colores": {
@@ -256,7 +255,6 @@
       "fuerza": 1.15,
       "oleadas": 6,
       "oleadasPorJefe": 3,
-      "curas": 2,
       "enemigos": {"normal": [3, 4], "rapido": [1, 3], "resistente": [0, 1], "tirador": [0, 2]},
       "jefe": {"radio": 58, "vidaMax": 500, "velocidad": 110, "danioContacto": 20, "ataques": ["embestida", "rafaga"]},
       "colores": {
@@ -286,7 +284,6 @@
       "fuerza": 1.3,
       "oleadas": 9,
       "oleadasPorJefe": 3,
-      "curas": 3,
       "enemigos": {"normal": [3, 5], "rapido": [1, 3], "resistente": [0, 2], "tirador": [1, 3]},
       "jefe": {"radio": 58, "vidaMax": 550, "velocidad": 115, "danioContacto": 22, "ataques": ["embestida", "rafaga"]},
       "colores": {
@@ -316,7 +313,6 @@
       "fuerza": 1.45,
       "oleadas": 12,
       "oleadasPorJefe": 4,
-      "curas": 3,
       "enemigos": {"normal": [4, 5], "rapido": [2, 3], "resistente": [1, 3], "tirador": [1, 3]},
       "jefe": {"radio": 60, "vidaMax": 600, "velocidad": 115, "danioContacto": 22, "ataques": ["embestida", "rafaga"]},
       "colores": {
@@ -343,19 +339,17 @@
   ],
   "joystick": {"radioBase": 90, "radioPalanca": 40, "zonaMuerta": 0.15, "seguirDedo": true},
   "botones": {"radio": 70, "radioPequeno": 52, "margen": 60},
-  "cura": {"cantidad": 50, "recargaMs": 1500},
   "cooperativo": {"multCantidad": 1.6, "multVida": 1.4, "multVidaJefe": 1.8},
   "dificultad": {"vidaPorSala": 0.06, "velocidadPorSala": 0.02, "danioPorSala": 0.04},
   "clases": {
     "guerrero": {
       "nombre": "Guerrero",
-      "descripcion": "Golpe, Onda y Torbellino",
+      "descripcion": "Maestro de armas o muralla de acero",
       "tipo": "melee",
       "roles": ["dps", "tanque"],
       "vida": 1.0,
       "velocidad": 1.0,
-      "color": "#f5c542",
-      "botones": ["atq", "onda", "torb"]
+      "color": "#f5c542"
     },
     "asesino": {
       "nombre": "Asesino",
@@ -365,7 +359,6 @@
       "vida": 0.75,
       "velocidad": 1.1,
       "color": "#ef5350",
-      "botones": ["cuch", "paso", "crit"],
       "cuchilladas": {
         "nombre": "Cuchilladas",
         "danio": 16,
@@ -396,8 +389,7 @@
       "roles": ["dps", "tanque", "heler"],
       "vida": 1.1,
       "velocidad": 0.95,
-      "color": "#ffd54f",
-      "botones": ["atq", "onda", "sanar"]
+      "color": "#ffd54f"
     },
     "druida": {
       "nombre": "Druida",
@@ -406,8 +398,7 @@
       "roles": ["dps", "tanque", "heler"],
       "vida": 1.0,
       "velocidad": 1.0,
-      "color": "#8bc34a",
-      "botones": ["atq", "onda", "sanar"]
+      "color": "#8bc34a"
     },
     "sacerdote": {
       "nombre": "Sacerdote",
@@ -416,8 +407,7 @@
       "roles": ["dps", "heler"],
       "vida": 0.85,
       "velocidad": 1.0,
-      "color": "#fff59d",
-      "botones": ["bola", "onda", "sanar"]
+      "color": "#fff59d"
     },
     "shaman": {
       "nombre": "Chamán",
@@ -426,8 +416,7 @@
       "roles": ["dps", "heler"],
       "vida": 0.9,
       "velocidad": 1.0,
-      "color": "#4dd0e1",
-      "botones": ["bola", "onda", "sanar"]
+      "color": "#4dd0e1"
     },
     "mago": {
       "nombre": "Mago",
@@ -436,8 +425,7 @@
       "roles": ["dps"],
       "vida": 0.8,
       "velocidad": 1.0,
-      "color": "#7c4dff",
-      "botones": ["bola", "onda", "abanico"]
+      "color": "#7c4dff"
     },
     "brujo": {
       "nombre": "Brujo",
@@ -446,8 +434,7 @@
       "roles": ["dps"],
       "vida": 0.85,
       "velocidad": 1.0,
-      "color": "#ab47bc",
-      "botones": ["bola", "onda", "abanico"]
+      "color": "#ab47bc"
     },
     "nigromante": {
       "nombre": "Nigromante",
@@ -456,8 +443,7 @@
       "roles": ["dps"],
       "vida": 0.85,
       "velocidad": 1.0,
-      "color": "#26a69a",
-      "botones": ["bola", "onda", "abanico"]
+      "color": "#26a69a"
     },
     "cazador": {
       "nombre": "Cazador",
@@ -466,8 +452,7 @@
       "roles": ["dps"],
       "vida": 0.85,
       "velocidad": 1.05,
-      "color": "#a1887f",
-      "botones": ["bola", "onda", "abanico"]
+      "color": "#a1887f"
     }
   },
   "magia": {
@@ -516,6 +501,7 @@
     },
     "limites": {"recargaMin": 0.7, "armaduraMax": 0.5}
   },
+  "coloresRol": { "tanque": "#64b5f6", "dps": "#ef5350", "heler": "#81c784" },
   "nombresRol": {"tanque": "Tanque", "dps": "DPS", "heler": "Sanador"},
   "progreso": {
     "nivelMax": 20,
@@ -572,6 +558,845 @@
       "anilloVeloz":   { "nombre": "Anillo veloz",       "ranura": "accesorio", "nivel": 2,  "precio": { "intys": 90 },  "bonos": { "velocidad": 3 } },
       "colganteSabio": { "nombre": "Colgante del sabio", "ranura": "accesorio", "nivel": 4,  "precio": { "intys": 200 }, "bonos": { "inteligencia": 2, "armadura": 2 } },
       "coronaSolar":   { "nombre": "Corona solar",       "ranura": "accesorio", "nivel": 1,  "precio": { "rubis": 3 },   "bonos": { "fuerza": 1, "vida": 1, "danio": 1, "velocidad": 1, "inteligencia": 1, "armadura": 1 }, "especial": true }
+    }
+  },
+  "poderes": {
+    "_nota": "Poderes por CLASE y ROL (Excel del creador: Propuesta_Poderes_Clases_y_Roles-v2). \"accion\" = habilidad del prototipo que usa por ahora; cdSeg/alcanceM/potencia son los del Excel. La recarga de los botones 2 y 3 = cdSeg × escalaRecarga.",
+    "escalaRecarga": [
+      null,
+      0.5,
+      0.33
+    ],
+    "asesino": {
+      "dps": {
+        "id": "ASE-DPS",
+        "tipo": "melee",
+        "especialidad": "DPS Melee (Sigilo / Críticos)",
+        "recurso": "Energía Sombría (0-100)",
+        "pasiva": {
+          "nombre": "Sombra Letal",
+          "texto": "Atacar por la espalda o salir del sigilo garantiza golpe crítico (+35% daño crítico) y otorga +20% velocidad de movimiento durante 3s."
+        },
+        "botones": [
+          {
+            "nombre": "Corte Venenoso",
+            "mecanica": "Daño Rápido + DoT",
+            "texto": "Estocada doble rápida cuerpo a cuerpo (+15 Energía) que aplica veneno acumulable (hasta 3 cargas) e inflige daño continuo.",
+            "accion": "cuch",
+            "cdSeg": 0.85,
+            "costo": 0,
+            "alcanceM": 2.5,
+            "potencia": 110
+          },
+          {
+            "nombre": "Paso de Humo",
+            "mecanica": "Teleport / Silencio",
+            "texto": "Se desvanece en una nube oscura (invulnerable 0.6s), reaparece detrás del objetivo a 10m y lo silencia/ralentiza por 1.5s.",
+            "accion": "paso",
+            "cdSeg": 8.5,
+            "costo": 25,
+            "alcanceM": 10,
+            "potencia": 180
+          },
+          {
+            "nombre": "Danza de las Mil Dagas",
+            "mecanica": "Burst AoE / Ejecución",
+            "texto": "Se vuelve inseleccionable y ejecuta 7 cortes relámpago en un área de 5m; cada carga de veneno en el objetivo detona daño extra de ejecución.",
+            "accion": "crit",
+            "cdSeg": 30,
+            "costo": 80,
+            "alcanceM": 5,
+            "potencia": 495
+          }
+        ],
+        "ciclo": "Inicia con Paso de Humo a la espalda -> Acumula veneno con Corte Venenoso -> Detona cargas con Danza de las Mil Dagas."
+      }
+    },
+    "guerrero": {
+      "dps": {
+        "id": "GUE-DPS",
+        "tipo": "melee",
+        "especialidad": "DPS Melee (Maestro de Armas)",
+        "recurso": "Ira (0-100)",
+        "pasiva": {
+          "nombre": "Sed de Batalla",
+          "texto": "Cada baja o golpe crítico incrementa la velocidad de ataque un 8% y el daño físico un 4% durante 5s (acumulable hasta 4 veces)."
+        },
+        "botones": [
+          {
+            "nombre": "Tajo Brutal",
+            "mecanica": "Daño Cleave",
+            "texto": "Corte amplio de arma pesada en arco de 180° (+18 Ira) que inflige daño físico alto a múltiples objetivos.",
+            "accion": "atq",
+            "cdSeg": 1.1,
+            "costo": 0,
+            "alcanceM": 3.5,
+            "potencia": 120
+          },
+          {
+            "nombre": "Torbellino de Acero",
+            "mecanica": "Daño AoE / Penetración",
+            "texto": "Gira sobre su eje avanzando 5m durante 1.5s, golpeando 4 veces a todos los enemigos cercanos e ignorando 25% de armadura.",
+            "accion": "torb",
+            "cdSeg": 8.5,
+            "costo": 30,
+            "alcanceM": 5,
+            "potencia": 220
+          },
+          {
+            "nombre": "Ejecución Sísmica",
+            "mecanica": "Burst Lineal / Ejecución",
+            "texto": "Salta y descarga un golpe devastador en línea recta (8m) que parte el suelo, infligiendo daño masivo proporcional a la Ira acumulada.",
+            "accion": "onda",
+            "cdSeg": 30,
+            "costo": 85,
+            "alcanceM": 8,
+            "potencia": 490
+          }
+        ],
+        "ciclo": "Genera Ira con Tajo Brutal -> Limpia grupos con Torbellino de Acero -> Descarga barra completa con Ejecución Sísmica."
+      },
+      "tanque": {
+        "id": "GUE-TNK",
+        "tipo": "melee",
+        "especialidad": "Tanque Melee (Coloso de Acero)",
+        "recurso": "Ira (0-100)",
+        "pasiva": {
+          "nombre": "Temple de Veterano",
+          "texto": "Por cada 10% de vida faltante, el Guerrero gana +4% de reducción de daño y aumenta su generación de Ira un 15%."
+        },
+        "botones": [
+          {
+            "nombre": "Golpe de Escudo",
+            "mecanica": "Daño + Interrupción",
+            "texto": "Impacto contundente a corta distancia (+15 Ira) que interrumpe lanzamientos enemigos y aplica 'Debilitar' (-15% ataque).",
+            "accion": "atq",
+            "cdSeg": 1.4,
+            "costo": 0,
+            "alcanceM": 2.5,
+            "potencia": 80
+          },
+          {
+            "nombre": "Carga de Ariete",
+            "mecanica": "Iniciación / Stun",
+            "texto": "Embiste hacia adelante 9m empujando enemigos, aturdiéndolos contra muros por 1.5s y ganando armadura adicional.",
+            "accion": "onda",
+            "cdSeg": 9,
+            "costo": 20,
+            "alcanceM": 9,
+            "potencia": 135
+          },
+          {
+            "nombre": "Muralla Inexpugnable",
+            "mecanica": "Taunt AoE / Mitigación",
+            "texto": "Grito de guerra que provoca a todos los enemigos en 10m, otorga 50% de reducción de daño por 5s y convierte el daño bloqueado en choque expansivo.",
+            "accion": "torb",
+            "cdSeg": 34,
+            "costo": 75,
+            "alcanceM": 10,
+            "potencia": 260
+          }
+        ],
+        "ciclo": "Abre combate con Carga de Ariete -> Corta habilidades clave con Golpe de Escudo -> Absorbe foco con Muralla Inexpugnable."
+      }
+    },
+    "sacerdote": {
+      "dps": {
+        "id": "SAC-DPS",
+        "tipo": "caster",
+        "especialidad": "DPS Caster (Penitencia / Vacío)",
+        "recurso": "Fervor Sombrío (0-100)",
+        "pasiva": {
+          "nombre": "Drenaje Psíquico",
+          "texto": "El 15% del daño infligido por habilidades de aflicción cura al Sacerdote y amplifica un 10% el daño recibido por enemigos malditos."
+        },
+        "botones": [
+          {
+            "nombre": "Lanza de Penitencia",
+            "mecanica": "Daño Rango + Extensión",
+            "texto": "Proyectil de energía oscura/radiante (22m) que inflige daño penetrante y extiende 1.5s las maldiciones activas (+15 Fervor).",
+            "accion": "bola",
+            "cdSeg": 1,
+            "costo": 0,
+            "alcanceM": 22,
+            "potencia": 115
+          },
+          {
+            "nombre": "Estigma Corrosivo",
+            "mecanica": "DoT AoE + Cortacuras",
+            "texto": "Maldice a un objetivo y enemigos en 4m infligiendo daño progresivo durante 6s y reduciendo su curación recibida un 35%.",
+            "accion": "abanico",
+            "cdSeg": 8.5,
+            "costo": 25,
+            "alcanceM": 20,
+            "potencia": 200
+          },
+          {
+            "nombre": "Eclipse Devorador",
+            "mecanica": "Daño AoE + Robo de Vida",
+            "texto": "Abre una grieta de vacío (8m) que succiona energía vital de todos los enemigos dentro durante 3s, detonando al final.",
+            "accion": "onda",
+            "cdSeg": 33,
+            "costo": 80,
+            "alcanceM": 18,
+            "potencia": 480
+          }
+        ],
+        "ciclo": "Aplica Estigma Corrosivo -> Extiende y castiga con Lanza de Penitencia -> Remata y se sostiene con Eclipse Devorador."
+      },
+      "heler": {
+        "id": "SAC-HLR",
+        "tipo": "caster",
+        "especialidad": "Healer Caster (Escudos / Vitalidad)",
+        "recurso": "Devoción (0-100)",
+        "pasiva": {
+          "nombre": "Égida del Alma",
+          "texto": "Cuando un escudo aplicado por el Sacerdote absorbe daño por completo, restaura 10 de Devoción y otorga +15% velocidad al aliado."
+        },
+        "botones": [
+          {
+            "nombre": "Pulso de Vitalidad",
+            "mecanica": "Sanación Directa",
+            "texto": "Rayo canalizado corto (22m) que restaura vida constante al aliado o inflige daño sagrado ligero a enemigos (+14 Devoción).",
+            "accion": "bola",
+            "cdSeg": 1.1,
+            "costo": 0,
+            "alcanceM": 22,
+            "potencia": 95
+          },
+          {
+            "nombre": "Barrera de Fe",
+            "mecanica": "Escudo Preventivo",
+            "texto": "Envuelve a un aliado (22m) en un escudo protector durante 5s que absorbe gran cantidad de daño y evita interrupciones.",
+            "accion": "sanar",
+            "cdSeg": 8,
+            "costo": 25,
+            "alcanceM": 22,
+            "potencia": 230
+          },
+          {
+            "nombre": "Cúpula de Serafín",
+            "mecanica": "Cúpula Defensiva AoE",
+            "texto": "Proyecta una cúpula de energía pura de 9m por 5s: absorbe el 60% del daño entrante de proyectiles y regenera vitalidad continuamente.",
+            "accion": "onda",
+            "cdSeg": 36,
+            "costo": 85,
+            "alcanceM": 15,
+            "potencia": 440
+          }
+        ],
+        "ciclo": "Anticipa picos de daño con Barrera de Fe -> Rellena salud con Pulso de Vitalidad -> Protege al escuadrón con Cúpula de Serafín."
+      }
+    },
+    "nigromante": {
+      "dps": {
+        "id": "NIG-DPS",
+        "tipo": "caster",
+        "especialidad": "DPS Caster (Invocación / Almas)",
+        "recurso": "Almas Cosechadas (0-100)",
+        "pasiva": {
+          "nombre": "Cosecha Macabra",
+          "texto": "Cada enemigo que muere o pierde un 25% de vida cerca genera un fragmento de Alma que potencia el daño de sus esbirros y explosiones en +6% (máx. 5)."
+        },
+        "botones": [
+          {
+            "nombre": "Saeta Necrótica",
+            "mecanica": "Daño Rango + Comando",
+            "texto": "Proyectil espectral (22m) que inflige daño de sombra, genera +15 Almas y ordena a los esbirros activos enfocar a ese objetivo.",
+            "accion": "bola",
+            "cdSeg": 1,
+            "costo": 0,
+            "alcanceM": 22,
+            "potencia": 110
+          },
+          {
+            "nombre": "Alzar Legión Ósea",
+            "mecanica": "Invocación / Explosión",
+            "texto": "Invoca 3 esqueletos guerreros durante 10s (16m) que embisten, ralentizan enemigos y explotan al morir infligiendo daño necrótico.",
+            "accion": "abanico",
+            "cdSeg": 10,
+            "costo": 30,
+            "alcanceM": 16,
+            "potencia": 210
+          },
+          {
+            "nombre": "Cosecha de la Muerte",
+            "mecanica": "Nuke AoE + Invocación",
+            "texto": "Desata una guadaña espectral gigante en un área de 9m que arranca almas, inflige daño masivo y revive como espectros temporales a los caídos.",
+            "accion": "onda",
+            "cdSeg": 34,
+            "costo": 85,
+            "alcanceM": 18,
+            "potencia": 505
+          }
+        ],
+        "ciclo": "Invoca con Alzar Legión Ósea -> Dirige el foco con Saeta Necrótica -> Detona el campo con Cosecha de la Muerte."
+      }
+    },
+    "paladin": {
+      "dps": {
+        "id": "PAL-DPS",
+        "tipo": "melee",
+        "especialidad": "DPS Melee (Inquisidor Radiante)",
+        "recurso": "Fervor (0-100)",
+        "pasiva": {
+          "nombre": "Celo Inquisidor",
+          "texto": "Los golpes críticos y habilidades gastadoras de Fervor incendian el arma con fuego sagrado, añadiendo +20% de daño verdadero durante 4s."
+        },
+        "botones": [
+          {
+            "nombre": "Sentencia de Luz",
+            "mecanica": "Daño Melee + Marca",
+            "texto": "Golpe descendente con arma a dos manos (+16 Fervor) que inflige daño físico + sagrado y deja una marca explosiva.",
+            "accion": "atq",
+            "cdSeg": 1.1,
+            "costo": 0,
+            "alcanceM": 3,
+            "potencia": 115
+          },
+          {
+            "nombre": "Estela Consagrada",
+            "mecanica": "Daño Lineal / Detonador",
+            "texto": "Proyecta una onda de fuego sagrado en línea de 10m que atraviesa enemigos, detona marcas activas y aumenta la velocidad de ataque.",
+            "accion": "abanico",
+            "cdSeg": 8.5,
+            "costo": 25,
+            "alcanceM": 10,
+            "potencia": 205
+          },
+          {
+            "nombre": "Ira del Verdugo",
+            "mecanica": "Burst AoE / Ejecución",
+            "texto": "Asciende brevemente y cae con un martillo celestial de 7m que aturde 1.2s e inflige daño sagrado devastador según la vida perdida del objetivo.",
+            "accion": "torb",
+            "cdSeg": 31,
+            "costo": 80,
+            "alcanceM": 7,
+            "potencia": 485
+          }
+        ],
+        "ciclo": "Marca objetivos con Sentencia de Luz -> Detona con Estela Consagrada -> Ejecuta grupos con Ira del Verdugo."
+      },
+      "tanque": {
+        "id": "PAL-TNK",
+        "tipo": "melee",
+        "especialidad": "Tanque Melee (Vanguardia Sagrada)",
+        "recurso": "Fervor (0-100)",
+        "pasiva": {
+          "nombre": "Baluarte Inquebrantable",
+          "texto": "Al bloquear o recibir daño, acumula cargas de Luz (máx. 5). Cada carga otorga +3% de mitigación física/mágica y devuelve daño sagrado al atacante."
+        },
+        "botones": [
+          {
+            "nombre": "Tajo Consagrado",
+            "mecanica": "Daño + Debuff",
+            "texto": "Golpe cuerpo a cuerpo que inflige daño físico + sagrado y genera +15 Fervor. Cada 3er golpe aplica 'Marca de Juicio' (-10% daño enemigo).",
+            "accion": "atq",
+            "cdSeg": 1.2,
+            "costo": 0,
+            "alcanceM": 3,
+            "potencia": 85
+          },
+          {
+            "nombre": "Égida Radiante",
+            "mecanica": "Mitigación / Taunt",
+            "texto": "Alza un escudo de luz frontal durante 3s que absorbe 40% del daño entrante, provoca (Taunt) a enemigos en un cono de 6m y explota al finalizar.",
+            "accion": "onda",
+            "cdSeg": 9,
+            "costo": 25,
+            "alcanceM": 6,
+            "potencia": 140
+          },
+          {
+            "nombre": "Bastión del Alba",
+            "mecanica": "Escudo Grupal / CC Inmune",
+            "texto": "Clava su estandarte sagrado creando un santuario de 8m por 6s: otorga 35% reducción de daño a aliados dentro y vuelve inmune al CC al Paladín.",
+            "accion": "torb",
+            "cdSeg": 35,
+            "costo": 80,
+            "alcanceM": 8,
+            "potencia": 250
+          }
+        ],
+        "ciclo": "Genera Fervor con Tajo Consagrado -> Mitiga y agrupa con Égida Radiante -> Ancla la línea frontal con Bastión del Alba."
+      },
+      "heler": {
+        "id": "PAL-HLR",
+        "tipo": "caster",
+        "especialidad": "Healer Caster (Oráculo de Luz)",
+        "recurso": "Fervor (0-100)",
+        "pasiva": {
+          "nombre": "Faro de Gracia",
+          "texto": "El 25% de toda sanación directa realizada por el Paladín se replica automáticamente sobre el aliado designado con 'Señal de Luz' (25m)."
+        },
+        "botones": [
+          {
+            "nombre": "Destello Sagrado",
+            "mecanica": "Sanación Rango",
+            "texto": "Proyecta un pulso de luz a distancia (22m) que sana al aliado objetivo y genera +16 Fervor.",
+            "accion": "bola",
+            "cdSeg": 1.2,
+            "costo": 0,
+            "alcanceM": 22,
+            "potencia": 100
+          },
+          {
+            "nombre": "Prisma Protector",
+            "mecanica": "Curación Rebotante",
+            "texto": "Lanza un prisma de luz (20m) que cura al objetivo principal y refracta 3 haces curativos hacia los aliados heridos cercanos.",
+            "accion": "sanar",
+            "cdSeg": 8,
+            "costo": 30,
+            "alcanceM": 20,
+            "potencia": 215
+          },
+          {
+            "nombre": "Juicio de Resurrección",
+            "mecanica": "Curación AoE + Purga",
+            "texto": "Invoca un pilar solar sobre el campo (10m) que restaura gran cantidad de vida a todos los aliados y purifica estados negativos.",
+            "accion": "onda",
+            "cdSeg": 38,
+            "costo": 85,
+            "alcanceM": 10,
+            "potencia": 430
+          }
+        ],
+        "ciclo": "Mantiene salud constante con Destello Sagrado -> Levanta grupos con Prisma Protector -> Reinicia peleas con Juicio."
+      }
+    },
+    "druida": {
+      "dps": {
+        "id": "DRU-DPS",
+        "tipo": "melee",
+        "especialidad": "DPS Melee (Acechador Salvaje)",
+        "recurso": "Ferocidad (0-100)",
+        "pasiva": {
+          "nombre": "Instinto Depredador",
+          "texto": "Atacar por la espalda o a objetivos con sangrado otorga +20% de probabilidad crítica y +15% de velocidad de movimiento."
+        },
+        "botones": [
+          {
+            "nombre": "Garras Voraces",
+            "mecanica": "Daño Rápido + DoT",
+            "texto": "Combo rápido de 2 golpes cuerpo a cuerpo (+15 Ferocidad) que acumula sangrado hasta 3 veces.",
+            "accion": "cuch",
+            "cdSeg": 0.9,
+            "costo": 0,
+            "alcanceM": 2.5,
+            "potencia": 105
+          },
+          {
+            "nombre": "Salto de Pantera",
+            "mecanica": "Movilidad / Burst",
+            "texto": "Se abalanza hasta 10m sobre un objetivo, infligiendo daño crítico garantizado si tiene sangrado activo y otorgando evasión por 1.5s.",
+            "accion": "paso",
+            "cdSeg": 8,
+            "costo": 25,
+            "alcanceM": 10,
+            "potencia": 185
+          },
+          {
+            "nombre": "Frenesí de la Manada",
+            "mecanica": "Burst AoE / Ejecución",
+            "texto": "Desata una tormenta de zarpazos en área (5m) durante 2.5s siendo inseleccionable, ejecutando enemigos por debajo del 20% de vida.",
+            "accion": "torb",
+            "cdSeg": 32,
+            "costo": 80,
+            "alcanceM": 5,
+            "potencia": 440
+          }
+        ],
+        "ciclo": "Aplica sangrados con Garras Voraces -> Flanquea con Salto de Pantera -> Remata objetivos debilitados con Frenesí."
+      },
+      "tanque": {
+        "id": "DRU-TNK",
+        "tipo": "melee",
+        "especialidad": "Tanque Melee (Guardián Férreo)",
+        "recurso": "Esencia Telúrica (0-100)",
+        "pasiva": {
+          "nombre": "Corteza Primordial",
+          "texto": "Al adoptar forma bestial aumenta su armadura un 30% y regenera 2% de vida máxima por segundo mientras tenga enemigos a menos de 5m."
+        },
+        "botones": [
+          {
+            "nombre": "Zarpazo Sísmico",
+            "mecanica": "Daño Cleave + Debuff",
+            "texto": "Desgarra en arco frontal (4m), inflige daño físico, genera +15 Esencia y aplica sangrado que reduce velocidad de ataque enemiga.",
+            "accion": "atq",
+            "cdSeg": 1.3,
+            "costo": 0,
+            "alcanceM": 4,
+            "potencia": 80
+          },
+          {
+            "nombre": "Rugido Telúrico",
+            "mecanica": "CC AoE + Escudo",
+            "texto": "Golpea el suelo en un radio de 6m, atrayendo enemigos hacia sí, aplicando 'Enraizado' por 1.5s y ganando un escudo por enemigo golpeado.",
+            "accion": "onda",
+            "cdSeg": 10,
+            "costo": 25,
+            "alcanceM": 6,
+            "potencia": 120
+          },
+          {
+            "nombre": "Avatar del Bosque Ancestral",
+            "mecanica": "Transformación / Reflejo",
+            "texto": "Se transforma en un coloso de piedra y raíces por 8s: duplica su salud temporal, refleja 20% del daño recibido y sus ataques derriban.",
+            "accion": "torb",
+            "cdSeg": 40,
+            "costo": 80,
+            "alcanceM": 5,
+            "potencia": 300
+          }
+        ],
+        "ciclo": "Inicia con Rugido Telúrico para agrupar -> Mantiene agro con Zarpazo Sísmico -> Sobrevive emboscadas con Avatar."
+      },
+      "heler": {
+        "id": "DRU-HLR",
+        "tipo": "caster",
+        "especialidad": "Healer Caster (Tejedor de Savia)",
+        "recurso": "Esencia Vital (0-100)",
+        "pasiva": {
+          "nombre": "Simbiosis Floral",
+          "texto": "Cada curación aplicada deja una 'Semilla de Vida' por 6s; si el aliado recibe daño, la semilla germina curándolo automáticamente."
+        },
+        "botones": [
+          {
+            "nombre": "Espora Restauradora",
+            "mecanica": "HoT / Proyectil",
+            "texto": "Lanza una espora guiada (22m) que cura al aliado objetivo durante 4s o daña si impacta a un enemigo (+12 Esencia).",
+            "accion": "bola",
+            "cdSeg": 1.2,
+            "costo": 0,
+            "alcanceM": 22,
+            "potencia": 95
+          },
+          {
+            "nombre": "Eclosión de Loto",
+            "mecanica": "Zona de Curación + Buff",
+            "texto": "Crea un jardín curativo de 7m durante 5s que sana continuamente a los aliados y aumenta un 15% su velocidad de movimiento.",
+            "accion": "sanar",
+            "cdSeg": 9.5,
+            "costo": 30,
+            "alcanceM": 20,
+            "potencia": 210
+          },
+          {
+            "nombre": "Renacer de la Floresta",
+            "mecanica": "Canalización Curativa AoE",
+            "texto": "Canaliza una lluvia de polen ancestral (15m) durante 3s que restaura vida masiva por segundo y revierte heridas graves.",
+            "accion": "onda",
+            "cdSeg": 36,
+            "costo": 85,
+            "alcanceM": 15,
+            "potencia": 460
+          }
+        ],
+        "ciclo": "Mantiene HoTs activos con Espora Restauradora -> Posiciona Eclosión de Loto -> Usa Renacer ante daño masivo."
+      }
+    },
+    "brujo": {
+      "dps": {
+        "id": "BRU-DPS",
+        "tipo": "caster",
+        "especialidad": "DPS Caster (Caos / Maldiciones)",
+        "recurso": "Entropía Vil (0-100)",
+        "pasiva": {
+          "nombre": "Pacto de Sangre",
+          "texto": "Cada maldición o daño en el tiempo activo incrementa su poder mágico un 6% y convierte el 10% del daño periódico en escudo de alma."
+        },
+        "botones": [
+          {
+            "nombre": "Descarga del Caos",
+            "mecanica": "Daño Rango + Rebote",
+            "texto": "Orbe inestable de fuego vil (22m) que genera +15 Entropía; si impacta a un objetivo maldito, salta a otro enemigo cercano.",
+            "accion": "bola",
+            "cdSeg": 1.05,
+            "costo": 0,
+            "alcanceM": 22,
+            "potencia": 115
+          },
+          {
+            "nombre": "Agonía Marchita",
+            "mecanica": "DoT Escalable + Control",
+            "texto": "Aplica una maldición de caos que inflige daño creciente durante 7s y aterroriza/ralentiza 30% al objetivo si intenta huir.",
+            "accion": "onda",
+            "cdSeg": 8.5,
+            "costo": 25,
+            "alcanceM": 20,
+            "potencia": 215
+          },
+          {
+            "nombre": "Cataclismo Abisal",
+            "mecanica": "Burst AoE + Detonación DoT",
+            "texto": "Abre un portal demoníaco (8m) que hace llover fuego abisal durante 3s, detonando instantáneamente todas las maldiciones activas.",
+            "accion": "abanico",
+            "cdSeg": 33,
+            "costo": 85,
+            "alcanceM": 18,
+            "potencia": 510
+          }
+        ],
+        "ciclo": "Maldice objetivos con Agonía Marchita -> Propaga daño con Descarga del Caos -> Detona todo con Cataclismo Abisal."
+      }
+    },
+    "mago": {
+      "dps": {
+        "id": "MAG-DPS",
+        "tipo": "caster",
+        "especialidad": "DPS Caster (Arcano / Elemental)",
+        "recurso": "Maná Arcano (0-100)",
+        "pasiva": {
+          "nombre": "Resonancia Arcana",
+          "texto": "Lanzar 3 hechizos distintos otorga 'Sobrecarga': el siguiente hechizo no cuesta maná y tiene +35% de daño."
+        },
+        "botones": [
+          {
+            "nombre": "Descarga Etérea",
+            "mecanica": "Daño Mágico",
+            "texto": "Proyectil arcano rápido (22m) que inflige daño mágico y regenera +14 Maná al impactar.",
+            "accion": "bola",
+            "cdSeg": 0.9,
+            "costo": 0,
+            "alcanceM": 22,
+            "potencia": 115
+          },
+          {
+            "nombre": "Traslación Ígnea",
+            "mecanica": "Teleport + Nova AoE",
+            "texto": "Se teletransporta 8m en la dirección deseada dejando una nova de fuego en el punto de origen que quema y aturde brevemente (1s).",
+            "accion": "paso",
+            "cdSeg": 9.5,
+            "costo": 30,
+            "alcanceM": 8,
+            "potencia": 180
+          },
+          {
+            "nombre": "Cataclismo Astral",
+            "mecanica": "Nuke AoE / Derribo",
+            "texto": "Invoca un meteoro arcano tras 1.2s de telelegrafía en un área de 8m que inflige daño mágico devastador y derriba enemigos.",
+            "accion": "abanico",
+            "cdSeg": 34,
+            "costo": 85,
+            "alcanceM": 20,
+            "potencia": 520
+          }
+        ],
+        "ciclo": "Cadena hechizos para activar Resonancia -> Usa Traslación Ígnea para evadir melee -> Detona Cataclismo con Sobrecarga."
+      }
+    },
+    "shaman": {
+      "dps": {
+        "id": "SHA-DPS",
+        "tipo": "caster",
+        "especialidad": "DPS Caster (Tótems / Elemental)",
+        "recurso": "Carga Elemental (0-100)",
+        "pasiva": {
+          "nombre": "Sobrecarga Elemental",
+          "texto": "Alternar habilidades de distintos elementos (Fuego/Rayo/Tierra) detona una descarga elemental adicional al objetivo."
+        },
+        "botones": [
+          {
+            "nombre": "Latigazo Voltaico",
+            "mecanica": "Daño Encadenado",
+            "texto": "Descarga de rayo a media distancia (18m) que salta hasta a 2 enemigos cercanos y genera +16 Carga Elemental.",
+            "accion": "bola",
+            "cdSeg": 1,
+            "costo": 0,
+            "alcanceM": 18,
+            "potencia": 110
+          },
+          {
+            "nombre": "Tótem de Magma",
+            "mecanica": "Invocación / Daño Zona",
+            "texto": "Planta un tótem volcánico (14m) por 6s que escupe bolas de lava cada segundo e incendia el suelo ralentizando enemigos.",
+            "accion": "onda",
+            "cdSeg": 9.5,
+            "costo": 25,
+            "alcanceM": 14,
+            "potencia": 195
+          },
+          {
+            "nombre": "Tormenta Primordial",
+            "mecanica": "Vórtice AoE / Pull",
+            "texto": "Invoca un tornado eléctrico de 9m que persigue enemigos durante 4s, atrayéndolos al centro e infligiendo daño elemental continuo.",
+            "accion": "abanico",
+            "cdSeg": 33,
+            "costo": 80,
+            "alcanceM": 18,
+            "potencia": 470
+          }
+        ],
+        "ciclo": "Planta Tótem de Magma -> Dispara Latigazo Voltaico para activar Sobrecarga -> Encierra enemigos con Tormenta Primordial."
+      },
+      "heler": {
+        "id": "SHA-HLR",
+        "tipo": "caster",
+        "especialidad": "Healer Caster (Guía de Tótems)",
+        "recurso": "Carga Elemental (0-100)",
+        "pasiva": {
+          "nombre": "Vínculo Totémico",
+          "texto": "Mientras haya al menos un tótem activo en el campo, el Shaman y sus aliados en 12m reciben +12% de sanación recibida."
+        },
+        "botones": [
+          {
+            "nombre": "Oleada Espiritual",
+            "mecanica": "Curación Encadenada",
+            "texto": "Lanza una corriente de agua espiritual (20m) que sana a un aliado y rebota a un segundo aliado cercano con 60% de efectividad.",
+            "accion": "bola",
+            "cdSeg": 1.3,
+            "costo": 0,
+            "alcanceM": 20,
+            "potencia": 100
+          },
+          {
+            "nombre": "Tótem de Marea Viva",
+            "mecanica": "Invocación / Curación AoE",
+            "texto": "Invoca un tótem durante 8s (15m) que pulsa cada 1.5s curando a los aliados en su radio y disipando 1 efecto negativo.",
+            "accion": "sanar",
+            "cdSeg": 11,
+            "costo": 30,
+            "alcanceM": 15,
+            "potencia": 220
+          },
+          {
+            "nombre": "Convergencia Ancestral",
+            "mecanica": "Link de Vida + Burst Heal",
+            "texto": "Sobrecarga todos los tótems activos y crea un nexo espiritual por 5s que redistribuye equitativamente la vida del equipo y sana masivamente.",
+            "accion": "onda",
+            "cdSeg": 38,
+            "costo": 85,
+            "alcanceM": 16,
+            "potencia": 450
+          }
+        ],
+        "ciclo": "Despliega Tótem de Marea Viva -> Mantiene salud grupal con Oleada Espiritual -> Equilibra daño crítico con Convergencia."
+      }
+    },
+    "cazador": {
+      "dps": {
+        "id": "CAZ-DPS",
+        "tipo": "caster",
+        "especialidad": "DPS Caster / Rango (Flechas / Trampas)",
+        "recurso": "Concentración (0-100)",
+        "pasiva": {
+          "nombre": "Ojo de Halcón",
+          "texto": "Inflige hasta +25% de daño adicional cuanto mayor sea la distancia respecto al objetivo (máximo a 20m+)."
+        },
+        "botones": [
+          {
+            "nombre": "Disparo Preciso",
+            "mecanica": "Daño Rango",
+            "texto": "Flecha de alta velocidad (24m) que genera +15 Concentración. Si el objetivo está marcado o ralentizado, perfora armadura.",
+            "accion": "bola",
+            "cdSeg": 1,
+            "costo": 0,
+            "alcanceM": 24,
+            "potencia": 110
+          },
+          {
+            "nombre": "Trampa de Cepo Explosivo",
+            "mecanica": "Trampa CC + Reposición",
+            "texto": "Lanza una trampa (14m) que se arma en 0.5s; al activarse inmoviliza 2s y detona causando daño en área mientras el Cazador salta hacia atrás.",
+            "accion": "onda",
+            "cdSeg": 10,
+            "costo": 25,
+            "alcanceM": 14,
+            "potencia": 175
+          },
+          {
+            "nombre": "Lluvia de Saetas Perforantes",
+            "mecanica": "Bombardeo AoE + Slow",
+            "texto": "Dispara una salva al cielo que cubre un radio de 9m durante 3s, ralentizando 40% e infligiendo daño continuo crítico.",
+            "accion": "abanico",
+            "cdSeg": 32,
+            "costo": 80,
+            "alcanceM": 22,
+            "potencia": 450
+          }
+        ],
+        "ciclo": "Mantiene distancia con Trampa de Cepo -> Maximiza Ojo de Halcón con Disparo Preciso -> Controla zonas con Lluvia de Saetas."
+      }
+    }
+  },
+  "dificultades": {
+    "_nota": "5 dificultades por mazmorra: las mismas oleadas y el mismo jefe, pero más fuertes. Multiplican vida, daño y velocidad de enemigos y jefes, y los premios de los cofres. La dificultad N+1 de un mundo se abre al superar la N.",
+    "lista": [
+      {
+        "nombre": "Iniciado",
+        "color": "#a5d6a7",
+        "vida": 1.0,
+        "danio": 1.0,
+        "velocidad": 1.0,
+        "premios": 1.0
+      },
+      {
+        "nombre": "Veterano",
+        "color": "#4fc3f7",
+        "vida": 1.4,
+        "danio": 1.25,
+        "velocidad": 1.05,
+        "premios": 1.4
+      },
+      {
+        "nombre": "Campeón",
+        "color": "#ffd54f",
+        "vida": 1.9,
+        "danio": 1.55,
+        "velocidad": 1.1,
+        "premios": 1.9
+      },
+      {
+        "nombre": "Pesadilla",
+        "color": "#ff7043",
+        "vida": 2.6,
+        "danio": 1.9,
+        "velocidad": 1.15,
+        "premios": 2.6
+      },
+      {
+        "nombre": "Divino",
+        "color": "#e040fb",
+        "vida": 3.5,
+        "danio": 2.4,
+        "velocidad": 1.2,
+        "premios": 3.5
+      }
+    ]
+  },
+  "mana": {
+    "_nota": "Cada poder cuesta maná (columna 'costo' de poderes). Se recupera regenPorSegundo (2% del máximo) por segundo si no te golpean durante sinDanioMs.",
+    "max": 100,
+    "regenPorSegundo": 0.02,
+    "sinDanioMs": 2000,
+    "color": "#42a5f5"
+  },
+  "pociones": {
+    "_nota": "Reemplazan a la cura. Se compran en la tienda y son de la cuenta. vida/mana = parte del máximo que devuelven.",
+    "recargaMs": 1500,
+    "regaloAlCrear": {
+      "vida": 3,
+      "mana": 2
+    },
+    "tipos": {
+      "vida": {
+        "nombre": "Poción de vida",
+        "texto": "Devuelve 40% de la vida",
+        "vida": 0.4,
+        "precio": {
+          "intys": 25
+        },
+        "color": "#ef5350"
+      },
+      "mana": {
+        "nombre": "Poción de maná",
+        "texto": "Devuelve 50% del maná",
+        "mana": 0.5,
+        "precio": {
+          "intys": 20
+        },
+        "color": "#42a5f5"
+      }
     }
   }
 }

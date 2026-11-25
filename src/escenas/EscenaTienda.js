@@ -12,7 +12,7 @@ import { crearTexturas } from '../graficos/Texturas.js';
 import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
 import {
-  personaje, guardarPersonaje, monedas, inventario, comprarObjeto,
+  personaje, guardarPersonaje, monedas, inventario, comprarObjeto, pociones, comprarPocion,
 } from '../datos/Progreso.js';
 import {
   personajeValido, bonosEquipo, textoBonos, textoPrecio, nombrePersonaje,
@@ -52,7 +52,7 @@ export default class EscenaTienda extends Phaser.Scene {
     reiniciarAlCambiarTamano(this);
 
     // Arriba: título y monedas
-    this.add.text(W / 2, 40, 'Tienda de equipo', {
+    this.add.text(W / 2, 40, 'Tienda: equipo y pociones', {
       fontFamily: FUENTE_TITULO, fontSize: '36px', fontStyle: 'bold', color: '#f5c542', stroke: '#05070d', strokeThickness: 6,
     }).setOrigin(0.5);
     const m = this.monedas;
@@ -60,11 +60,13 @@ export default class EscenaTienda extends Phaser.Scene {
       ...TEXTO, fontSize: '19px', stroke: '#05070d', strokeThickness: 3,
     }).setOrigin(0.5);
 
-    // Una columna por ranura, repartidas a lo ancho
+    // Una columna por ranura, repartidas a lo ancho, y al final la de POCIONES (v0.1.4)
     const ranuras = Object.entries(this.balance.equipo.ranuras);
-    const anchoCol = Math.min(400, (W - 60) / ranuras.length - 16);
-    const paso = (W - 60) / ranuras.length;
+    const columnas = ranuras.length + 1;
+    const anchoCol = Math.min(400, (W - 60) / columnas - 16);
+    const paso = (W - 60) / columnas;
     ranuras.forEach(([id, ranura], i) => this.crearColumna(30 + paso * (i + 0.5), anchoCol, id, ranura, H));
+    this.crearColumnaPociones(30 + paso * (columnas - 0.5), anchoCol);
 
     // Abajo: volver a la ficha y el total que da el equipo puesto
     const volver = this.add.text(24, H - 14, '← Personaje', {
@@ -118,6 +120,35 @@ export default class EscenaTienda extends Phaser.Scene {
     else if (comprado) this.boton(bx, cy, 'Equipar', true, true, () => this.equipar(idRanura, id));
     else if (!nivelOk) this.boton(bx, cy, `Nv ${obj.nivel}`, false, false);
     else this.boton(bx, cy, textoPrecio(obj.precio), true, alcanza, () => this.comprar(id, obj, idRanura));
+  }
+
+  /**
+   * v0.1.4: POCIONES. Se compran de a una, sin límite, y son de la cuenta.
+   * En la partida reemplazan a la cura: vida y maná.
+   */
+  crearColumnaPociones(cx, ancho) {
+    this.add.text(cx, 132, '🧪 Pociones', {
+      fontFamily: FUENTE_TITULO, fontSize: '26px', fontStyle: 'bold', color: '#ffe082', stroke: '#05070d', strokeThickness: 4,
+    }).setOrigin(0.5);
+    const mias = pociones();
+    Object.entries(this.balance.pociones.tipos).forEach(([id, pocion], i) => {
+      const alto = 110;
+      const cy = 175 + i * (alto + 10) + alto / 2;
+      const alcanza = Object.entries(pocion.precio).every(([moneda, n]) => (this.monedas[moneda] || 0) >= n);
+      this.add.rectangle(cx, cy, ancho, alto, 0x0b0f1a, 0.8).setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(pocion.color).color, 0.9);
+      const izq = cx - ancho / 2 + 16;
+      this.add.text(izq, cy - alto / 2 + 12, pocion.nombre, {
+        fontFamily: FUENTE_TITULO, fontSize: '21px', fontStyle: 'bold', color: pocion.color,
+      });
+      this.add.text(izq, cy - alto / 2 + 42, pocion.texto, {
+        ...TEXTO, fontSize: '14px', color: '#cfd8dc', wordWrap: { width: ancho - 160 },
+      });
+      this.add.text(izq, cy + alto / 2 - 10, `Tienes ${mias[id]}`, { ...TEXTO, fontSize: '14px', color: '#ffffff', fontStyle: 'bold' })
+        .setOrigin(0, 1);
+      this.boton(cx + ancho / 2 - 72, cy, textoPrecio(pocion.precio), true, alcanza, () => {
+        if (comprarPocion(id, pocion.precio)) this.scene.restart(this.datos);
+      });
+    });
   }
 
   /** Botón pequeño (como el de la ficha, pero más angosto) */

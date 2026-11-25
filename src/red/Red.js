@@ -45,7 +45,7 @@ export function redActual() {
 export function seguirPareja(escena) {
   const red = actual;
   if (!red || !red.yaConectado || red.esAnfitrion) return;
-  red.escuchar(escena, 'iniciar', (m) => escena.scene.start('EscenaArena', { mundo: m.mundo, coop: true, invitado: true }));
+  red.escuchar(escena, 'iniciar', (m) => escena.scene.start('EscenaArena', { mundo: m.mundo, dificultad: m.dificultad, coop: true, invitado: true }));
 }
 
 export default class Red extends Phaser.Events.EventEmitter {

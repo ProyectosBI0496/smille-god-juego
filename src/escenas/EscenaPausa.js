@@ -55,9 +55,11 @@ export default class EscenaPausa extends Phaser.Scene {
 
   /** Reiniciar el mismo mundo o volver al mapa de mundos */
   irA(destino) {
-    const mundo = this.scene.get('EscenaArena').indiceMundo; // para reiniciar el MISMO mundo
+    const arena = this.scene.get('EscenaArena'); // para reiniciar el MISMO mundo y dificultad
+    const mundo = arena.indiceMundo;
+    const dificultad = arena.dificultad;
     this.scene.stop('EscenaArena');
     if (destino === 'mapa') this.scene.start('EscenaMundos');
-    else this.scene.start('EscenaArena', { mundo });
+    else this.scene.start('EscenaArena', { mundo, dificultad });
   }
 }

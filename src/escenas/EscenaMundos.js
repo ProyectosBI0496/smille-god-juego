@@ -8,7 +8,7 @@ import { crearTexturas } from '../graficos/Texturas.js';
 import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
-import { mundosSuperados, personaje } from '../datos/Progreso.js';
+import { mundosSuperados, personaje, dificultadSuperada } from '../datos/Progreso.js';
 import { redActual } from '../red/Red.js';
 import { crearMiHeroe } from '../ui/MiHeroe.js';
 
@@ -26,7 +26,8 @@ export default class EscenaMundos extends Phaser.Scene {
     crearTexturas(this);
     const W = this.scale.baseSize.width;
     const H = this.scale.baseSize.height;
-    const mundos = this.cache.json.get('balance').mundos;
+    this.balance = this.cache.json.get('balance');
+    const mundos = this.balance.mundos;
     const superados = mundosSuperados();
 
     this.cameras.main.fadeIn(300);
@@ -88,8 +89,14 @@ export default class EscenaMundos extends Phaser.Scene {
       color: bloqueado ? '#777777' : '#f5c542', stroke: '#05070d', strokeThickness: 5,
     }).setOrigin(0.5);
     const jefes = Math.floor(mundo.oleadas / mundo.oleadasPorJefe);
-    const curas = mundo.curas;
-    this.add.text(x, y + 132, `${mundo.oleadas} oleadas · ${jefes} ${jefes === 1 ? 'jefe' : 'jefes'} · ${curas} ${curas === 1 ? 'cura' : 'curas'}`, {
+    // v0.1.4: estrellas = dificultades superadas (★★☆☆☆ = Veterano superado)
+    const total = this.balance.dificultades.lista.length;
+    const superada = dificultadSuperada(indice);
+    this.add.text(x, y - alto / 2 + 22, '★'.repeat(superada) + '☆'.repeat(total - superada), {
+      fontFamily: 'Arial, sans-serif', fontSize: '24px', color: bloqueado ? '#777777' : '#f5c542',
+      stroke: '#05070d', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(5);
+    this.add.text(x, y + 132, `${mundo.oleadas} oleadas · ${jefes} ${jefes === 1 ? 'jefe' : 'jefes'}`, {
       fontFamily: 'Arial, sans-serif', fontSize: '20px', color: bloqueado ? '#777777' : '#ffffff',
       stroke: '#05070d', strokeThickness: 3,
     }).setOrigin(0.5);
@@ -123,14 +130,64 @@ export default class EscenaMundos extends Phaser.Scene {
       this.tweens.add({ targets: marco, alpha: 0.2, duration: 700, yoyo: true, repeat: -1 });
     }
 
-    // Toda la tarjeta es un botón
+    // Toda la tarjeta es un botón: abre el panel para elegir la DIFICULTAD (v0.1.4)
     const zona = this.add.zone(x, y, ancho, alto).setInteractive();
-    zona.on('pointerdown', () => {
-      this.cameras.main.fadeOut(300);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        if (this.enPareja) redActual().enviar({ t: 'iniciar', mundo: indice });
-        this.scene.start('EscenaArena', { mundo: indice, coop: this.enPareja });
-      });
+    zona.on('pointerdown', () => this.elegirDificultad(mundo, indice));
+  }
+
+  /**
+   * v0.1.4: panel con las 5 dificultades del mundo. Mismas oleadas y mismo jefe,
+   * pero más fuertes (y con mejores premios). Se abren de a una: para jugar
+   * "Campeón" hay que superar antes "Veterano" en ESE mundo.
+   */
+  elegirDificultad(mundo, indice) {
+    const W = this.scale.baseSize.width;
+    const H = this.scale.baseSize.height;
+    const lista = this.balance.dificultades.lista;
+    const superada = dificultadSuperada(indice);
+    const panel = this.add.container(0, 0).setDepth(200); // un "contenedor" agrupa todo para borrarlo junto
+
+    // Fondo oscuro que tapa el mapa (tocarlo cierra el panel)
+    const fondo = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75).setInteractive();
+    fondo.on('pointerdown', () => panel.destroy());
+    panel.add(fondo);
+    panel.add(this.add.text(W / 2, 60, `${mundo.nombre}: elige la dificultad`, {
+      fontFamily: FUENTE_TITULO, fontSize: '44px', color: '#f5c542', fontStyle: 'bold', stroke: '#3a1500', strokeThickness: 7,
+    }).setOrigin(0.5));
+    panel.add(this.add.text(W / 2, 104, 'Mismas oleadas y mismo jefe, pero más fuertes. Mejores premios.', {
+      fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#d0d8e0', fontStyle: 'italic',
+    }).setOrigin(0.5));
+
+    const anchoBoton = Math.min(560, W - 80);
+    const altoBoton = Math.min(84, (H - 220) / lista.length - 12);
+    lista.forEach((d, i) => {
+      const nivel = i + 1;
+      const abierta = nivel <= superada + 1;
+      const y = 150 + i * (altoBoton + 12) + altoBoton / 2;
+      const boton = this.add.rectangle(W / 2, y, anchoBoton, altoBoton, 0x0b0f1a, abierta ? 0.95 : 0.6)
+        .setStrokeStyle(3, abierta ? color(d.color) : 0x555555);
+      const hecha = nivel <= superada ? '  ✓' : '';
+      const titulo = this.add.text(W / 2 - anchoBoton / 2 + 24, y - 14, `${nivel}. ${d.nombre}${hecha}`, {
+        fontFamily: FUENTE_TITULO, fontSize: '28px', fontStyle: 'bold', color: abierta ? d.color : '#777777',
+      }).setOrigin(0, 0.5);
+      const detalle = abierta
+        ? `Vida ×${d.vida} · Daño ×${d.danio} · Premios ×${d.premios}`
+        : `🔒 Supera ${lista[i - 1].nombre} para abrirla`;
+      const texto = this.add.text(W / 2 - anchoBoton / 2 + 24, y + 18, detalle, {
+        fontFamily: 'Arial, sans-serif', fontSize: '16px', color: abierta ? '#cfd8dc' : '#777777',
+      }).setOrigin(0, 0.5);
+      panel.add([boton, titulo, texto]);
+      if (!abierta) return;
+      boton.setInteractive().on('pointerdown', () => this.jugar(indice, nivel));
+    });
+  }
+
+  /** Entra a la mazmorra. En pareja, el invitado entra también (con la misma dificultad) */
+  jugar(indice, dificultad) {
+    this.cameras.main.fadeOut(300);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      if (this.enPareja) redActual().enviar({ t: 'iniciar', mundo: indice, dificultad });
+      this.scene.start('EscenaArena', { mundo: indice, dificultad, coop: this.enPareja });
     });
   }
 }

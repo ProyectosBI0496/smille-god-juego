@@ -35,8 +35,9 @@ import BotonHabilidad from '../controles/BotonHabilidad.js';
 import Mazmorra from '../mundo/Mazmorra.js';
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
-import { marcarSuperado, personaje, nick, sumarMonedas } from '../datos/Progreso.js';
-import { calcularHeroe } from '../datos/Personaje.js';
+import { marcarSuperado, personaje, nick, sumarMonedas, pociones, sumarPociones } from '../datos/Progreso.js';
+import BarraVida from '../ui/BarraVida.js';
+import { calcularHeroe, recargaPoder } from '../datos/Personaje.js';
 import { redActual } from '../red/Red.js';
 import Cooperativo from '../red/Cooperativo.js';
 
@@ -44,7 +45,8 @@ import Cooperativo from '../red/Cooperativo.js';
 const CLASES = { tirador: Tirador };
 
 // Cada HABILIDAD que puede ir en un botón (v0.1.2; antes era una tabla por rol).
-//   La clase dice qué 3 habilidades usa (balance.json → clases.X.botones).
+//   v0.1.4: cada poder de clase + rol (balance.json → poderes) dice qué
+//   habilidad de esta tabla usa por ahora (su "accion", el molde).
 //   icono:   textura del botón (graficos/Texturas.js)
 //   color:   null = el color de la clase
 //   recarga: función que lee la recarga en balance.json (b = balance, c = datos de la clase)
@@ -63,7 +65,7 @@ const HABILIDADES = {
 
 /** El multiplicador de daño de un héroe: los de "a distancia" usan la magia (inteligencia) */
 function multDanio(h) {
-  return h.clase.tipo === 'caster' ? h.mult.magia : h.mult.fisico;
+  return h.tipo === 'caster' ? h.mult.magia : h.mult.fisico; // v0.1.4: el tipo lo da el rol
 }
 
 export default class EscenaArena extends Phaser.Scene {
@@ -75,6 +77,7 @@ export default class EscenaArena extends Phaser.Scene {
   // por ejemplo { mundo: 2 } desde el mapa de mundos.
   init(datos) {
     this.indiceMundo = (datos && datos.mundo) || 0;
+    this.dificultad = (datos && datos.dificultad) || 1; // v0.1.4: 1 Iniciado ... 5 Divino
     this.coop = !!(datos && datos.coop);           // ¿se juega en pareja?
     this.esInvitado = !!(datos && datos.invitado); // ¿somos el invitado?
   }
@@ -92,6 +95,10 @@ export default class EscenaArena extends Phaser.Scene {
     // Todos los números del juego vienen de balance.json
     this.balance = this.cache.json.get('balance');
     this.mundo = this.balance.mundos[this.indiceMundo];
+    // v0.1.4: los multiplicadores de la dificultad elegida (vida, daño, velocidad, premios)
+    const dificultades = this.balance.dificultades.lista;
+    this.dificultad = Phaser.Math.Clamp(this.dificultad, 1, dificultades.length);
+    this.dif = dificultades[this.dificultad - 1];
 
     crearTexturas(this);                  // texturas comunes (solo la primera vez)
     crearTexturasMundo(this, this.mundo); // suelo, muro y adornos de ESTE mundo
@@ -163,8 +170,8 @@ export default class EscenaArena extends Phaser.Scene {
     this.cameras.main.startFollow(this.heroe.cuerpo, true, 0.1, 0.1);
 
     // ---- Controles ----
-    // Teclado (PC): WASD/flechas; ESPACIO/J botón 1, K botón 2, L botón 3, H cura
-    this.teclas = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,K,L,H');
+    // Teclado (PC): WASD/flechas; ESPACIO/J botón 1, K botón 2, L botón 3, H poción de vida, M poción de maná
+    this.teclas = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,K,L,H,M');
     this.joystick = new Joystick(this, this.balance.joystick);
     this.direccion = new Phaser.Math.Vector2(); // reutilizable (no crear uno por frame)
 
@@ -174,9 +181,12 @@ export default class EscenaArena extends Phaser.Scene {
     this.salaActiva = null;      // la sala donde se está peleando ahora
     this.oleadasVencidas = 0;
     this.jefesVencidos = 0;
-    // Corrección (v0.1.2): cada héroe tiene SUS propias curas (antes se compartían
-    // y una cura gastada por uno dejaba sin cura al otro)
-    for (const h of this.heroes()) h.curas = this.mundo.curas;
+    // v0.1.4: MANÁ. Cada jugador lleva el suyo en su celular (los poderes cuestan maná).
+    // "ultimoDanio" sirve para saber si lo están atacando (si no, el maná se recupera).
+    this.heroe.manaMax = this.balance.mana.max;
+    this.heroe.mana = this.heroe.manaMax;
+    this.heroe.ultimoDanio = -Infinity;
+    this.barraMana = new BarraVida(this, this.heroe.radio * 2.4, color(this.balance.mana.color));
     this.magias = [];             // v0.1.2: proyectiles de los héroes
     this.cofresAbiertos = false;
     this.numerosLibres = [];     // "pool": números de daño guardados para reutilizar
@@ -209,8 +219,11 @@ export default class EscenaArena extends Phaser.Scene {
     this.boton1.mover(xAtq, yAtq);
     this.boton2.mover(xAtq - 150, yAtq + 25);
     this.boton3.mover(xAtq - 35, yAtq - 150);
-    this.botonCura.mover(xAtq - 175, yAtq - 120);
-    this.textoCuras.setPosition(xAtq - 175 + 30, yAtq - 120 + 26);
+    // v0.1.4: la pasiva va donde estaba la cura; las pociones, a la izquierda
+    for (const [boton, textos, dx, dy] of this.botonesExtra) {
+      boton.mover(xAtq + dx, yAtq + dy);
+      for (const [texto, tx, ty] of textos) texto.setPosition(xAtq + dx + tx, yAtq + dy + ty);
+    }
     for (const [objeto, dx] of this.partesPausa) objeto.setPosition(W - 55 + dx, 55);
     this.textoFps.setPosition(W - 110, 100);
     this.textoJefe.setPosition(W / 2, 22);
@@ -234,7 +247,11 @@ export default class EscenaArena extends Phaser.Scene {
   prepararHeroe(h, datos) {
     h.raza = datos.raza;
     h.clase = datos.clase;
-    h.rol = datos.clase; // las habilidades del Asesino leen h.rol.cuchilladas...
+    // Las habilidades molde del Asesino (cuchilladas, paso sombrío, crítico) leen sus
+    // números de h.rol. v0.1.4: el Druida y el Mago también las usan, así que se
+    // toman los del Asesino como base y encima los de la clase (si tiene propios).
+    h.rol = { ...this.balance.clases.asesino, ...datos.clase };
+    h.tipo = datos.tipo;
     h.mult = datos.mult;
     h.reduccion = datos.reduccion;
   }
@@ -267,12 +284,14 @@ export default class EscenaArena extends Phaser.Scene {
       if (recienApretada(this.teclas.SPACE) || recienApretada(this.teclas.J)) this.boton1.usar();
       if (recienApretada(this.teclas.K)) this.boton2.usar();
       if (recienApretada(this.teclas.L)) this.boton3.usar();
-      if (recienApretada(this.teclas.H)) this.botonCura.usar();
+      if (recienApretada(this.teclas.H)) this.botonVida.usar();
+      if (recienApretada(this.teclas.M)) this.botonMana.usar();
     } else {
       this.direccion.set(0, 0);
       this.heroe.mover(this.direccion); // caído: quieto (se ve como fantasma)
     }
-    for (const boton of [this.boton1, this.boton2, this.boton3, this.botonCura]) boton.actualizar();
+    for (const boton of [this.boton1, this.boton2, this.boton3, this.botonVida, this.botonMana]) boton.actualizar();
+    this.actualizarMana(delta);
 
     if (this.cooperativo) this.cooperativo.actualizar();
     this.actualizarMagias(delta); // v0.1.2: proyectiles de los héroes
@@ -316,6 +335,7 @@ export default class EscenaArena extends Phaser.Scene {
     if (!h.vivo || this.terminado || this.caido) return;
     danio = Math.max(1, Math.round(danio * (1 - (h.reduccion || 0)))); // v0.1.2: la ARMADURA quita una parte
     if (!h.recibirDanio(danio)) return;
+    h.ultimoDanio = this.time.now; // v0.1.4: mientras lo atacan, el maná no se recupera
     if (h === this.heroe) {
       this.cameras.main.shake(100, 0.006);
       this.vibrar(60);
@@ -336,6 +356,7 @@ export default class EscenaArena extends Phaser.Scene {
 
   /** Invitado: mi vida bajó (lo dice el anfitrión): sacudida, vibración y parpadeo */
   efectoDanioPropio() {
+    this.heroe.ultimoDanio = this.time.now; // el maná deja de recuperarse un rato
     this.cameras.main.shake(100, 0.006);
     this.vibrar(60);
     this.tweens.add({ targets: [this.heroe.sprite, this.heroe.alas].filter(Boolean), alpha: 0.3, duration: 100, yoyo: true, repeat: 2 });
@@ -444,12 +465,15 @@ export default class EscenaArena extends Phaser.Scene {
   configEnemigo(tipo, nivel = 0) {
     const base = this.balance.tiposEnemigo[tipo];
     const d = this.balance.dificultad;
+    const dif = this.dif; // v0.1.4: la dificultad elegida (Iniciado, Veterano...)
     const fuerza = this.mundo.fuerza;
     return {
       ...base, // "..." copia todos los datos del tipo; luego cambiamos algunos
-      vidaMax: Math.round(base.vidaMax * fuerza * (1 + nivel * d.vidaPorSala) * (this.cooperativo ? this.balance.cooperativo.multVida : 1)),
-      velocidad: Math.round(base.velocidad * (1 + (fuerza - 1) / 2) * (1 + nivel * d.velocidadPorSala)),
-      danioContacto: Math.round(base.danioContacto * (1 + nivel * d.danioPorSala)),
+      vidaMax: Math.round(base.vidaMax * fuerza * dif.vida * (1 + nivel * d.vidaPorSala) * (this.cooperativo ? this.balance.cooperativo.multVida : 1)),
+      velocidad: Math.round(base.velocidad * dif.velocidad * (1 + (fuerza - 1) / 2) * (1 + nivel * d.velocidadPorSala)),
+      danioContacto: Math.round(base.danioContacto * dif.danio * (1 + nivel * d.danioPorSala)),
+      // el tirador también dispara más fuerte
+      disparo: base.disparo ? { ...base.disparo, danio: Math.round(base.disparo.danio * dif.danio) } : undefined,
       color: this.mundo.colores[tipo],
       colorProyectil: color(this.mundo.colores[tipo]),
     };
@@ -462,7 +486,11 @@ export default class EscenaArena extends Phaser.Scene {
     return {
       ...comun,  // comportamiento común (embestida, aviso...)
       ...propio, // tamaño, vida y velocidad de los jefes de ESTE mundo
-      vidaMax: Math.round(propio.vidaMax * (1 + (n - 1) * comun.aumentoVidaPorJefe) * (this.cooperativo ? this.balance.cooperativo.multVidaJefe : 1)),
+      vidaMax: Math.round(propio.vidaMax * this.dif.vida * (1 + (n - 1) * comun.aumentoVidaPorJefe) * (this.cooperativo ? this.balance.cooperativo.multVidaJefe : 1)),
+      // v0.1.4: con más dificultad, el jefe pega más fuerte y corre un poco más
+      velocidad: Math.round(propio.velocidad * this.dif.velocidad),
+      danioContacto: Math.round(propio.danioContacto * this.dif.danio),
+      rafaga: { ...comun.rafaga, danio: Math.round(comun.rafaga.danio * this.dif.danio) },
       radioTextura: 50,
       color: this.mundo.colores.jefe,
     };
@@ -541,22 +569,110 @@ export default class EscenaArena extends Phaser.Scene {
   }
 
   // =============================================================
-  // Cura (pociones)
+  // v0.1.4: MANÁ y POCIONES (reemplazan a la cura)
   // =============================================================
 
-  /** Usa una cura si quedan y si el héroe no tiene la vida llena */
-  usarCura(h = this.heroe) {
-    const max = h.config.vidaMax;
-    if (h.curas <= 0 || h.vida >= max || !h.vivo) return;
-    h.curas -= 1; // cada jugador gasta solo las suyas
-    const cantidad = Math.round(this.balance.cura.cantidad * h.mult.cura); // Derial e Inteligencia curan más
-    h.vida = Math.min(h.vida + cantidad, max);
-    // Efecto: destello verde y números de curación
-    const { x, y } = h.cuerpo;
-    const luz = this.add.image(x, y, 'brillo').setTint(0x66bb6a).setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
-    this.tweens.add({ targets: luz, scale: 2.5, alpha: 0, duration: 500, onComplete: () => luz.destroy() });
-    this.mostrarNumero(x, y - 40, `+${cantidad}`, '#a5d6a7');
+  /**
+   * El maná se recupera solo (2% del máximo por segundo) si nadie me golpeó
+   * en los últimos "sinDanioMs". También dibuja la barra azul sobre mi héroe.
+   */
+  actualizarMana(delta) {
+    const h = this.heroe;
+    const m = this.balance.mana;
+    const tranquilo = this.time.now - h.ultimoDanio >= m.sinDanioMs;
+    if (h.vivo && tranquilo && h.mana < h.manaMax) {
+      h.mana = Math.min(h.manaMax, h.mana + h.manaMax * m.regenPorSegundo * (delta / 1000));
+    }
+    this.barraMana.dibujar(h.cuerpo.x, h.cuerpo.y - h.radio - 13, h.mana / h.manaMax);
+    // Barra grande arriba a la izquierda, con el número
+    const ancho = 240;
+    this.barraManaHud.clear()
+      .fillStyle(0x000000, 0.6).fillRect(18, 112, ancho + 4, 18)
+      .fillStyle(color(m.color)).fillRect(20, 114, ancho * (h.mana / h.manaMax), 14);
+    this.textoMana.setText(`Maná ${Math.floor(h.mana)}/${h.manaMax}`);
+    // Los botones sin maná suficiente se ven apagados
+    this.datosHeroe.poderes.botones.forEach((poder, i) => {
+      const boton = [this.boton1, this.boton2, this.boton3][i];
+      if (i < this.datosHeroe.botones) boton.circulo.setAlpha(h.mana >= poder.costo ? 1 : 0.4);
+    });
+  }
+
+  /**
+   * Usa el poder del botón i (0, 1, 2) si alcanza el maná.
+   * Devuelve false si no alcanza: así el botón NO entra en recarga.
+   */
+  usarPoder(i) {
+    const h = this.heroe;
+    const poder = this.datosHeroe.poderes.botones[i];
+    if (!h.vivo || this.caido || this.terminado) return false;
+    if (h.mana < poder.costo) {
+      this.mostrarNumero(h.cuerpo.x, h.cuerpo.y - 60, 'Sin maná', '#90caf9');
+      return false;
+    }
+    h.mana -= poder.costo;
+    this.accion(poder.accion);
+    return true;
+  }
+
+  /**
+   * Toma una poción ("vida" o "mana"). Las pociones son MÍAS (de mi cuenta):
+   * aquí se resta una. En pareja, la vida la decide el anfitrión: el invitado
+   * le pide que lo cure (como antes con la cura).
+   */
+  tomarPocion(tipo) {
+    const h = this.heroe;
+    if (!h.vivo || this.caido || this.terminado) return false;
+    if (pociones()[tipo] <= 0) {
+      this.mostrarNumero(h.cuerpo.x, h.cuerpo.y - 60, 'No tienes pociones', '#ef9a9a');
+      return false;
+    }
+    if (tipo === 'vida') {
+      if (h.vida >= h.config.vidaMax) return false; // con la vida llena no se gasta
+      if (this.esInvitado) {
+        this.cooperativo.enviar({ t: 'hab', h: 'pocionVida' });
+        this.efectoCura(h, 0x66bb6a, null);
+      } else {
+        this.curarConPocion(h);
+      }
+    } else {
+      if (h.mana >= h.manaMax) return false;
+      const cantidad = Math.round(h.manaMax * this.balance.pociones.tipos.mana.mana);
+      h.mana = Math.min(h.manaMax, h.mana + cantidad);
+      this.efectoCura(h, color(this.balance.mana.color), `+${cantidad}`, '#90caf9');
+    }
+    sumarPociones({ [tipo]: -1 });
     this.actualizarHud();
+    return true;
+  }
+
+  /** La poción de vida devuelve una parte de la vida máxima (la Inteligencia y el Derial curan más) */
+  curarConPocion(h) {
+    const max = h.config.vidaMax;
+    if (!h.vivo || h.vida >= max) return;
+    const cantidad = Math.round(max * this.balance.pociones.tipos.vida.vida * h.mult.cura);
+    h.vida = Math.min(h.vida + cantidad, max);
+    this.efectoCura(h, 0x66bb6a, `+${cantidad}`);
+  }
+
+  /** Destello de color y número sobre el héroe */
+  efectoCura(h, tinte, texto, colorTexto = '#a5d6a7') {
+    const { x, y } = h.cuerpo;
+    const luz = this.add.image(x, y, 'brillo').setTint(tinte).setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
+    this.tweens.add({ targets: luz, scale: 2.5, alpha: 0, duration: 500, onComplete: () => luz.destroy() });
+    if (texto) this.mostrarNumero(x, y - 40, texto, colorTexto);
+  }
+
+  /** Muestra la pasiva (siempre activa) con su descripción */
+  mostrarPasiva() {
+    const p = this.datosHeroe.poderes.pasiva;
+    this.mostrarAnuncio(`✦ ${p.nombre}`, true);
+    if (this.textoPasivaLarga) this.textoPasivaLarga.destroy();
+    const W = this.scale.baseSize.width;
+    this.textoPasivaLarga = this.add.text(W / 2, 150, p.texto, {
+      fontFamily: 'Arial, sans-serif', fontSize: '20px', color: '#e1bee7', align: 'center',
+      stroke: '#05070d', strokeThickness: 5, wordWrap: { width: Math.min(760, W - 80) },
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(150);
+    this.tweens.add({ targets: this.textoPasivaLarga, alpha: 0, delay: 3500, duration: 600 });
   }
 
   // =============================================================
@@ -574,14 +690,26 @@ export default class EscenaArena extends Phaser.Scene {
 
     // Botón 1 (el más grande, bajo el pulgar), botón 2 a su izquierda, botón 3 encima
     const posiciones = [[xAtq, yAtq, radio], [xAtq - 150, yAtq + 25, radioPequeno], [xAtq - 35, yAtq - 150, radioPequeno]];
-    const botones = this.rol.botones.map((tipo, i) => {
+    // v0.1.4: los 3 poderes salen del set de CLASE + ROL; cada uno usa una habilidad "molde"
+    const botones = this.datosHeroe.poderes.botones.map((poder, i) => {
+      const tipo = poder.accion;
       const hab = HABILIDADES[tipo];
       const abierto = i < this.datosHeroe.botones; // v0.1.2: se abren al subir de nivel
+      const recargaMs = recargaPoder(this.balance, poder, i, hab.recarga(this.balance, this.heroe.rol));
       const boton = new BotonHabilidad(this, {
         x: posiciones[i][0], y: posiciones[i][1], radio: posiciones[i][2], etiqueta: String(i + 1), icono: hab.icono,
-        recargaMs: hab.recarga(this.balance, this.rol) * recarga, color: abierto ? (hab.color ?? colorClase) : 0x555555,
-        alPulsar: () => { if (abierto) this.accion(tipo); },
+        recargaMs: recargaMs * recarga, color: abierto ? (hab.color ?? colorClase) : 0x555555,
+        alPulsar: () => (abierto ? this.usarPoder(i) : false), // v0.1.4: gasta maná
       });
+      // v0.1.4: el costo de maná, en azul, abajo del botón
+      if (abierto && poder.costo > 0) {
+        const r = posiciones[i][2];
+        const costo = this.add.text(posiciones[i][0], posiciones[i][1] + r - 4, `${poder.costo}`, {
+          fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#90caf9', fontStyle: 'bold', stroke: '#05070d', strokeThickness: 4,
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(103);
+        const moverOriginal = boton.mover.bind(boton);
+        boton.mover = (x, y) => { moverOriginal(x, y); costo.setPosition(x, y + r - 4); };
+      }
       if (!abierto) {
         // Bloqueado: gris y con el nivel que hace falta encima
         boton.circulo.setAlpha(0.4);
@@ -595,18 +723,42 @@ export default class EscenaArena extends Phaser.Scene {
       return boton;
     });
     [this.boton1, this.boton2, this.boton3] = botones; // "desestructurar": reparte la lista en 3 variables
-    // Botón 4 — cura: más arriba, con el número de curas que quedan
-    const xCura = xAtq - 175;
-    const yCura = yAtq - 120;
-    this.botonCura = new BotonHabilidad(this, {
-      x: xCura, y: yCura, radio: 42, etiqueta: 'CURA', icono: 'icono-cura',
-      recargaMs: this.balance.cura.recargaMs, color: 0x66bb6a,
-      alPulsar: () => this.accion('cura'),
+    // v0.1.4: la PASIVA va donde estaba la cura. Siempre está activa: tocarla
+    // solo muestra qué hace. Debajo lleva su nombre.
+    const estiloChico = {
+      fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#e1bee7', fontStyle: 'bold', stroke: '#05070d', strokeThickness: 4,
+    };
+    const pasiva = this.datosHeroe.poderes.pasiva;
+    this.botonPasiva = new BotonHabilidad(this, {
+      x: 0, y: 0, radio: 42, etiqueta: '✦', icono: 'icono-pasiva', recargaMs: 0, color: 0xce93d8,
+      alPulsar: () => this.mostrarPasiva(),
     });
-    this.textoCuras = this.add.text(xCura + 30, yCura + 26, '', {
-      fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
-      stroke: '#05070d', strokeThickness: 5,
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(103);
+    const nombrePasiva = this.add.text(0, 0, pasiva.nombre, { ...estiloChico, align: 'center', wordWrap: { width: 130 } })
+      .setOrigin(0.5, 0).setScrollFactor(0).setDepth(103);
+
+    // v0.1.4: POCIONES de vida y de maná, con cuántas me quedan
+    const crearPocion = (tipo) => {
+      const datos = this.balance.pociones.tipos[tipo];
+      const boton = new BotonHabilidad(this, {
+        x: 0, y: 0, radio: 38, etiqueta: '', icono: 'icono-pocion', recargaMs: this.balance.pociones.recargaMs,
+        color: color(datos.color), alPulsar: () => this.tomarPocion(tipo),
+      });
+      const cantidad = this.add.text(0, 0, '', { ...estiloChico, fontSize: '22px', color: '#ffffff' })
+        .setOrigin(0.5).setScrollFactor(0).setDepth(103);
+      return [boton, cantidad];
+    };
+    const [botonVida, cantidadVida] = crearPocion('vida');
+    const [botonMana, cantidadMana] = crearPocion('mana');
+    this.botonVida = botonVida;
+    this.botonMana = botonMana;
+    this.textosPociones = { vida: cantidadVida, mana: cantidadMana };
+
+    // [botón, [textos con su desplazamiento], dx, dy desde el botón 1] (lo usa ubicarControles)
+    this.botonesExtra = [
+      [this.botonPasiva, [[nombrePasiva, 0, 44]], -175, -120],
+      [botonVida, [[cantidadVida, 28, 24]], -275, 45],
+      [botonMana, [[cantidadMana, 28, 24]], -280, -60],
+    ];
   }
 
   /**
@@ -663,11 +815,6 @@ export default class EscenaArena extends Phaser.Scene {
   accion(tipo) {
     const h = this.heroe;
     if (!h.vivo || this.caido || this.terminado) return;
-    if (tipo === 'cura') {
-      if (this.esInvitado) this.cooperativo.enviar({ t: 'hab', h: 'cura' }); // las curas las cuenta el anfitrión
-      else this.usarCura(h);
-      return;
-    }
     this.ejecutarHabilidad(tipo, h);
     if (!this.cooperativo) return;
     const ang = +Math.atan2(h.mirando.y, h.mirando.x).toFixed(3);
@@ -690,7 +837,8 @@ export default class EscenaArena extends Phaser.Scene {
   ejecutarRemota(tipo) {
     const h = this.companero;
     if (!h || !h.vivo || this.caido || this.terminado) return;
-    if (tipo === 'cura') this.usarCura(h);
+    // v0.1.4: el invitado tomó una poción de vida (la poción ya la restó él en su celular)
+    if (tipo === 'pocionVida') this.curarConPocion(h);
     else this.ejecutarHabilidad(tipo, h);
   }
 
@@ -966,8 +1114,9 @@ export default class EscenaArena extends Phaser.Scene {
     const total = { intys: 0, fichas: 0, rubis: 0 };
     const lineas = lista.map((id) => {
       const cofre = c.tipos[id];
-      const intys = entre(cofre.intys);
-      const fichas = entre(cofre.fichas);
+      // v0.1.4: más dificultad = más premio
+      const intys = Math.round(entre(cofre.intys) * this.dif.premios);
+      const fichas = Math.round(entre(cofre.fichas) * this.dif.premios);
       const rubis = Math.random() < cofre.probRubi ? entre(cofre.rubis) : 0;
       total.intys += intys;
       total.fichas += fichas;
@@ -1112,15 +1261,15 @@ export default class EscenaArena extends Phaser.Scene {
     const texto = `${detalle}\nDerrotados: ${this.derrotados}`;
     if (this.cooperativo) this.cooperativo.enviar({ t: 'fin', tipo: 'derrota', titulo, texto });
     this.pantallaFinal(titulo, texto, this.abrirCofres(false), [
-      { texto: 'Reintentar', principal: true, accion: () => this.jugarMundo(this.indiceMundo) },
+      { texto: 'Reintentar', principal: true, accion: () => this.jugarMundo(this.indiceMundo, this.dificultad) },
       { texto: 'Mapa', accion: () => this.irAlMapa() },
     ]);
   }
 
   /** Empieza (o reinicia) un mundo. En pareja, el invitado entra también. */
-  jugarMundo(indice) {
-    if (this.cooperativo) this.cooperativo.enviar({ t: 'iniciar', mundo: indice });
-    this.scene.restart({ mundo: indice, coop: !!this.cooperativo });
+  jugarMundo(indice, dificultad = 1) {
+    if (this.cooperativo) this.cooperativo.enviar({ t: 'iniciar', mundo: indice, dificultad });
+    this.scene.restart({ mundo: indice, dificultad, coop: !!this.cooperativo });
   }
 
   /** Vuelve al mapa. En pareja, el invitado queda esperando en la sala. */
@@ -1156,19 +1305,26 @@ export default class EscenaArena extends Phaser.Scene {
       h.cuerpo.body.setVelocity(0, 0);
       h.invulnerableHasta = Infinity; // ya nada puede dañarlo
     }
-    marcarSuperado(this.indiceMundo);
+    marcarSuperado(this.indiceMundo, this.dificultad);
 
+    // v0.1.4: se abre la dificultad siguiente de ESTE mundo (y, si es la primera vez, el mundo siguiente)
     const siguiente = this.balance.mundos[this.indiceMundo + 1];
-    const mensaje = siguiente ? `Desbloqueaste: ${siguiente.nombre}` : '¡Venciste todos los mundos del prototipo!';
+    const otraDif = this.balance.dificultades.lista[this.dificultad]; // la siguiente (índice = número actual)
+    const lineas = [];
+    if (otraDif) lineas.push(`Nueva dificultad: ${otraDif.nombre}`);
+    if (siguiente && this.dificultad === 1) lineas.push(`Desbloqueaste: ${siguiente.nombre}`);
+    const mensaje = lineas.length ? lineas.join(' · ') : '¡Superaste la dificultad más alta!';
     const botones = [{ texto: 'Mapa', accion: () => this.irAlMapa() }];
-    if (siguiente) {
+    if (otraDif) {
       botones.unshift({ // unshift: lo agrega al PRINCIPIO de la lista
-        texto: 'Siguiente', principal: true,
-        accion: () => this.jugarMundo(this.indiceMundo + 1),
+        texto: otraDif.nombre, principal: true,
+        accion: () => this.jugarMundo(this.indiceMundo, this.dificultad + 1),
       });
+    } else if (siguiente) {
+      botones.unshift({ texto: 'Siguiente', principal: true, accion: () => this.jugarMundo(this.indiceMundo + 1) });
     }
     this.chispas.explode(80, this.heroe.cuerpo.x, this.heroe.cuerpo.y);
-    const titulo = `¡${this.mundo.nombre} superado!`;
+    const titulo = `¡${this.mundo.nombre} (${this.dif.nombre}) superado!`;
     const texto = `${mensaje}\nDerrotados: ${this.derrotados}`;
     if (this.cooperativo) this.cooperativo.enviar({ t: 'fin', tipo: 'victoria', titulo, texto });
     this.pantallaFinal(titulo, texto, this.abrirCofres(true), botones);
@@ -1287,14 +1443,18 @@ export default class EscenaArena extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#ffffff',
       stroke: '#05070d', strokeThickness: 4,
     };
-    this.add.text(20, 14, `${this.mundo.nombre.toUpperCase()} · ${this.raza.nombre.toUpperCase()} ${this.rol.nombre.toUpperCase()} NV ${this.datosHeroe.personaje.nivel}${this.cooperativo ? ' · EN PAREJA' : ''}`, { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
+    this.add.text(20, 14, `${this.mundo.nombre.toUpperCase()} ${this.dif.nombre.toUpperCase()} · ${this.raza.nombre.toUpperCase()} ${this.rol.nombre.toUpperCase()} ${this.balance.nombresRol[this.datosHeroe.idRol].toUpperCase()} NV ${this.datosHeroe.personaje.nivel}${this.cooperativo ? ' · EN PAREJA' : ''}`, { ...estilo, fontFamily: FUENTE_TITULO, color: '#c9a94a' })
       .setScrollFactor(0).setDepth(100);
     this.textoProgreso = this.add.text(20, 42, '', {
       ...estilo, fontFamily: FUENTE_TITULO, fontSize: '28px', color: '#f5c542', fontStyle: 'bold',
     }).setScrollFactor(0).setDepth(100);
     this.textoDerrotados = this.add.text(20, 80, '', estilo).setScrollFactor(0).setDepth(100);
+    // v0.1.4: barra de MANÁ (se dibuja en actualizarMana)
+    this.barraManaHud = this.add.graphics().setScrollFactor(0).setDepth(100);
+    this.textoMana = this.add.text(270, 121, '', { ...estilo, fontSize: '16px', color: '#90caf9' })
+      .setOrigin(0, 0.5).setScrollFactor(0).setDepth(100);
     this.textoAyuda = this.add.text(20, this.scale.baseSize.height - 36,
-      'PC: WASD mover · ESPACIO botón 1 · K botón 2 · L botón 3 · H cura · P pausa', { ...estilo, fontSize: '18px', color: '#c8d3e0' })
+      'PC: WASD mover · ESPACIO botón 1 · K botón 2 · L botón 3 · H poción vida · M poción maná · P pausa', { ...estilo, fontSize: '18px', color: '#c8d3e0' })
       .setScrollFactor(0).setDepth(100);
 
     // FPS = cuadros por segundo. 60 es fluido; menos de 30 se siente lento.
@@ -1307,14 +1467,17 @@ export default class EscenaArena extends Phaser.Scene {
       .setOrigin(0.5, 0).setScrollFactor(0).setDepth(101);
   }
 
-  /** Actualiza los textos de progreso, derrotados y curas */
+  /** Actualiza los textos de progreso, derrotados y pociones */
   actualizarHud() {
     this.textoProgreso.setText(`Oleadas ${this.oleadasVencidas}/${this.mundo.oleadas} · Jefes ${this.jefesVencidos}/${this.mazmorra.totalJefes}`);
     this.textoDerrotados.setText(`Derrotados: ${this.derrotados}`);
-    const curas = this.heroe.curas; // mis curas
-    this.textoCuras.setText(`${curas}`);
-    this.botonCura.circulo.setAlpha(curas > 0 ? 1 : 0.35);
-    this.botonCura.texto.setAlpha(curas > 0 ? 1 : 0.35);
+    // v0.1.4: cuántas pociones me quedan (las sin pociones se ven apagadas)
+    const mias = pociones();
+    for (const [tipo, boton] of [['vida', this.botonVida], ['mana', this.botonMana]]) {
+      this.textosPociones[tipo].setText(`${mias[tipo]}`);
+      boton.circulo.setAlpha(mias[tipo] > 0 ? 1 : 0.35);
+      boton.texto.setAlpha(mias[tipo] > 0 ? 1 : 0.35);
+    }
   }
 
   /** Barra con la vida del jefe que se está enfrentando */
