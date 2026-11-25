@@ -94,14 +94,19 @@ export function estadisticasBase(balance, rol, nivel) {
   return tabla[Phaser.Math.Clamp(nivel, 1, tabla.length) - 1];
 }
 
-/** Las 6 estadísticas finales del héroe (base + puntos + equipo) */
+/**
+ * Las 6 estadísticas finales del héroe (base + puntos + equipo).
+ * v0.1.7: y encima el BONO DE SET (+3% Vida, +8% en todas...) si lleva
+ * 4 u 8 piezas del mismo set (Excel Sets_Ropa_Accesorios).
+ */
 export function estadisticasFinales(balance, p) {
   const base = estadisticasBase(balance, p.rol, p.nivel);
   const porPunto = balance.estadisticas.porPunto;
   const bonos = bonosEquipo(balance, p);
+  const set = bonoSet(balance, p);
   const total = {};
   for (const id of Object.keys(balance.estadisticas.lista)) {
-    total[id] = base[id] + ((p.est[id] || 0) + (bonos[id] || 0)) * porPunto[id];
+    total[id] = (base[id] + ((p.est[id] || 0) + (bonos[id] || 0)) * porPunto[id]) * (1 + (set.bono[id] || 0));
   }
   return total;
 }
@@ -124,7 +129,21 @@ export function textoEstadistica(id, valor) {
 //   anillo · amuleto.
 // Cada espacio tiene 5 "tiers" (nivel 1, 6, 11, 16, 21). El equipo puesto
 // se guarda así: p.equipo = { casco: 2, manoDerecha: 0 } (número = tier).
+//
+// v0.1.7 — SETS: cada pieza existe en 3 sets (Básico, Moderno, God). El set
+// cambia cuánto suma (balance.json → equipo.sets → bonos) y el precio, que se
+// paga con intys O con rubís. Ahora se guarda así:
+//   p.equipo = { casco: { tier: 2, set: 'god' } }
+// (un número suelto, de versiones viejas, se lee como set Básico).
 // =============================================================
+
+/** Lee lo puesto en un espacio: { tier, set } o null (acepta el formato viejo: un número) */
+export function piezaPuesta(p, ranura) {
+  const valor = p && p.equipo ? p.equipo[ranura] : undefined;
+  if (Number.isInteger(valor)) return { tier: valor, set: 'basico' };
+  if (valor && Number.isInteger(valor.tier)) return { tier: valor.tier, set: valor.set || 'basico' };
+  return null;
+}
 
 /** El arma de una raza + clase + rol (si el Excel no la trae, la general de la clase) */
 export function armaDe(balance, raza, clase, rol) {
@@ -138,11 +157,12 @@ export function armaDe(balance, raza, clase, rol) {
  * (el nombre y las estadísticas cambian según su rol y su arma).
  * Devuelve null si ese espacio no se usa (mano izquierda con arma a 2 manos).
  */
-export function objetoEquipo(balance, p, ranura, tier) {
+export function objetoEquipo(balance, p, ranura, tier, idSet = 'basico') {
   const eq = balance.equipo;
   const datos = eq.ranuras[ranura];
   const t = eq.tiers[tier];
-  if (!datos || !t) return null;
+  const set = eq.sets[idSet];
+  if (!datos || !t || !set) return null;
   const arma = armaDe(balance, p.raza, p.clase, p.rol);
   let nombre;
   let stats;
@@ -160,15 +180,16 @@ export function objetoEquipo(balance, p, ranura, tier) {
     nombre = datos.nombres[p.rol];
     stats = datos.bonos[p.rol];
   }
-  // La 1ª estadística suma el máximo del tier y la 2ª, el mínimo (Excel Ropa_Accesorios)
-  const [minimo, maximo] = t.bono;
+  // La 1ª estadística suma el máximo del tier y la 2ª, el mínimo.
+  // v0.1.7: el "+#" depende del SET (Excel Sets_Ropa_Accesorios → Aumento_por_Nivel)
+  const [minimo, maximo] = set.bonos[tier] || t.bono;
   const bonos = { [stats[0]]: Math.round(maximo * multiplicador), [stats[1]]: Math.round(minimo * multiplicador) };
-  // El precio se multiplica por el del espacio (el arma cuesta más)
-  const precio = {};
-  for (const [moneda, n] of Object.entries(t.precio)) precio[moneda] = moneda === 'intys' ? Math.round(n * (datos.precio || 1)) : n;
+  // v0.1.7: precio del set y del tier (hoja Precios). Se paga con UNA de las dos monedas.
+  const precios = set.precios[tier];
   return {
-    id: `${ranura}:${tier}`, ranura, tier, nombre, bonos, precio,
-    nivel: t.nivel, tierNombre: t.nombre, color: t.color,
+    id: `${ranura}:${tier}:${idSet}`, ranura, tier, set: idSet, nombre, bonos,
+    precios: [{ intys: precios.intys }, { rubis: precios.rubis }], // dos formas de pagar
+    nivel: t.nivel, tierNombre: t.nombre, color: t.color, setNombre: set.nombre, setColor: set.color,
   };
 }
 
@@ -186,10 +207,10 @@ export function personajeValido(balance, p) {
   const nivel = Phaser.Math.Clamp(Math.floor(Number(p && p.nivel) || 1), 1, balance.progreso.nivelMax);
   const valido = { raza, clase, rol, nivel, puntos: Math.max(0, Number(p && p.puntos) || 0), est, equipo: {} };
   valido.coronas = Math.max(0, Math.floor(Number(p && p.coronas) || 0));
-  // v0.1.5: el equipo puesto es { ranura: tier }. Lo que no existe se quita.
+  // v0.1.7: el equipo puesto es { ranura: { tier, set } }. Lo que no existe se quita.
   for (const ranura of Object.keys(balance.equipo.ranuras)) {
-    const tier = p && p.equipo ? p.equipo[ranura] : undefined;
-    if (Number.isInteger(tier) && objetoEquipo(balance, valido, ranura, tier)) valido.equipo[ranura] = tier;
+    const pieza = piezaPuesta(p, ranura);
+    if (pieza && objetoEquipo(balance, valido, ranura, pieza.tier, pieza.set)) valido.equipo[ranura] = pieza;
   }
   return valido;
 }
@@ -201,12 +222,42 @@ export function personajeValido(balance, p) {
 export function bonosEquipo(balance, p) {
   const total = {};
   for (const id of Object.keys(balance.estadisticas.lista)) total[id] = 0;
-  for (const [ranura, tier] of Object.entries(p.equipo || {})) {
-    const obj = objetoEquipo(balance, p, ranura, tier);
+  for (const ranura of Object.keys(p.equipo || {})) {
+    const pieza = piezaPuesta(p, ranura);
+    const obj = pieza && objetoEquipo(balance, p, ranura, pieza.tier, pieza.set);
     if (!obj) continue;
     for (const [est, cantidad] of Object.entries(obj.bonos)) total[est] += cantidad;
   }
   return total;
+}
+
+/**
+ * v0.1.7: BONO DE SET. Cuenta cuántas piezas lleva de cada set; el set con más
+ * piezas da su bono de 4 piezas o el de 8 (el de 8 REEMPLAZA al de 4).
+ * Con arma a 2 manos solo hay 7 espacios: con los 7 ya cuenta como "8 piezas".
+ * Devuelve { set, piezas, bono: { vida: 0.05, ... }, aura, texto }.
+ */
+export function bonoSet(balance, p) {
+  const sets = balance.equipo.sets;
+  const cuenta = {};
+  for (const ranura of Object.keys(p.equipo || {})) {
+    const pieza = piezaPuesta(p, ranura);
+    if (pieza && sets[pieza.set]) cuenta[pieza.set] = (cuenta[pieza.set] || 0) + 1;
+  }
+  // Espacios que usa este héroe (sin mano izquierda si su arma es a 2 manos)
+  const espacios = Object.keys(balance.equipo.ranuras).filter((r) => objetoEquipo(balance, p, r, 0)).length;
+  let mejor = { set: null, piezas: 0, bono: {}, aura: false, texto: '' };
+  for (const [idSet, piezas] of Object.entries(cuenta)) {
+    const s = sets[idSet];
+    let bono = null;
+    let texto = '';
+    if (piezas >= Math.min(8, espacios)) { bono = s.bono8; texto = s.texto8; } else if (piezas >= 4) { bono = s.bono4; texto = s.texto4; }
+    if (bono && piezas > mejor.piezas) {
+      const { aura, ...porcentajes } = bono; // "aura" no es una estadística
+      mejor = { set: idSet, piezas, bono: porcentajes, aura: !!aura, texto: `Set ${s.nombre} (${piezas}): ${texto}` };
+    }
+  }
+  return mejor;
 }
 
 /** Texto corto de los bonos de un objeto: "+8 Daño · +0,8% Velocidad" (cada punto de % vale 0,20%) */
@@ -266,6 +317,8 @@ export function calcularHeroe(balance, entrada) {
     },
     // ARMADURA = "% de bloqueo": quita esa parte del daño recibido (con un tope)
     reduccion: Phaser.Math.Clamp(s.armadura, 0, cv.armaduraMax),
+    // v0.1.7: 8 piezas del set God = aura dorada alrededor del héroe
+    aura: bonoSet(balance, p).aura,
     // FUERZA = probabilidad de aturdir al enemigo cada "aturdirCada" golpes
     aturdir: Phaser.Math.Clamp(s.fuerza, 0, 1),
   };

@@ -35,9 +35,12 @@ import BotonHabilidad from '../controles/BotonHabilidad.js';
 import Mazmorra from '../mundo/Mazmorra.js';
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
-import { marcarSuperado, personaje, nick, sumarMonedas, pociones, sumarPociones, sumarCoronas } from '../datos/Progreso.js';
+import { crearMonstruos, texturaMonstruo } from '../graficos/TexturasMonstruos.js';
+import {
+  marcarSuperado, personaje, nick, sumarMonedas, pociones, sumarPociones, sumarCoronas, darObjeto,
+} from '../datos/Progreso.js';
 import BarraVida from '../ui/BarraVida.js';
-import { calcularHeroe, recargaPoder, rangoDe } from '../datos/Personaje.js';
+import { calcularHeroe, recargaPoder, rangoDe, objetoEquipo } from '../datos/Personaje.js';
 import { redActual } from '../red/Red.js';
 import Cooperativo from '../red/Cooperativo.js';
 
@@ -102,6 +105,7 @@ export default class EscenaArena extends Phaser.Scene {
 
     crearTexturas(this);                  // texturas comunes (solo la primera vez)
     crearTexturasMundo(this, this.mundo); // suelo, muro y adornos de ESTE mundo
+    crearMonstruos(this, this.mundo);     // v0.1.7: los monstruos y el jefe propios de ESTE mundo
 
     // La mazmorra: salas, pasillos, muros y puertas
     this.mazmorra = new Mazmorra(this, this.mundo, this.balance.mazmorra);
@@ -241,6 +245,7 @@ export default class EscenaArena extends Phaser.Scene {
       velocidad: datos.velocidad,
       textura: datos.idRaza,
       extra: datos.raza.extra,
+      aura: datos.aura, // v0.1.7: set God completo
     };
   }
 
@@ -432,13 +437,17 @@ export default class EscenaArena extends Phaser.Scene {
 
     if (sala.tipo === 'oleada') {
       const nivel = sala.numero - 1; // 0 en la primera sala: cada sala es un poco más dura
+      const nombres = []; // v0.1.7: qué monstruos salen, para el anuncio
       for (const [tipo, cantidad] of Object.entries(this.composicionOleada(sala.numero))) {
         for (let i = 0; i < cantidad; i++) this.crearEnemigo(this.configEnemigo(tipo, nivel), sala, CLASES[tipo]);
+        if (cantidad > 0 && this.mundo.monstruos) nombres.push(this.nombreMonstruo(tipo));
       }
-      this.mostrarAnuncio(`Oleada ${sala.numero} de ${this.mundo.oleadas}`);
+      this.mostrarAnuncio(`Oleada ${sala.numero} de ${this.mundo.oleadas}${nombres.length ? `\n${nombres.join(' · ')}` : ''}`);
     } else {
       const total = this.mazmorra.totalJefes;
-      this.mostrarAnuncio(total === 1 ? '¡El jefe!' : `¡Jefe ${sala.numero} de ${total}!`);
+      // v0.1.7: el anuncio dice el NOMBRE del jefe de este mundo
+      const nombre = this.nombreMonstruo('jefe');
+      this.mostrarAnuncio(total === 1 ? `¡${nombre}!` : `¡${nombre} (${sala.numero} de ${total})!`);
       this.cameras.main.shake(400, 0.006);
       this.time.delayedCall(this.balance.oleadas.retrasoJefeMs, () => {
         if (!this.caido) this.crearEnemigo(this.configJefe(sala.numero), sala, Jefe);
@@ -485,7 +494,24 @@ export default class EscenaArena extends Phaser.Scene {
       disparo: base.disparo ? this.disparoLento(base.disparo, fd, f) : undefined,
       color: this.mundo.colores[tipo],
       colorProyectil: color(this.mundo.colores[tipo]),
+      ...this.dibujoMonstruo(tipo), // v0.1.7: el dibujo propio de este mundo
     };
+  }
+
+  /**
+   * v0.1.7: cada mundo tiene sus propios monstruos (balance.json → mundos → monstruos).
+   * Devuelve la textura que le toca al tipo ("m-bosque-rapido"). Todas se dibujan
+   * para un radio de 24 (el jefe, de 50). Si el mundo no tiene, queda el dibujo común.
+   */
+  dibujoMonstruo(tipo) {
+    if (!this.mundo.monstruos || !this.mundo.monstruos[tipo]) return {};
+    return { textura: texturaMonstruo(this.mundo.id, tipo), radioTextura: tipo === 'jefe' ? 50 : 24 };
+  }
+
+  /** v0.1.7: el nombre del monstruo de este mundo ("Treant ancestral"); si no tiene, el genérico */
+  nombreMonstruo(tipo) {
+    const m = this.mundo.monstruos && this.mundo.monstruos[tipo];
+    return m ? m.nombre : (tipo === 'jefe' ? 'El jefe' : tipo);
   }
 
   /**
@@ -540,6 +566,7 @@ export default class EscenaArena extends Phaser.Scene {
       rafaga: this.disparoLento(comun.rafaga, this.factorDanio(), f),
       radioTextura: 50,
       color: this.mundo.colores.jefe,
+      ...this.dibujoMonstruo('jefe'), // v0.1.7: el jefe propio de este mundo
     };
   }
 
@@ -1157,37 +1184,80 @@ export default class EscenaArena extends Phaser.Scene {
   }
 
   // =============================================================
-  // COFRES (v0.1.2): premio al terminar una mazmorra (ganando o perdiendo)
-  //   - un cofre pequeño por cada jefe vencido;
-  //   - al superar el mundo, además, el cofre del mundo (mediano o grande).
-  // Cada cofre da intys y fichas, y a veces (azar) rubís.
+  // COFRES (v0.1.2; v0.1.7: Excel Cofres_Contenido y Probabilidades)
+  //   - un cofre por cada jefe vencido;
+  //   - al superar el mundo, uno más.
+  // El TIPO de cada cofre (Pequeño ... Caja Smille) sale al azar con la tabla
+  // del mundo y la dificultad (balance.json → cofres → porMundo).
+  // Cada cofre da intys, fichas y fichas de facción; a veces rubís y a veces
+  // una pieza de EQUIPO del nivel del héroe (de un set al azar: Básico, Moderno o God).
   // Cada jugador abre SUS cofres en su celular.
   // =============================================================
   abrirCofres(victoria) {
     if (this.cofresAbiertos) return '';
     this.cofresAbiertos = true;
-    const c = this.balance.cofres;
-    const lista = Array(this.jefesVencidos).fill(c.porJefe);
-    if (victoria && this.mundo.cofre) lista.push(this.mundo.cofre);
-    if (!lista.length) return 'Sin cofres: vence a un jefe para ganar uno';
+    const cantidad = this.jefesVencidos + (victoria ? 1 : 0);
+    if (!cantidad) return 'Sin cofres: vence a un jefe para ganar uno';
     const entre = ([min, max]) => Phaser.Math.Between(min, max);
     const total = { intys: 0, fichas: 0, rubis: 0, fichasFaccion: 0 };
-    const lineas = lista.map((id) => {
-      const cofre = c.tipos[id];
-      // v0.1.4: más dificultad = más premio
-      const intys = Math.round(entre(cofre.intys) * this.dif.premios);
-      const fichas = Math.round(entre(cofre.fichas) * this.dif.premios);
-      const rubis = Math.random() < cofre.probRubi ? entre(cofre.rubis) : 0;
-      // v0.1.5: fichas de facción (sirven para abrir héroes nuevos)
-      const faccion = Math.round(entre(cofre.fichasFaccion || [0, 0]) * this.dif.premios);
-      total.intys += intys;
-      total.fichas += fichas;
-      total.rubis += rubis;
-      total.fichasFaccion += faccion;
-      return `${cofre.nombre}: +${intys} ☀️  +${fichas} 🎟️  +${faccion} 🔰${rubis ? `  +${rubis} 💎` : ''}`;
-    });
+    const lineas = [];
+    for (let i = 0; i < cantidad; i++) {
+      const cofre = this.balance.cofres.tipos[this.sortearCofre()];
+      const premio = {
+        intys: entre(cofre.intys),
+        fichas: entre(cofre.fichas),
+        fichasFaccion: entre(cofre.fichasFaccion),
+        rubis: Math.random() < cofre.probRubi ? entre(cofre.rubis) : 0,
+      };
+      let texto = `${cofre.nombre}: +${premio.intys} ☀️  +${premio.fichas} 🎟️  +${premio.fichasFaccion} 🔰${premio.rubis ? `  +${premio.rubis} 💎` : ''}`;
+      // ¿Trae equipo?
+      if (Math.random() < cofre.probEquipo) {
+        const pieza = this.sortearPieza(cofre);
+        if (pieza && darObjeto(pieza.id)) texto += `  🎁 ${pieza.nombre} (${pieza.setNombre})`;
+        else if (pieza) { // ya la tenía: se cambia por la mitad de su precio en intys
+          const cambio = Math.round(pieza.precios[0].intys / 2);
+          premio.intys += cambio;
+          texto += `  🎁 repetido → +${cambio} ☀️`;
+        }
+      }
+      for (const moneda of Object.keys(total)) total[moneda] += premio[moneda];
+      lineas.push(texto);
+    }
     sumarMonedas(total); // se guarda en el navegador
     return lineas.join('\n');
+  }
+
+  /** v0.1.7: elige el tipo de cofre con las probabilidades del mundo y la dificultad */
+  sortearCofre() {
+    const c = this.balance.cofres;
+    const tabla = c.porMundo[this.mundo.id];
+    const probs = tabla ? tabla[this.dificultad - 1] : [1];
+    let azar = Math.random();
+    for (let i = 0; i < probs.length; i++) {
+      azar -= probs[i];
+      if (azar < 0) return c.orden[i];
+    }
+    return c.orden[probs.findLastIndex((p) => p > 0)]; // por si las probabilidades no suman justo 1
+  }
+
+  /**
+   * v0.1.7: una pieza de equipo "acorde al nivel del héroe": un espacio al azar
+   * (de los que usa), el tier más alto que puede llevar y el set según el cofre.
+   */
+  sortearPieza(cofre) {
+    const b = this.balance;
+    const p = this.datosHeroe.personaje;
+    const ranuras = Object.keys(b.equipo.ranuras).filter((r) => objetoEquipo(b, p, r, 0));
+    const ranura = Phaser.Utils.Array.GetRandom(ranuras);
+    let tier = 0;
+    b.equipo.tiers.forEach((t, i) => { if (p.nivel >= t.nivel) tier = i; });
+    let azar = Math.random();
+    let set = 'basico';
+    for (const [id, prob] of Object.entries(cofre.sets || { basico: 1 })) {
+      azar -= prob;
+      if (azar < 0) { set = id; break; }
+    }
+    return objetoEquipo(b, p, ranura, tier, set);
   }
 
   // =============================================================
@@ -1451,8 +1521,11 @@ export default class EscenaArena extends Phaser.Scene {
       fondo.on('pointerdown', b.accion);
     });
     if (premios) {
-      fijo(this.add.text(cx, cy + 150, premios, {
-        fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#ffe082', align: 'center',
+      // v0.1.7: con muchos cofres (mundos con 4-6 jefes) la letra se achica para que quepa
+      const lineas = premios.split('\n').length;
+      fijo(this.add.text(cx, cy + 140, premios, {
+        fontFamily: 'Arial, sans-serif', fontSize: lineas > 5 ? '15px' : lineas > 3 ? '18px' : '22px',
+        color: '#ffe082', align: 'center', wordWrap: { width: this.scale.baseSize.width - 40 },
         stroke: '#05070d', strokeThickness: 4, lineSpacing: 4,
       }).setOrigin(0.5, 0));
     }
@@ -1522,8 +1595,10 @@ export default class EscenaArena extends Phaser.Scene {
   mostrarAnuncio(mensaje, soloAqui = false) {
     if (this.cooperativo && !this.esInvitado && !soloAqui) this.cooperativo.enviar({ t: 'anuncio', texto: mensaje });
     const texto = this.add.text(this.scale.baseSize.width / 2, this.scale.baseSize.height / 2 - 120, mensaje, {
-      fontFamily: FUENTE_TITULO, fontSize: '60px', color: '#f5c542', fontStyle: 'bold',
-      stroke: '#3a1500', strokeThickness: 8,
+      // v0.1.7: los anuncios de 2 líneas (oleada + monstruos) o largos van más chicos
+      fontFamily: FUENTE_TITULO, fontSize: mensaje.includes('\n') || mensaje.length > 22 ? '40px' : '60px',
+      color: '#f5c542', fontStyle: 'bold', stroke: '#3a1500', strokeThickness: 8, align: 'center',
+      wordWrap: { width: this.scale.baseSize.width - 60 },
     }).setOrigin(0.5).setScrollFactor(0).setDepth(150);
     this.tweens.add({
       targets: texto, alpha: 0, y: texto.y - 30, delay: 900, duration: 600,
@@ -1590,6 +1665,8 @@ export default class EscenaArena extends Phaser.Scene {
     g.fillStyle(color(this.mundo.colores.jefe)).fillRect(x, 53, ancho * porcentaje, 16);
     g.lineStyle(2, 0xf5c542, 0.8).strokeRect(x - 3, 50, ancho + 6, 22);
     const total = this.mazmorra.totalJefes;
-    this.textoJefe.setText(total === 1 || !this.salaActiva ? 'JEFE' : `JEFE ${this.salaActiva.numero} DE ${total}`);
+    // v0.1.7: con el nombre del jefe de este mundo
+    const nombre = this.nombreMonstruo('jefe').toUpperCase();
+    this.textoJefe.setText(total === 1 || !this.salaActiva ? nombre : `${nombre} · ${this.salaActiva.numero} DE ${total}`);
   }
 }

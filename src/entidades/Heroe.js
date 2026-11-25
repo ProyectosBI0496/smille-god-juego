@@ -35,6 +35,10 @@ export default class Heroe {
     const textura = config.textura || 'goruk';
     this.tipoExtra = config.extra; // 'alas', 'cola' o null
     this.sombra = escena.add.image(x, y + 8, 'sombra').setAlpha(0.35).setScale(1.1, 0.8).setDepth(9);
+    // v0.1.7: AURA DORADA (8 piezas del set God): un brillo que late debajo del héroe
+    this.aura = config.aura
+      ? escena.add.image(x, y, 'brillo').setTint(0xf5c542).setBlendMode(Phaser.BlendModes.ADD).setDepth(9).setScale(2.4)
+      : null;
     this.alas = this.tipoExtra ? escena.add.image(x, y, `${textura}-${this.tipoExtra}`).setDepth(10) : null;
     this.sprite = escena.add.image(x, y, `${textura}-cuerpo`).setDepth(11);
 
@@ -90,6 +94,7 @@ export default class Heroe {
     if (this.tipoExtra === 'alas') this.alas.setPosition(x, y).setRotation(giro).setScale(1, aleteo);
     if (this.tipoExtra === 'cola') this.alas.setPosition(x, y).setRotation(giro + Math.sin(t * 0.012) * 0.25);
     this.sombra.setPosition(x, y + 10);
+    if (this.aura) this.aura.setPosition(x, y).setAlpha(0.45 + Math.sin(t * 0.006) * 0.2);
 
     this.barra.dibujar(x, y - this.radio - 22, this.vida / this.config.vidaMax);
 
@@ -112,7 +117,7 @@ export default class Heroe {
 
   /** Quita al héroe de la escena (si el compañero se desconecta) */
   destruir() {
-    for (const objeto of [this.cuerpo, this.sprite, this.alas, this.sombra, this.etiqueta]) {
+    for (const objeto of [this.cuerpo, this.sprite, this.alas, this.sombra, this.etiqueta, this.aura]) {
       if (objeto) objeto.destroy();
     }
     this.barra.destruir();

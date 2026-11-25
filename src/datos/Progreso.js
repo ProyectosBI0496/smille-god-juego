@@ -282,16 +282,30 @@ export function comprarPocion(id, precio) {
 
 // ----------------- Equipo (v0.1.5: de cada héroe) -----------------
 
-/** Lo que compró el héroe actual: ["casco:0", "manoDerecha:1"] (espacio:tier) */
+/**
+ * Lo que tiene el héroe actual: ["casco:0:basico", "manoDerecha:1:god"] (espacio:tier:set).
+ * v0.1.7: lo guardado antes de los sets ("casco:0") se lee como set Básico.
+ */
 export function inventario() {
   const h = personaje();
-  return (h && Array.isArray(h.inventario)) ? h.inventario : [];
+  const lista = (h && Array.isArray(h.inventario)) ? h.inventario : [];
+  return lista.map((id) => (id.split(':').length === 2 ? `${id}:basico` : id));
+}
+
+/**
+ * v0.1.7: un cofre regala una pieza de equipo al héroe actual.
+ * Devuelve false si ya la tenía (entonces el cofre da intys en su lugar).
+ */
+export function darObjeto(id) {
+  if (inventario().includes(id)) return false;
+  cambiarActual((h) => { h.inventario = [...inventario(), id]; });
+  return true;
 }
 
 /** Compra un objeto para el héroe actual: resta su precio y lo guarda. Devuelve true si se pudo. */
 export function comprarObjeto(id, precio) {
   if (!alcanza(precio) || inventario().includes(id)) return false;
   pagar(precio);
-  cambiarActual((h) => { h.inventario = [...(h.inventario || []), id]; });
+  cambiarActual((h) => { h.inventario = [...inventario(), id]; });
   return true;
 }

@@ -239,11 +239,17 @@
       "antorchas": false,
       "clima": ["hojas", "luciernagas"],
       "decoracionPorSala": [{"tipo": "arbusto", "cantidad": 6}, {"tipo": "flores", "cantidad": 6}, {"tipo": "roca", "cantidad": 2}],
-      "cofre": "mediano",
       "velocidadEnemigos": [150, 160, 170, 180, 190],
       "forma": "linea",
       "danioEnemigos": [15, 30, 45, 60, 75],
-      "danioJefes": [60, 75, 90, 105, 120]
+      "danioJefes": [60, 75, 90, 105, 120],
+      "monstruos": {
+        "normal": {"nombre": "Lobo musgoso", "cuerpo": "bestia", "adornos": ["orejas", "cola", "colmillos"]},
+        "rapido": {"nombre": "Avispa espina", "cuerpo": "insecto", "adornos": ["alas", "antenas"]},
+        "resistente": {"nombre": "Escarabajo roble", "cuerpo": "insecto", "adornos": ["caparazon", "cuernos"]},
+        "tirador": {"nombre": "Seta escupidora", "cuerpo": "baba", "adornos": ["hojas"]},
+        "jefe": {"nombre": "Treant ancestral", "cuerpo": "golem", "adornos": ["hojas", "corona"]}
+      }
     },
     {
       "id": "desierto",
@@ -269,11 +275,17 @@
       "antorchas": true,
       "clima": ["polvo"],
       "decoracionPorSala": [{"tipo": "cactus", "cantidad": 5}, {"tipo": "roca", "cantidad": 5}],
-      "cofre": "mediano",
       "velocidadEnemigos": [160, 170, 180, 190, 200],
       "forma": "escalera",
       "danioEnemigos": [30, 45, 60, 75, 90],
-      "danioJefes": [75, 90, 105, 120, 135]
+      "danioJefes": [75, 90, 105, 120, 135],
+      "monstruos": {
+        "normal": {"nombre": "Chacal de arena", "cuerpo": "bestia", "adornos": ["orejas", "cola"]},
+        "rapido": {"nombre": "Escorpión veloz", "cuerpo": "insecto", "adornos": ["pinzas", "cola"]},
+        "resistente": {"nombre": "Tortuga de duna", "cuerpo": "reptil", "adornos": ["caparazon"]},
+        "tirador": {"nombre": "Cobra escupidora", "cuerpo": "serpiente", "adornos": ["colmillos"]},
+        "jefe": {"nombre": "Gusano de las dunas", "cuerpo": "serpiente", "adornos": ["puas", "colmillos", "corona"]}
+      }
     },
     {
       "id": "infierno",
@@ -299,11 +311,21 @@
       "antorchas": true,
       "clima": ["brasas"],
       "decoracionPorSala": [{"tipo": "lava", "cantidad": 2}, {"tipo": "roca", "cantidad": 4}],
-      "cofre": "grande",
       "velocidadEnemigos": [170, 180, 190, 200, 210],
       "forma": "serpiente",
       "danioEnemigos": [45, 60, 75, 90, 105],
-      "danioJefes": [90, 105, 120, 135, 150]
+      "danioJefes": [90, 105, 120, 135, 150],
+      "monstruos": {
+        "normal": {"nombre": "Diablillo", "cuerpo": "demonio", "adornos": ["cuernos", "cola"]},
+        "rapido": {"nombre": "Murciélago de brasa", "cuerpo": "ave", "adornos": ["alas", "llamas"]},
+        "resistente": {"nombre": "Gólem de magma", "cuerpo": "golem", "adornos": ["llamas"]},
+        "tirador": {"nombre": "Ojo ígneo", "cuerpo": "espectro", "adornos": ["ojoUnico", "llamas"]},
+        "jefe": {
+          "nombre": "Señor del Averno",
+          "cuerpo": "demonio",
+          "adornos": ["alas", "cuernos", "llamas", "corona"]
+        }
+      }
     },
     {
       "id": "nevado",
@@ -329,11 +351,17 @@
       "antorchas": true,
       "clima": ["nieve"],
       "decoracionPorSala": [{"tipo": "hielo", "cantidad": 2}, {"tipo": "roca", "cantidad": 3}],
-      "cofre": "grande",
       "velocidadEnemigos": [180, 190, 200, 210, 220],
       "forma": "cruz",
       "danioEnemigos": [60, 75, 90, 105, 120],
-      "danioJefes": [105, 120, 135, 150, 165]
+      "danioJefes": [105, 120, 135, 150, 165],
+      "monstruos": {
+        "normal": {"nombre": "Lobo escarcha", "cuerpo": "bestia", "adornos": ["orejas", "puas", "colmillos"]},
+        "rapido": {"nombre": "Liebre glacial", "cuerpo": "bestia", "adornos": ["orejas"]},
+        "resistente": {"nombre": "Yeti joven", "cuerpo": "demonio", "adornos": ["colmillos"]},
+        "tirador": {"nombre": "Espíritu de nieve", "cuerpo": "espectro", "adornos": []},
+        "jefe": {"nombre": "Yeti ancestral", "cuerpo": "demonio", "adornos": ["cuernos", "colmillos", "corona"]}
+      }
     },
     {
       "id": "ciudad",
@@ -359,11 +387,17 @@
       "antorchas": true,
       "clima": ["polvo"],
       "decoracionPorSala": [{"tipo": "auto", "cantidad": 2}, {"tipo": "roca", "cantidad": 2}],
-      "cofre": "grande",
       "forma": "laberinto",
       "velocidadEnemigos": [190, 200, 210, 220, 230],
       "danioEnemigos": [75, 90, 105, 120, 135],
-      "danioJefes": [120, 135, 150, 165, 180]
+      "danioJefes": [120, 135, 150, 165, 180],
+      "monstruos": {
+        "normal": {"nombre": "Rata de cloaca", "cuerpo": "bestia", "adornos": ["orejas", "cola"]},
+        "rapido": {"nombre": "Dron vigía", "cuerpo": "robot", "adornos": ["alas", "antenas"]},
+        "resistente": {"nombre": "Tanque blindado", "cuerpo": "robot", "adornos": ["caparazon"]},
+        "tirador": {"nombre": "Torreta", "cuerpo": "robot", "adornos": ["ojoUnico"]},
+        "jefe": {"nombre": "Mecha alcalde", "cuerpo": "robot", "adornos": ["antenas", "puas", "corona"]}
+      }
     },
     {
       "id": "espacio",
@@ -389,11 +423,17 @@
       "antorchas": false,
       "clima": ["estrellas"],
       "decoracionPorSala": [{"tipo": "crater", "cantidad": 2}, {"tipo": "cristal", "cantidad": 3}],
-      "cofre": "grande",
       "forma": "espiral",
       "velocidadEnemigos": [200, 210, 220, 230, 240],
       "danioEnemigos": [90, 105, 120, 135, 150],
-      "danioJefes": [135, 150, 165, 180, 195]
+      "danioJefes": [135, 150, 165, 180, 195],
+      "monstruos": {
+        "normal": {"nombre": "Alienígena gris", "cuerpo": "demonio", "adornos": ["antenas"]},
+        "rapido": {"nombre": "Cometa errante", "cuerpo": "cristal", "adornos": ["llamas"]},
+        "resistente": {"nombre": "Roca lunar", "cuerpo": "golem", "adornos": ["puas"]},
+        "tirador": {"nombre": "Medusa estelar", "cuerpo": "pulpo", "adornos": []},
+        "jefe": {"nombre": "Devorador de estrellas", "cuerpo": "pulpo", "adornos": ["ojoUnico", "corona"]}
+      }
     },
     {
       "id": "cielo",
@@ -419,11 +459,17 @@
       "antorchas": false,
       "clima": ["polvo"],
       "decoracionPorSala": [{"tipo": "nube", "cantidad": 4}, {"tipo": "flores", "cantidad": 3}],
-      "cofre": "grande",
       "forma": "escalera",
       "velocidadEnemigos": [210, 220, 230, 240, 250],
       "danioEnemigos": [105, 120, 135, 150, 165],
-      "danioJefes": [150, 165, 180, 195, 210]
+      "danioJefes": [150, 165, 180, 195, 210],
+      "monstruos": {
+        "normal": {"nombre": "Harpía", "cuerpo": "ave", "adornos": ["alas", "cola"]},
+        "rapido": {"nombre": "Colibrí tormenta", "cuerpo": "ave", "adornos": ["alas"]},
+        "resistente": {"nombre": "Gólem de nube", "cuerpo": "baba", "adornos": ["alas"]},
+        "tirador": {"nombre": "Arquero alado", "cuerpo": "demonio", "adornos": ["alas"]},
+        "jefe": {"nombre": "Fénix del trueno", "cuerpo": "ave", "adornos": ["alas", "llamas", "corona"]}
+      }
     },
     {
       "id": "prehistorico",
@@ -449,11 +495,17 @@
       "antorchas": false,
       "clima": ["hojas"],
       "decoracionPorSala": [{"tipo": "arbusto", "cantidad": 5}, {"tipo": "hueso", "cantidad": 2}, {"tipo": "roca", "cantidad": 2}],
-      "cofre": "grande",
       "forma": "laberinto",
       "velocidadEnemigos": [220, 230, 240, 250, 260],
       "danioEnemigos": [120, 135, 150, 165, 180],
-      "danioJefes": [165, 180, 195, 210, 225]
+      "danioJefes": [165, 180, 195, 210, 225],
+      "monstruos": {
+        "normal": {"nombre": "Raptor", "cuerpo": "reptil", "adornos": ["colmillos", "cola"]},
+        "rapido": {"nombre": "Pterodáctilo", "cuerpo": "ave", "adornos": ["alas", "cuernos"]},
+        "resistente": {"nombre": "Anquilosaurio", "cuerpo": "reptil", "adornos": ["caparazon", "puas"]},
+        "tirador": {"nombre": "Dilofo escupidor", "cuerpo": "reptil", "adornos": ["aletas"]},
+        "jefe": {"nombre": "Rex tirano", "cuerpo": "reptil", "adornos": ["colmillos", "puas", "corona"]}
+      }
     },
     {
       "id": "congelado",
@@ -479,11 +531,17 @@
       "antorchas": true,
       "clima": ["nieve"],
       "decoracionPorSala": [{"tipo": "hielo", "cantidad": 3}, {"tipo": "cristal", "cantidad": 3}],
-      "cofre": "grande",
       "forma": "espiral",
       "velocidadEnemigos": [230, 240, 250, 260, 270],
       "danioEnemigos": [135, 150, 165, 180, 195],
-      "danioJefes": [180, 195, 210, 225, 240]
+      "danioJefes": [180, 195, 210, 225, 240],
+      "monstruos": {
+        "normal": {"nombre": "Pingüino glacial", "cuerpo": "ave", "adornos": ["aletas"]},
+        "rapido": {"nombre": "Hada de hielo", "cuerpo": "espectro", "adornos": ["alas"]},
+        "resistente": {"nombre": "Coloso de hielo", "cuerpo": "cristal", "adornos": ["puas"]},
+        "tirador": {"nombre": "Cristal lanzador", "cuerpo": "cristal", "adornos": ["ojoUnico"]},
+        "jefe": {"nombre": "Reina de hielo", "cuerpo": "cristal", "adornos": ["alas", "corona"]}
+      }
     },
     {
       "id": "abismo",
@@ -509,11 +567,17 @@
       "antorchas": false,
       "clima": ["burbujas"],
       "decoracionPorSala": [{"tipo": "coral", "cantidad": 4}, {"tipo": "roca", "cantidad": 2}],
-      "cofre": "grande",
       "forma": "serpiente",
       "velocidadEnemigos": [240, 250, 260, 270, 280],
       "danioEnemigos": [150, 165, 180, 195, 210],
-      "danioJefes": [195, 210, 225, 240, 255]
+      "danioJefes": [195, 210, 225, 240, 255],
+      "monstruos": {
+        "normal": {"nombre": "Pez abisal", "cuerpo": "pez", "adornos": ["colmillos", "antenas"]},
+        "rapido": {"nombre": "Anguila eléctrica", "cuerpo": "serpiente", "adornos": ["aletas"]},
+        "resistente": {"nombre": "Cangrejo coraza", "cuerpo": "insecto", "adornos": ["pinzas", "caparazon"]},
+        "tirador": {"nombre": "Medusa", "cuerpo": "pulpo", "adornos": ["tentaculos"]},
+        "jefe": {"nombre": "Kraken", "cuerpo": "pulpo", "adornos": ["tentaculos", "ojoUnico", "corona"]}
+      }
     },
     {
       "id": "reino",
@@ -539,11 +603,17 @@
       "antorchas": true,
       "clima": ["brasas"],
       "decoracionPorSala": [{"tipo": "cristal", "cantidad": 3}, {"tipo": "roca", "cantidad": 3}],
-      "cofre": "grande",
       "forma": "laberinto",
       "velocidadEnemigos": [250, 260, 270, 280, 290],
       "danioEnemigos": [165, 180, 195, 210, 225],
-      "danioJefes": [210, 225, 240, 255, 270]
+      "danioJefes": [210, 225, 240, 255, 270],
+      "monstruos": {
+        "normal": {"nombre": "Sombra rastrera", "cuerpo": "espectro", "adornos": ["colmillos"]},
+        "rapido": {"nombre": "Murciélago vampiro", "cuerpo": "ave", "adornos": ["alas", "colmillos"]},
+        "resistente": {"nombre": "Caballero hueco", "cuerpo": "demonio", "adornos": ["caparazon", "cuernos"]},
+        "tirador": {"nombre": "Hechicero umbrío", "cuerpo": "espectro", "adornos": ["ojoUnico"]},
+        "jefe": {"nombre": "Rey sin rostro", "cuerpo": "espectro", "adornos": ["alas", "corona"]}
+      }
     },
     {
       "id": "trono",
@@ -575,11 +645,21 @@
       "antorchas": true,
       "clima": ["luciernagas"],
       "decoracionPorSala": [{"tipo": "cristal", "cantidad": 3}, {"tipo": "flores", "cantidad": 2}],
-      "cofre": "grande",
       "forma": "cruz",
       "velocidadEnemigos": [260, 270, 280, 290, 300],
       "danioEnemigos": [180, 195, 210, 225, 240],
-      "danioJefes": [225, 240, 255, 270, 285]
+      "danioJefes": [225, 240, 255, 270, 285],
+      "monstruos": {
+        "normal": {"nombre": "Guardián sonriente", "cuerpo": "golem", "adornos": ["cuernos"]},
+        "rapido": {"nombre": "Arlequín fugaz", "cuerpo": "espectro", "adornos": ["cuernos"]},
+        "resistente": {"nombre": "Coloso dorado", "cuerpo": "golem", "adornos": ["caparazon", "puas"]},
+        "tirador": {"nombre": "Oráculo risueño", "cuerpo": "cristal", "adornos": ["ojoUnico", "alas"]},
+        "jefe": {
+          "nombre": "Smille, el Dios Sonriente",
+          "cuerpo": "demonio",
+          "adornos": ["alas", "cuernos", "llamas", "corona"]
+        }
+      }
     }
   ],
   "joystick": {"radioBase": 90, "radioPalanca": 40, "zonaMuerta": 0.15, "seguirDedo": true},
@@ -1382,35 +1462,161 @@
     ]
   },
   "cofres": {
-    "porJefe": "pequeno",
+    "_nota": "Excel Cofres_Contenido y Probabilidades + Sets_en_Cofres. Se gana un cofre por cada jefe vencido y otro al superar el mundo. Su TIPO sale al azar con porMundo[mundo][dificultad-1] (en el orden de \"orden\"). probEquipo = probabilidad de que traiga una pieza de equipo del nivel del héroe; \"sets\" = de qué set sale.",
+    "orden": ["pequeno", "mediano", "grande", "superGrande", "megaGrande", "cajaSmille"],
     "tipos": {
       "pequeno": {
         "nombre": "Cofre pequeño",
         "color": "#a1887f",
-        "intys": [20, 40],
-        "fichas": [1, 1],
-        "probRubi": 0.05,
+        "intys": [50, 50],
+        "fichas": [1, 5],
+        "fichasFaccion": [1, 5],
+        "probRubi": 0.03,
         "rubis": [1, 1],
-        "fichasFaccion": [1, 2]
+        "probEquipo": 0.05,
+        "sets": {"basico": 0.95, "moderno": 0.05, "god": 0.0}
       },
       "mediano": {
         "nombre": "Cofre mediano",
         "color": "#90a4ae",
-        "intys": [50, 90],
-        "fichas": [1, 2],
-        "probRubi": 0.15,
-        "rubis": [1, 2],
-        "fichasFaccion": [3, 5]
+        "intys": [80, 80],
+        "fichas": [6, 15],
+        "fichasFaccion": [6, 15],
+        "probRubi": 0.08,
+        "rubis": [2, 3],
+        "probEquipo": 0.1,
+        "sets": {"basico": 0.85, "moderno": 0.15, "god": 0.0}
       },
       "grande": {
         "nombre": "Cofre grande",
         "color": "#f5c542",
-        "intys": [100, 180],
-        "fichas": [2, 3],
-        "probRubi": 0.3,
-        "rubis": [1, 3],
-        "fichasFaccion": [6, 10]
+        "intys": [100, 100],
+        "fichas": [16, 50],
+        "fichasFaccion": [16, 50],
+        "probRubi": 0.12,
+        "rubis": [4, 5],
+        "probEquipo": 0.12,
+        "sets": {"basico": 0.7, "moderno": 0.29, "god": 0.01}
+      },
+      "superGrande": {
+        "nombre": "Cofre super grande",
+        "color": "#4fc3f7",
+        "intys": [200, 200],
+        "fichas": [50, 150],
+        "fichasFaccion": [50, 150],
+        "probRubi": 0.15,
+        "rubis": [6, 7],
+        "probEquipo": 0.15,
+        "sets": {"basico": 0.5, "moderno": 0.45, "god": 0.05}
+      },
+      "megaGrande": {
+        "nombre": "Cofre mega grande",
+        "color": "#b388ff",
+        "intys": [500, 500],
+        "fichas": [150, 300],
+        "fichasFaccion": [150, 300],
+        "probRubi": 0.2,
+        "rubis": [8, 10],
+        "probEquipo": 0.2,
+        "sets": {"basico": 0.3, "moderno": 0.55, "god": 0.15}
+      },
+      "cajaSmille": {
+        "nombre": "Caja Smille",
+        "color": "#ff4081",
+        "intys": [1000, 1000],
+        "fichas": [300, 800],
+        "fichasFaccion": [200, 500],
+        "probRubi": 0.35,
+        "rubis": [10, 15],
+        "probEquipo": 0.25,
+        "sets": {"basico": 0.1, "moderno": 0.6, "god": 0.3}
       }
+    },
+    "porMundo": {
+      "bosque": [
+        [0.75, 0.2, 0.05, 0.0, 0.0, 0.0],
+        [0.75, 0.2, 0.05, 0.0, 0.0, 0.0],
+        [0.75, 0.2, 0.05, 0.0, 0.0, 0.0],
+        [0.74, 0.2, 0.05, 0.01, 0.0, 0.0],
+        [0.74, 0.2, 0.05, 0.01, 0.0, 0.0]
+      ],
+      "desierto": [
+        [0.61, 0.28, 0.1, 0.01, 0.0, 0.0],
+        [0.6, 0.28, 0.1, 0.02, 0.0, 0.0],
+        [0.53, 0.3, 0.15, 0.02, 0.0, 0.0],
+        [0.53, 0.3, 0.15, 0.02, 0.0, 0.0],
+        [0.52, 0.3, 0.15, 0.03, 0.0, 0.0]
+      ],
+      "infierno": [
+        [0.35, 0.4, 0.21, 0.03, 0.01, 0.0],
+        [0.35, 0.4, 0.21, 0.03, 0.01, 0.0],
+        [0.35, 0.4, 0.21, 0.03, 0.01, 0.0],
+        [0.3, 0.34, 0.3, 0.05, 0.01, 0.0],
+        [0.3, 0.34, 0.3, 0.05, 0.01, 0.0]
+      ],
+      "nevado": [
+        [0.25, 0.31, 0.3, 0.1, 0.04, 0.0],
+        [0.25, 0.31, 0.3, 0.1, 0.04, 0.0],
+        [0.25, 0.31, 0.3, 0.1, 0.04, 0.0],
+        [0.2, 0.31, 0.3, 0.15, 0.04, 0.0],
+        [0.2, 0.25, 0.36, 0.15, 0.04, 0.0]
+      ],
+      "ciudad": [
+        [0.18, 0.25, 0.36, 0.15, 0.05, 0.01],
+        [0.1, 0.24, 0.4, 0.2, 0.05, 0.01],
+        [0.1, 0.24, 0.4, 0.2, 0.05, 0.01],
+        [0.1, 0.24, 0.4, 0.2, 0.05, 0.01],
+        [0.05, 0.2, 0.41, 0.28, 0.05, 0.01]
+      ],
+      "espacio": [
+        [0.05, 0.16, 0.41, 0.28, 0.08, 0.02],
+        [0.05, 0.16, 0.41, 0.28, 0.08, 0.02],
+        [0.05, 0.1, 0.45, 0.3, 0.08, 0.02],
+        [0.04, 0.1, 0.46, 0.3, 0.08, 0.02],
+        [0.04, 0.1, 0.46, 0.3, 0.08, 0.02]
+      ],
+      "cielo": [
+        [0.03, 0.1, 0.45, 0.3, 0.1, 0.02],
+        [0.03, 0.05, 0.4, 0.4, 0.1, 0.02],
+        [0.02, 0.05, 0.41, 0.4, 0.1, 0.02],
+        [0.02, 0.05, 0.38, 0.43, 0.1, 0.02],
+        [0.01, 0.05, 0.37, 0.45, 0.1, 0.02]
+      ],
+      "prehistorico": [
+        [0.0, 0.05, 0.35, 0.45, 0.12, 0.03],
+        [0.0, 0.05, 0.3, 0.5, 0.12, 0.03],
+        [0.0, 0.05, 0.3, 0.5, 0.12, 0.03],
+        [0.0, 0.05, 0.3, 0.5, 0.12, 0.03],
+        [0.0, 0.05, 0.25, 0.55, 0.12, 0.03]
+      ],
+      "congelado": [
+        [0.0, 0.0, 0.27, 0.55, 0.15, 0.03],
+        [0.0, 0.0, 0.22, 0.6, 0.15, 0.03],
+        [0.0, 0.0, 0.22, 0.6, 0.15, 0.03],
+        [0.0, 0.0, 0.15, 0.65, 0.15, 0.05],
+        [0.0, 0.0, 0.15, 0.65, 0.15, 0.05]
+      ],
+      "abismo": [
+        [0.0, 0.0, 0.12, 0.65, 0.18, 0.05],
+        [0.0, 0.0, 0.12, 0.65, 0.18, 0.05],
+        [0.0, 0.0, 0.1, 0.65, 0.2, 0.05],
+        [0.0, 0.0, 0.1, 0.63, 0.2, 0.07],
+        [0.0, 0.0, 0.1, 0.63, 0.2, 0.07]
+      ],
+      "reino": [
+        [0.0, 0.0, 0.08, 0.62, 0.23, 0.07],
+        [0.0, 0.0, 0.08, 0.62, 0.23, 0.07],
+        [0.0, 0.0, 0.06, 0.62, 0.25, 0.07],
+        [0.0, 0.0, 0.05, 0.6, 0.27, 0.08],
+        [0.0, 0.0, 0.05, 0.6, 0.27, 0.08]
+      ],
+      "trono": [
+        [0.0, 0.0, 0.05, 0.57, 0.28, 0.1],
+        [0.0, 0.0, 0.05, 0.57, 0.28, 0.1],
+        [0.0, 0.0, 0.03, 0.55, 0.3, 0.12],
+        [0.0, 0.0, 0.0, 0.55, 0.33, 0.12],
+        [0.0, 0.0, 0.0, 0.5, 0.35, 0.15]
+      ]
     }
   },
   "equipo": {
@@ -1419,7 +1625,6 @@
       "manoDerecha": {
         "nombre": "Mano derecha",
         "icono": "🗡️",
-        "precio": 1.5,
         "bonos": {"tanque": ["fuerza", "danio"], "dps": ["danio", "velocidad"], "heler": ["inteligencia", "danio"]}
       },
       "manoIzquierda": {
@@ -1470,18 +1675,81 @@
     },
     "dosManos": 1.5,
     "tiers": [
-      {"nivel": 1, "bono": [1, 3], "nombre": "Común", "color": "#b0bec5", "precio": {"intys": 60}},
-      {"nivel": 6, "bono": [4, 8], "nombre": "Raro", "color": "#4fc3f7", "precio": {"intys": 250}},
-      {"nivel": 11, "bono": [9, 12], "nombre": "Épico", "color": "#b388ff", "precio": {"intys": 700}},
-      {"nivel": 16, "bono": [13, 18], "nombre": "Heroico", "color": "#ff9800", "precio": {"intys": 1600}},
-      {
-        "nivel": 21,
-        "bono": [19, 30],
-        "nombre": "Legendario",
+      {"nivel": 1, "bono": [1, 3], "nombre": "Común", "color": "#b0bec5"},
+      {"nivel": 6, "bono": [4, 8], "nombre": "Raro", "color": "#4fc3f7"},
+      {"nivel": 11, "bono": [9, 12], "nombre": "Épico", "color": "#b388ff"},
+      {"nivel": 16, "bono": [13, 18], "nombre": "Heroico", "color": "#ff9800"},
+      {"nivel": 21, "bono": [19, 30], "nombre": "Legendario", "color": "#f5c542"}
+    ],
+    "sets": {
+      "_nota": "Excel Sets_Ropa_Accesorios. Cada pieza existe en 3 sets. bonos[tier] = el \"+#\" (mínimo, máximo) de ese set; precios[tier] = se paga con intys O con rubís (a elegir). bono4/bono8 = % sobre la estadística final con 4 u 8 piezas del mismo set (el de 8 reemplaza al de 4; con arma a 2 manos bastan 7).",
+      "basico": {
+        "nombre": "Básico",
+        "color": "#b0bec5",
+        "multiplicador": 1.0,
+        "texto4": "+3% Vida",
+        "texto8": "+5% Vida y +3% Daño",
+        "bono4": {"vida": 0.03},
+        "bono8": {"vida": 0.05, "danio": 0.03},
+        "bonos": [[1, 3], [4, 8], [9, 12], [13, 18], [19, 30]],
+        "precios": [
+          {"intys": 2000, "rubis": 15},
+          {"intys": 3000, "rubis": 25},
+          {"intys": 4000, "rubis": 50},
+          {"intys": 5000, "rubis": 75},
+          {"intys": 10000, "rubis": 150}
+        ]
+      },
+      "moderno": {
+        "nombre": "Moderno",
+        "color": "#4fc3f7",
+        "multiplicador": 1.5,
+        "texto4": "+5% Daño",
+        "texto8": "+8% Daño, +5% Vida y +3% Velocidad",
+        "bono4": {"danio": 0.05},
+        "bono8": {"danio": 0.08, "vida": 0.05, "velocidad": 0.03},
+        "bonos": [[2, 4], [6, 12], [14, 18], [20, 27], [28, 45]],
+        "precios": [
+          {"intys": 5000, "rubis": 50},
+          {"intys": 7500, "rubis": 100},
+          {"intys": 10000, "rubis": 400},
+          {"intys": 15000, "rubis": 700},
+          {"intys": 20000, "rubis": 1000}
+        ]
+      },
+      "god": {
+        "nombre": "God",
         "color": "#f5c542",
-        "precio": {"intys": 3500, "rubis": 3}
+        "multiplicador": 2.2,
+        "texto4": "+8% en todas las estadísticas",
+        "texto8": "+15% en todas + aura dorada (visual)",
+        "bono4": {
+          "fuerza": 0.08,
+          "vida": 0.08,
+          "danio": 0.08,
+          "velocidad": 0.08,
+          "inteligencia": 0.08,
+          "armadura": 0.08
+        },
+        "bono8": {
+          "fuerza": 0.15,
+          "vida": 0.15,
+          "danio": 0.15,
+          "velocidad": 0.15,
+          "inteligencia": 0.15,
+          "armadura": 0.15,
+          "aura": true
+        },
+        "bonos": [[2, 7], [9, 18], [20, 26], [29, 40], [42, 66]],
+        "precios": [
+          {"intys": 10000, "rubis": 500},
+          {"intys": 15000, "rubis": 1000},
+          {"intys": 20000, "rubis": 2000},
+          {"intys": 30000, "rubis": 3500},
+          {"intys": 50000, "rubis": 5000}
+        ]
       }
-    ]
+    }
   },
   "poderes": {
     "_nota": "Poderes por CLASE y ROL (Excel del creador: Propuesta_Poderes_Clases_y_Roles-v2). \"accion\" = habilidad del prototipo que usa por ahora; cdSeg/alcanceM/potencia son los del Excel. La recarga de los botones 2 y 3 = cdSeg × escalaRecarga.",

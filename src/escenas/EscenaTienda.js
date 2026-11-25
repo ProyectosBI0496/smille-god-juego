@@ -8,6 +8,9 @@
 //              arma de la raza + clase + rol (Excel de armas).
 // Cada objeto se COMPRA una vez para el héroe actual; después se EQUIPA
 // o se QUITA gratis. Un objeto por espacio. Las cuentas están en Personaje.js.
+// v0.1.7: arriba de la lista se elige el SET (Básico, Moderno o God). Cada
+// pieza se paga con intys O con rubís (dos botones). 4 u 8 piezas del mismo
+// set dan un bono extra (Excel Sets_Ropa_Accesorios).
 // =============================================================
 
 import { crearTexturas } from '../graficos/Texturas.js';
@@ -19,6 +22,7 @@ import {
 } from '../datos/Progreso.js';
 import {
   personajeValido, bonosEquipo, textoBonos, textoPrecio, nombrePersonaje, objetoEquipo, armaDe,
+  piezaPuesta, bonoSet,
 } from '../datos/Personaje.js';
 import { redActual, seguirPareja } from '../red/Red.js';
 
@@ -50,6 +54,7 @@ export default class EscenaTienda extends Phaser.Scene {
     this.comprados = inventario();
     this.monedas = monedas();
     this.pestana = this.datos.pestana || 'manoDerecha';
+    this.set = this.datos.set || 'basico'; // v0.1.7: set que se está mirando
     this.cameras.main.fadeIn(200);
     this.add.tileSprite(0, 0, W, H, 'baldosa-2').setOrigin(0).setTint(0x6a6a80);
     crearVineta(this);
@@ -79,7 +84,10 @@ export default class EscenaTienda extends Phaser.Scene {
     volver.on('pointerdown', () => this.scene.start('EscenaPersonaje', this.datosSinPestana()));
     const bonos = bonosEquipo(this.balance, this.p);
     const total = textoBonos(this.balance, bonos);
-    this.add.text(W - 24, H - 16, total ? `Tu equipo da: ${total}` : 'No llevas equipo puesto', {
+    const set = bonoSet(this.balance, this.p); // v0.1.7: bono por llevar varias piezas del mismo set
+    let textoTotal = total ? `Tu equipo da: ${total}` : 'No llevas equipo puesto';
+    if (set.texto) textoTotal += `\n${set.texto}`;
+    this.add.text(W - 24, H - 16, textoTotal, {
       ...TEXTO, fontSize: '16px', color: '#a5d6a7', stroke: '#05070d', strokeThickness: 3, align: 'right',
       wordWrap: { width: W - 260 },
     }).setOrigin(1, 1);
@@ -87,7 +95,7 @@ export default class EscenaTienda extends Phaser.Scene {
   }
 
   datosSinPestana() {
-    const { pestana, ...resto } = this.datos; // "...resto" = todo menos la pestaña
+    const { pestana, set, ...resto } = this.datos; // "...resto" = todo menos la pestaña y el set
     return resto;
   }
 
@@ -110,10 +118,10 @@ export default class EscenaTienda extends Phaser.Scene {
         const mias = pociones();
         detalle = `Vida ${mias.vida} · Maná ${mias.mana}`;
       } else {
-        const tier = this.p.equipo[id];
-        const obj = tier === undefined ? null : objetoEquipo(this.balance, this.p, id, tier);
+        const pieza = piezaPuesta(this.p, id);
+        const obj = pieza ? objetoEquipo(this.balance, this.p, id, pieza.tier, pieza.set) : null;
         if (obj) {
-          detalle = `${obj.nombre} (${obj.tierNombre})`;
+          detalle = `${obj.nombre} (${obj.tierNombre} · ${obj.setNombre})`;
           colorDetalle = obj.color;
         } else if (!objetoEquipo(this.balance, this.p, id, 0)) detalle = 'Arma a 2 manos';
         else detalle = '— vacío —';
@@ -141,9 +149,10 @@ export default class EscenaTienda extends Phaser.Scene {
     } else {
       explicacion = `Para ${b.nombresRol[this.p.rol]}`;
     }
-    this.add.text(cx, 112, `${ranura.icono} ${ranura.nombre}: ${explicacion}`, {
+    this.add.text(cx, 108, `${ranura.icono} ${ranura.nombre}: ${explicacion}`, {
       ...TEXTO, fontSize: '16px', color: '#ffe082', align: 'center', wordWrap: { width: ancho },
     }).setOrigin(0.5);
+    this.crearSelectorSet(cx, 142, ancho);
 
     const tiers = b.equipo.tiers;
     if (!objetoEquipo(b, this.p, this.pestana, 0)) {
@@ -152,18 +161,40 @@ export default class EscenaTienda extends Phaser.Scene {
       }).setOrigin(0.5);
       return;
     }
-    const alto = Math.min(96, (H - 140 - 70) / tiers.length - 8);
+    const arriba = 200;
+    const alto = Math.min(90, (H - arriba - 70) / tiers.length - 8);
     tiers.forEach((t, tier) => {
-      const obj = objetoEquipo(b, this.p, this.pestana, tier);
-      this.crearTarjeta(cx, 140 + alto / 2 + tier * (alto + 8), ancho, alto, obj);
+      const obj = objetoEquipo(b, this.p, this.pestana, tier, this.set);
+      this.crearTarjeta(cx, arriba + alto / 2 + tier * (alto + 8), ancho, alto, obj);
     });
   }
 
+  /** v0.1.7: 3 botones para elegir el set (Básico, Moderno, God) y el bono que da */
+  crearSelectorSet(cx, y, ancho) {
+    const sets = Object.entries(this.balance.equipo.sets).filter(([id]) => id !== '_nota');
+    const anchoBoton = (ancho - 20) / sets.length;
+    sets.forEach(([id, s], i) => {
+      const x = cx - ancho / 2 + anchoBoton / 2 + i * (anchoBoton + 10);
+      const elegido = id === this.set;
+      const fondo = this.add.rectangle(x, y, anchoBoton, 40, elegido ? color(s.color) : 0x0b0f1a, elegido ? 0.9 : 0.85)
+        .setStrokeStyle(2, color(s.color), elegido ? 1 : 0.6);
+      this.add.text(x, y, `Set ${s.nombre} ×${String(s.multiplicador).replace('.', ',')}`, {
+        fontFamily: FUENTE_TITULO, fontSize: '17px', fontStyle: 'bold', color: elegido ? '#0b0f1a' : s.color,
+      }).setOrigin(0.5);
+      fondo.setInteractive().on('pointerdown', () => this.scene.restart({ ...this.datos, set: id }));
+    });
+    const s = this.balance.equipo.sets[this.set];
+    this.add.text(cx, y + 34, `4 piezas: ${s.texto4}   ·   8 piezas: ${s.texto8}`, {
+      ...TEXTO, fontSize: '13px', color: '#cfd8dc', align: 'center', wordWrap: { width: ancho },
+    }).setOrigin(0.5);
+  }
+
   crearTarjeta(cx, cy, ancho, alto, obj) {
-    const puesto = this.p.equipo[obj.ranura] === obj.tier;
+    const pieza = piezaPuesta(this.p, obj.ranura);
+    const puesto = !!pieza && pieza.tier === obj.tier && pieza.set === obj.set;
     const comprado = this.comprados.includes(obj.id);
     const nivelOk = this.p.nivel >= obj.nivel;
-    const alcanza = Object.entries(obj.precio).every(([moneda, n]) => (this.monedas[moneda] || 0) >= n);
+    const alcanza = (precio) => Object.entries(precio).every(([moneda, n]) => (this.monedas[moneda] || 0) >= n);
     const colorTier = color(obj.color);
 
     this.add.rectangle(cx, cy, ancho, alto, 0x0b0f1a, 0.85)
@@ -172,9 +203,9 @@ export default class EscenaTienda extends Phaser.Scene {
     const izq = cx - ancho / 2 + 20;
     this.add.text(izq, cy - alto / 2 + 10, obj.nombre, {
       fontFamily: FUENTE_TITULO, fontSize: '19px', fontStyle: 'bold', color: obj.color,
-      fixedWidth: ancho - 200,
+      fixedWidth: ancho - 350,
     });
-    this.add.text(izq, cy - 2, `${obj.tierNombre} · Nivel ${obj.nivel}`, {
+    this.add.text(izq, cy - 2, `${obj.tierNombre} · Nivel ${obj.nivel} · Set ${obj.setNombre}`, {
       ...TEXTO, fontSize: '13px', color: nivelOk ? '#90a4ae' : '#ef9a9a',
     }).setOrigin(0, 0.5);
     this.add.text(izq, cy + alto / 2 - 10, textoBonos(this.balance, obj.bonos), {
@@ -184,9 +215,14 @@ export default class EscenaTienda extends Phaser.Scene {
     // El botón de la derecha cambia según el caso
     const bx = cx + ancho / 2 - 85;
     if (puesto) this.boton(bx, cy, '✔ Quitar', false, true, () => this.equipar(obj.ranura, null));
-    else if (comprado) this.boton(bx, cy, 'Equipar', true, true, () => this.equipar(obj.ranura, obj.tier));
+    else if (comprado) this.boton(bx, cy, 'Equipar', true, true, () => this.equipar(obj.ranura, obj));
     else if (!nivelOk) this.boton(bx, cy, `🔒 Nv ${obj.nivel}`, false, false);
-    else this.boton(bx, cy, textoPrecio(obj.precio), true, alcanza, () => this.comprar(obj));
+    else {
+      // v0.1.7: dos formas de pagar, con intys o con rubís
+      const [enIntys, enRubis] = obj.precios;
+      this.boton(bx - 160, cy, textoPrecio(enIntys), true, alcanza(enIntys), () => this.comprar(obj, enIntys));
+      this.boton(bx, cy, textoPrecio(enRubis), true, alcanza(enRubis), () => this.comprar(obj, enRubis));
+    }
   }
 
   /**
@@ -224,14 +260,14 @@ export default class EscenaTienda extends Phaser.Scene {
   }
 
   /** Comprar y ponérselo de una vez (lo normal es querer usarlo) */
-  comprar(obj) {
-    if (!comprarObjeto(obj.id, obj.precio)) return;
-    this.equipar(obj.ranura, obj.tier);
+  comprar(obj, precio) {
+    if (!comprarObjeto(obj.id, precio)) return;
+    this.equipar(obj.ranura, obj);
   }
 
-  /** Pone (o quita, con tier = null) el objeto de un espacio, guarda y avisa al compañero */
-  equipar(ranura, tier) {
-    if (tier !== null) this.p.equipo[ranura] = tier;
+  /** Pone (o quita, con obj = null) el objeto de un espacio, guarda y avisa al compañero */
+  equipar(ranura, obj) {
+    if (obj) this.p.equipo[ranura] = { tier: obj.tier, set: obj.set };
     else delete this.p.equipo[ranura];
     guardarPersonaje(this.p);
     const red = redActual();

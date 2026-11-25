@@ -7,6 +7,7 @@
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
+import { crearMonstruos, texturaMonstruo } from '../graficos/TexturasMonstruos.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
 import { mundosSuperados, personaje, dificultadSuperada } from '../datos/Progreso.js';
 import { redActual } from '../red/Red.js';
@@ -71,6 +72,7 @@ export default class EscenaMundos extends Phaser.Scene {
     visibles.forEach((mundo, k) => {
       const i = this.pagina * porPagina + k; // índice real del mundo
       crearTexturasMundo(this, mundo);
+      crearMonstruos(this, mundo); // v0.1.7: el jefe propio de cada mundo
       const estado = i < superados ? 'superado' : i === superados ? 'abierto' : 'bloqueado';
       this.crearTarjeta(x0 + k * (anchoTarjeta + separacion), 370, anchoTarjeta, mundo, i, estado);
     });
@@ -109,7 +111,11 @@ export default class EscenaMundos extends Phaser.Scene {
     const vista = this.add.tileSprite(x, y - 40, ancho - 20, 200, `suelo-${mundo.id}-1`);
     const deco = mundo.decoracionPorSala[0];
     const adorno = this.add.image(x, y - 40, `deco-${mundo.id}-${deco.tipo}`).setScale(1.2);
-    const jefe = this.add.image(x + 60, y - 60, 'jefe').setScale(0.5).setTint(color(mundo.colores.jefe));
+    // v0.1.7: el dibujo del jefe propio del mundo (con sus ojos)
+    const datosJefe = mundo.monstruos && mundo.monstruos.jefe;
+    const texJefe = datosJefe ? texturaMonstruo(mundo.id, 'jefe') : 'jefe';
+    const jefe = this.add.image(x + 60, y - 60, texJefe).setScale(0.5).setTint(color(mundo.colores.jefe));
+    const ojosJefe = this.add.image(x + 60, y - 60, `${texJefe}-ojos`).setScale(0.5);
     this.add.rectangle(x, y, ancho, alto).setStrokeStyle(4, bloqueado ? 0x555555 : 0xf5c542);
 
     this.add.text(x, y + 90, mundo.nombre, {
@@ -129,18 +135,17 @@ export default class EscenaMundos extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif', fontSize: '20px', color: bloqueado ? '#777777' : '#ffffff',
       stroke: '#05070d', strokeThickness: 3,
     }).setOrigin(0.5);
-    // v0.1.2: el premio al terminarlo
-    const cofre = this.cache.json.get('balance').cofres.tipos[mundo.cofre];
-    if (cofre) {
-      this.add.text(x, y + 160, `Premio: ${cofre.nombre}`, {
-        fontFamily: 'Arial, sans-serif', fontSize: '18px', color: bloqueado ? '#777777' : cofre.color,
-        stroke: '#05070d', strokeThickness: 3,
+    // v0.1.7: el nombre del jefe del mundo (antes decía el cofre; ahora el cofre sale al azar)
+    if (datosJefe) {
+      this.add.text(x, y + 160, `Jefe: ${datosJefe.nombre}`, {
+        fontFamily: 'Arial, sans-serif', fontSize: datosJefe.nombre.length > 18 ? '15px' : '18px',
+        color: bloqueado ? '#777777' : '#ffab91', stroke: '#05070d', strokeThickness: 3,
       }).setOrigin(0.5);
     }
 
     if (bloqueado) {
       // Oscurecemos la vista y dibujamos un candado
-      for (const objeto of [vista, adorno, jefe]) objeto.setTint(0x333333);
+      for (const objeto of [vista, adorno, jefe, ojosJefe]) objeto.setTint(0x333333);
       const g = this.add.graphics();
       g.lineStyle(8, 0xbbbbbb).strokeCircle(x, y - 62, 22);
       g.fillStyle(0xbbbbbb).fillRoundedRect(x - 34, y - 58, 68, 52, 8);
