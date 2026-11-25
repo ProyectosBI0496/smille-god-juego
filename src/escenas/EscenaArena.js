@@ -562,8 +562,9 @@ export default class EscenaArena extends Phaser.Scene {
       velocidadEmbestida: Math.round(comun.velocidadEmbestida * f),
       duracionEmbestidaMs: Math.round(comun.duracionEmbestidaMs / f), // recorre la misma distancia
       // v0.1.6: el golpe del jefe sale del Excel (danioJefes); su ráfaga sigue el daño del mundo
-      danioContacto: this.mundo.danioJefes ? this.mundo.danioJefes[this.dificultad - 1] : Math.round(propio.danioContacto * this.dif.danio),
-      rafaga: this.disparoLento(comun.rafaga, this.factorDanio(), f),
+      // v0.1.8: multDanio (balance.json → jefe) multiplica todo el daño del jefe (2 = el doble)
+      danioContacto: Math.round((this.mundo.danioJefes ? this.mundo.danioJefes[this.dificultad - 1] : propio.danioContacto * this.dif.danio) * (comun.multDanio || 1)),
+      rafaga: this.disparoLento(comun.rafaga, this.factorDanio() * (comun.multDanio || 1), f),
       radioTextura: 50,
       color: this.mundo.colores.jefe,
       ...this.dibujoMonstruo('jefe'), // v0.1.7: el jefe propio de este mundo

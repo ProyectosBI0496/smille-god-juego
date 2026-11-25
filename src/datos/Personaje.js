@@ -304,7 +304,8 @@ export function calcularHeroe(balance, entrada) {
     botones,
     estadisticas: s,
     // v0.1.5: lo que dice la ficha es lo que pasa en la mazmorra (la raza ya no cambia los números)
-    vidaMax: Math.round(s.vida),                              // VIDA = puntos de vida
+    // v0.1.8: VIDA = puntos de vida × multVidaHeroe (balance.json; 3 = el triple)
+    vidaMax: Math.round(s.vida * (cv.multVidaHeroe || 1)),
     manaMax: Math.round(s.inteligencia),                      // INTELIGENCIA = puntos de maná
     velocidad: Math.ceil(cv.velocidadRef * s.velocidad),      // VELOCIDAD: 300 × 50% = 150
     mult: {

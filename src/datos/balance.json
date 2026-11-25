@@ -211,6 +211,8 @@
     "duracionEmbestidaMs": 650,
     "recargaEmbestidaMs": 3500,
     "aumentoVidaPorJefe": 0.2,
+    "multDanio": 2,
+    "_notaMultDanio": "v0.1.8: multiplica el daño de los jefes (golpe del Excel danioJefes y ráfaga). 2 = el doble.",
     "rafaga": {"recargaMs": 5500, "avisoMs": 700, "cantidad": 12, "velocidad": 260, "danio": 10, "duracionMs": 3000}
   },
   "oleadas": {"curacionPorSala": 10, "retrasoJefeMs": 900},
@@ -837,6 +839,8 @@
     "_nota": "v0.1.5: la base sale del Excel (porNivel, según rol y nivel). Cada punto repartido o del equipo suma porPunto: 1 en Vida, Daño e Inteligencia; 0.002 (= 0,20%) en Fuerza, Velocidad y Armadura, que son porcentajes. conversion = cómo se usan en la partida.",
     "conversion": {
       "_nota": "Vida = puntos de vida. Daño = daño del botón 1 (los demás poderes en la misma proporción). Inteligencia = maná máximo; curación ×(Inteligencia / curaRef, mínimo 1). Velocidad: movimiento = velocidadRef × %; ataque: recarga × (1 + ataqueRef) / (1 + %) (50% = normal). Armadura = % de daño bloqueado (tope armaduraMax). Fuerza = probabilidad de aturdir aturdirMs cada aturdirCada golpes.",
+      "multVidaHeroe": 3,
+      "_notaMultVidaHeroe": "v0.1.8: la vida del héroe en la mazmorra = Vida de la ficha × multVidaHeroe (3 = el triple).",
       "velocidadRef": 300,
       "ataqueRef": 0.5,
       "recargaMin": 0.5,
