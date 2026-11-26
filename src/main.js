@@ -19,6 +19,11 @@ import EscenaNick from './escenas/EscenaNick.js';
 import EscenaRol from './escenas/EscenaRol.js';
 import EscenaPersonaje from './escenas/EscenaPersonaje.js';
 import EscenaTienda from './escenas/EscenaTienda.js';
+import { cobrarPartidaAbandonada } from './datos/Progreso.js';
+
+// v0.1.10: si la última vez el juego se cerró (o se apagó el celular) en plena
+// partida, esa partida se cobra ahora como perdida. La pantalla de título lo avisa.
+window.partidaAbandonada = cobrarPartidaAbandonada();
 
 const config = {
   type: Phaser.AUTO,          // usa WebGL si el equipo lo soporta; si no, Canvas

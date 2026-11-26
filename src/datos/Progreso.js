@@ -195,6 +195,40 @@ export function sumarCoronas(cantidad) {
   return { antes, despues: h ? h.coronas : 0 };
 }
 
+// ----------------- Partida en curso (v0.1.10) -----------------
+// Al entrar a una mazmorra se guarda una "marca" con las coronas que se
+// perderían. Si la partida termina bien (ganas o caes), la marca se borra.
+// Si el juego se cierra o se apaga el celular en plena partida, la marca
+// queda guardada: la próxima vez que se abra el juego se cobra como derrota.
+
+const CLAVE_PARTIDA = 'smilleGod.partidaEnCurso';
+
+/** Guarda la marca: { mundo, coronasPerder } */
+export function empezarPartida(datos) {
+  guardarJson(CLAVE_PARTIDA, datos);
+}
+
+/** Borra la marca (la partida terminó y ya se cobró) */
+export function terminarPartida() {
+  try {
+    localStorage.removeItem(CLAVE_PARTIDA);
+  } catch (error) {
+    // sin memoria del navegador: no hay nada que borrar
+  }
+}
+
+/**
+ * Si quedó una partida a medias (se cerró el juego), se cobra como perdida.
+ * Devuelve { mundo, perdidas } para avisar al jugador, o null si no había ninguna.
+ */
+export function cobrarPartidaAbandonada() {
+  const partida = leerJson(CLAVE_PARTIDA, null);
+  if (!partida) return null;
+  terminarPartida();
+  const { antes, despues } = sumarCoronas(-(partida.coronasPerder || 0));
+  return { mundo: partida.mundo, perdidas: antes - despues };
+}
+
 /** Todo lo que necesita la pantalla de héroes para saber qué está abierto */
 export function cuentaParaEscala() {
   return { heroes: heroes(), abiertos: heroesAbiertos(), coronas: coronasJugador(), fichasFaccion: monedas().fichasFaccion };

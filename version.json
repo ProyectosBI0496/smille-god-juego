@@ -1,5 +1,5 @@
 {
-  "version": "0.1.9",
+  "version": "0.1.11",
   "archivos": [
     "index.html",
     "src/controles/BotonHabilidad.js",

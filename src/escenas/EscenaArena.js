@@ -39,6 +39,7 @@ import { crearTexturasMundo, color } from '../graficos/TexturasMundo.js';
 import { crearMonstruos, texturaMonstruo } from '../graficos/TexturasMonstruos.js';
 import {
   marcarSuperado, personaje, nick, sumarMonedas, pociones, sumarPociones, sumarCoronas, darObjeto,
+  empezarPartida, terminarPartida,
 } from '../datos/Progreso.js';
 import BarraVida from '../ui/BarraVida.js';
 import { calcularHeroe, recargaPoder, rangoDe, objetoEquipo } from '../datos/Personaje.js';
@@ -200,6 +201,9 @@ export default class EscenaArena extends Phaser.Scene {
     this.magias = [];             // v0.1.2: proyectiles de los héroes
     this.cofresAbiertos = false;
     this.coronasDadas = false; // v0.1.5: las coronas se dan una sola vez por partida
+    // v0.1.10: marca de "partida en curso". Si el juego se cierra o se apaga el celular
+    // antes de terminar, al volver a abrirlo se cobra como partida perdida.
+    empezarPartida({ mundo: this.mundo.nombre, coronasPerder: this.coronasEnJuego().perder });
     this.numerosLibres = [];     // "pool": números de daño guardados para reutilizar
     this.terminado = false;      // true al ganar el mundo
     this.caido = false;          // true al perder (hay que reiniciarlo: restart reutiliza la escena)
@@ -356,6 +360,8 @@ export default class EscenaArena extends Phaser.Scene {
     if (!h.vivo || this.terminado || this.caido) return;
     danio = Math.max(1, Math.round(danio * (1 - (h.reduccion || 0)))); // v0.1.2: la ARMADURA quita una parte
     if (!h.recibirDanio(danio)) return;
+    // v0.1.10: número rojo sobre el héroe con el daño que recibió (para ver si coincide con el Excel)
+    this.mostrarNumero(h.sprite.x, h.sprite.y - h.radio, `-${danio}`, '#ff5252');
     h.ultimoDanio = this.time.now; // v0.1.4: mientras lo atacan, el maná no se recupera
     if (h === this.heroe) {
       this.cameras.main.shake(100, 0.006);
@@ -638,6 +644,7 @@ export default class EscenaArena extends Phaser.Scene {
    * dificultad (Excel Mundos_Moustruos → balance.json → mundos → danioEnemigos, ej. 15, 30, 45...).
    * Igual que la velocidad: factor = ese daño / el del normal (10); los demás tipos y los
    * disparos se multiplican por él. Si el mundo no tiene tabla, se usa el de la dificultad.
+   * v0.1.10: los 4 tipos tienen el mismo daño base (10), así TODOS pegan lo del Excel.
    */
   factorDanio() {
     const tabla = this.mundo.danioEnemigos;
@@ -1384,12 +1391,19 @@ export default class EscenaArena extends Phaser.Scene {
   // (balance.json → mundos → coronasVictoria); si el mundo no lo trae, las de la dificultad.
   // Devuelve el texto para la pantalla final.
   // =============================================================
+  /** v0.1.10: cuántas coronas se ganan al superar esta mazmorra y cuántas se pierden al caer */
+  coronasEnJuego() {
+    const tabla = this.mundo.coronasVictoria;
+    const ganar = (tabla ? tabla[this.dificultad - 1] : this.dif.coronas) || 0;
+    return { ganar, perder: Math.floor(ganar * this.balance.dificultades.coronasPerder) };
+  }
+
   darCoronas(victoria) {
     if (this.coronasDadas) return '';
     this.coronasDadas = true;
-    const tabla = this.mundo.coronasVictoria;
-    const ganar = (tabla ? tabla[this.dificultad - 1] : this.dif.coronas) || 0;
-    const cambio = victoria ? ganar : -Math.floor(ganar * this.balance.dificultades.coronasPerder);
+    terminarPartida(); // v0.1.10: la partida terminó y se cobra aquí; se borra la marca
+    const { ganar, perder } = this.coronasEnJuego();
+    const cambio = victoria ? ganar : -perder;
     const { antes, despues } = sumarCoronas(cambio);
     const rangoAntes = rangoDe(this.balance, antes).rango;
     const rango = rangoDe(this.balance, despues).rango;
@@ -1580,6 +1594,8 @@ export default class EscenaArena extends Phaser.Scene {
     if (red) red.cerrar();
     if (this.esInvitado) {
       // Sin anfitrión no hay juego: volver al título
+      // v0.1.10: no es culpa del jugador, así que no se cobra como perdida
+      terminarPartida();
       this.mostrarAnuncio('Se cortó la conexión', true);
       this.time.delayedCall(1800, () => this.scene.start('EscenaTitulo'));
       return;

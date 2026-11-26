@@ -53,11 +53,16 @@ export default class EscenaPausa extends Phaser.Scene {
     this.scene.stop();
   }
 
-  /** Reiniciar el mismo mundo o volver al mapa de mundos */
+  /**
+   * Reiniciar el mismo mundo o volver al mapa de mundos.
+   * v0.1.10: salir en plena partida cuenta como PARTIDA PERDIDA (se pierden coronas).
+   * Si la partida ya había terminado, darCoronas no hace nada (solo cobra una vez).
+   */
   irA(destino) {
     const arena = this.scene.get('EscenaArena'); // para reiniciar el MISMO mundo y dificultad
     const mundo = arena.indiceMundo;
     const dificultad = arena.dificultad;
+    arena.darCoronas(false);
     this.scene.stop('EscenaArena');
     if (destino === 'mapa') this.scene.start('EscenaMundos');
     else this.scene.start('EscenaArena', { mundo, dificultad });

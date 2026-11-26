@@ -71,6 +71,15 @@ export default class EscenaTitulo extends Phaser.Scene {
       }).setOrigin(0.5);
     }
 
+    // v0.1.10: aviso si la última partida quedó a medias (se cobró como perdida)
+    const abandonada = window.partidaAbandonada;
+    if (abandonada) {
+      this.add.text(cx, 470, `Tu última partida (${abandonada.mundo}) quedó a medias: cuenta como perdida  👑 -${abandonada.perdidas}`, {
+        fontFamily: FUENTE_TITULO, fontSize: '22px', color: '#ff8a80', stroke: '#05070d', strokeThickness: 4,
+        align: 'center', wordWrap: { width: W - 80 },
+      }).setOrigin(0.5);
+    }
+
     // Botón JUGAR que "late"
     const boton = this.add.rectangle(cx, 585, 320, 86, 0xf5c542).setStrokeStyle(4, 0xfff3c4).setInteractive();
     const texto = this.add.text(cx, 585, 'JUGAR', {
@@ -89,6 +98,7 @@ export default class EscenaTitulo extends Phaser.Scene {
     const empezar = () => {
       boton.disableInteractive();
       this.saliendo = true;
+      window.partidaAbandonada = null; // el aviso ya se vio
       this.cameras.main.fadeOut(350, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('EscenaPersonaje')); // v0.1.2: sin personaje, lleva a crearlo
     };
