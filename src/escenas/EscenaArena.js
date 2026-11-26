@@ -67,11 +67,21 @@ const HABILIDADES = {
   bola: { icono: 'icono-bola', color: null, recarga: (b) => b.magia.bola.recargaMs },
   abanico: { icono: 'icono-abanico', color: null, recarga: (b) => b.magia.abanico.recargaMs },
   sanar: { icono: 'icono-sanar', color: 0x81c784, recarga: (b) => b.magia.sanar.recargaMs },
+  curaG: { icono: 'icono-sanar', color: 0xffe082, recarga: (b) => b.magia.curaGrande.recargaMs }, // v0.1.20
 };
 
 /** El multiplicador de daño de un héroe: los de "a distancia" usan la magia (inteligencia) */
 function multDanio(h) {
   return h.tipo === 'caster' ? h.mult.magia : h.mult.fisico; // v0.1.4: el tipo lo da el rol
+}
+
+/**
+ * v0.1.20: el multiplicador de daño de UN poder (tipo = atq, onda, torb...).
+ * Cada poder tiene el suyo según su potencia en el Excel (ver numerosPoderes en Personaje.js).
+ * "??" = si ese héroe no tiene ese poder, usa el multiplicador general.
+ */
+function multPoder(h, tipo) {
+  return (h.mult.poder && h.mult.poder[tipo]) ?? multDanio(h);
 }
 
 export default class EscenaArena extends Phaser.Scene {
@@ -847,7 +857,7 @@ export default class EscenaArena extends Phaser.Scene {
     // Los botones sin maná suficiente se ven apagados
     this.datosHeroe.poderes.botones.forEach((poder, i) => {
       const boton = [this.boton1, this.boton2, this.boton3][i];
-      if (i < this.datosHeroe.botones) boton.circulo.setAlpha(h.mana >= poder.costo ? 1 : 0.4);
+      if (i < this.datosHeroe.botones) boton.circulo.setAlpha(h.mana >= this.datosHeroe.costos[i] ? 1 : 0.4);
     });
   }
 
@@ -875,11 +885,12 @@ export default class EscenaArena extends Phaser.Scene {
       this.mostrarNumero(h.cuerpo.x, h.cuerpo.y - 60, '💫 Aturdido', this.balance.controles.aturdir.color);
       return false;
     }
-    if (h.mana < poder.costo) {
+    const costo = this.datosHeroe.costos[i]; // v0.1.20: el costo sube con el nivel
+    if (h.mana < costo) {
       this.mostrarNumero(h.cuerpo.x, h.cuerpo.y - 60, 'Sin maná', '#90caf9');
       return false;
     }
-    h.mana -= poder.costo;
+    h.mana -= costo;
     this.accion(poder.accion);
     return true;
   }
@@ -972,9 +983,9 @@ export default class EscenaArena extends Phaser.Scene {
         alPulsar: () => (abierto ? this.usarPoder(i) : false), // v0.1.4: gasta maná
       });
       // v0.1.4: el costo de maná, en azul, abajo del botón
-      if (abierto && poder.costo > 0) {
+      if (abierto && this.datosHeroe.costos[i] > 0) {
         const r = posiciones[i][2];
-        const costo = this.add.text(posiciones[i][0], posiciones[i][1] + r - 4, `${poder.costo}`, {
+        const costo = this.add.text(posiciones[i][0], posiciones[i][1] + r - 4, `${this.datosHeroe.costos[i]}`, {
           fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#90caf9', fontStyle: 'bold', stroke: '#05070d', strokeThickness: 4,
         }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(103);
         const moverOriginal = boton.mover.bind(boton);
@@ -1036,10 +1047,10 @@ export default class EscenaArena extends Phaser.Scene {
    * El empuje los aleja del punto (origenX, origenY).
    * Lo usan las tres habilidades: así la lógica de daño vive en un solo lugar.
    */
-  golpearArea(x, y, radio, danioBase, empujeBase, origenX, origenY, h = this.heroe) {
+  golpearArea(x, y, radio, danioBase, empujeBase, origenX, origenY, h = this.heroe, tipo = null) {
     if (this.esInvitado) return; // el invitado solo dibuja: el daño lo calcula el anfitrión
     // La raza de quien golpea multiplica el daño (Orco, Goruk...) y el empuje (Toro)
-    const danio = Math.round(danioBase * multDanio(h)); // raza + estadísticas
+    const danio = Math.round(danioBase * multPoder(h, tipo)); // v0.1.20: cada poder con su multiplicador
     const empuje = empujeBase * (h.raza.empuje || 1);
     const direccion = new Phaser.Math.Vector2();
     for (const enemigo of [...this.enemigos]) {
@@ -1119,6 +1130,7 @@ export default class EscenaArena extends Phaser.Scene {
     else if (tipo === 'bola') this.usarBola(h);
     else if (tipo === 'abanico') this.usarAbanico(h);
     else if (tipo === 'sanar') this.usarSanar(h);
+    else if (tipo === 'curaG') this.usarCuraGrande(h);
   }
 
   /** Anfitrión: un invitado (su clave) usó una habilidad; se hace con SU héroe (aquí sí hace daño) */
@@ -1156,7 +1168,7 @@ export default class EscenaArena extends Phaser.Scene {
       zona.x = objetivo.cuerpo.x;
       zona.y = objetivo.cuerpo.y;
     }
-    this.golpearArea(zona.x, zona.y, zona.radio, ataque.danio, ataque.empuje, h.cuerpo.x, h.cuerpo.y, h);
+    this.golpearArea(zona.x, zona.y, zona.radio, ataque.danio, ataque.empuje, h.cuerpo.x, h.cuerpo.y, h, 'atq');
   }
 
   /** Botón 2 — "Onda": empujón en área alrededor del héroe */
@@ -1173,7 +1185,7 @@ export default class EscenaArena extends Phaser.Scene {
     this.tweens.add({ targets: luz, scale: (h.radio * 2.4) / 128, alpha: 0, duration: 350, onComplete: () => luz.destroy() });
     if (heroe === this.heroe) this.cameras.main.shake(120, 0.004);
 
-    this.golpearArea(x, y, h.radio, h.danio, h.empuje, x, y, heroe);
+    this.golpearArea(x, y, h.radio, h.danio, h.empuje, x, y, heroe, 'onda');
   }
 
   /** Botón 3 — "Torbellino": varios golpes giratorios seguidos alrededor del héroe */
@@ -1215,7 +1227,7 @@ export default class EscenaArena extends Phaser.Scene {
         if (!heroe.vivo || !heroe.cuerpo.active) return;
         const { x, y } = heroe.cuerpo;
         anillo.setAlpha(0.5 + (golpesDados % 2) * 0.5); // parpadeo en cada golpe
-        this.golpearArea(x, y, e.radio, e.danio, e.empuje, x, y, heroe);
+        this.golpearArea(x, y, e.radio, e.danio, e.empuje, x, y, heroe, 'torb');
       },
     });
   }
@@ -1239,7 +1251,7 @@ export default class EscenaArena extends Phaser.Scene {
           zona.x = objetivo.cuerpo.x; // muy pegado: el golpe se centra en él
           zona.y = objetivo.cuerpo.y;
         }
-        this.golpearArea(zona.x, zona.y, zona.radio, c.danio, c.empuje, h.cuerpo.x, h.cuerpo.y, h);
+        this.golpearArea(zona.x, zona.y, zona.radio, c.danio, c.empuje, h.cuerpo.x, h.cuerpo.y, h, 'cuch');
       });
     }
   }
@@ -1288,7 +1300,7 @@ export default class EscenaArena extends Phaser.Scene {
     h.actualizarDibujo(false);
     if (h === this.heroe) this.cameras.main.shake(90, 0.003);
 
-    this.golpearArea(destino.x, destino.y, p.radio, p.danio, p.empuje, destino.x, destino.y, h);
+    this.golpearArea(destino.x, destino.y, p.radio, p.danio, p.empuje, destino.x, destino.y, h, 'paso');
   }
 
   // =============================================================
@@ -1303,7 +1315,7 @@ export default class EscenaArena extends Phaser.Scene {
     const cfg = this.balance.magia.bola;
     const objetivo = this.enemigoMasCercano(cfg.rangoAutoApuntado * (h.raza.autoApuntado || 1), h);
     if (objetivo) h.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
-    this.dispararMagia(h, Math.atan2(h.mirando.y, h.mirando.x), cfg);
+    this.dispararMagia(h, Math.atan2(h.mirando.y, h.mirando.x), cfg, 'bola');
   }
 
   /** Botón 3 de los "a distancia" DPS: varios proyectiles en abanico */
@@ -1316,7 +1328,7 @@ export default class EscenaArena extends Phaser.Scene {
     for (let i = 0; i < cfg.cantidad; i++) {
       // reparte los proyectiles entre -apertura/2 y +apertura/2 alrededor del centro
       const desvio = cfg.cantidad === 1 ? 0 : (i / (cfg.cantidad - 1) - 0.5) * cfg.apertura;
-      this.dispararMagia(h, centro + desvio, cfg);
+      this.dispararMagia(h, centro + desvio, cfg, 'abanico');
     }
     if (h === this.heroe) this.cameras.main.shake(80, 0.003);
   }
@@ -1330,12 +1342,39 @@ export default class EscenaArena extends Phaser.Scene {
     this.tweens.add({ targets: anillo, radius: cfg.radio, alpha: 0, duration: 450, onComplete: () => anillo.destroy() });
     if (this.esInvitado) return; // la vida la decide el anfitrión
     // v0.1.18: la cura crece como la VIDA del rol en el Excel (Vida del héroe / Vida del rol en nivel 1)
-    const cantidad = Math.round(cfg.cura * h.mult.curaPoder);
+    // v0.1.20: y según la potencia del poder en el Excel (h.mult.curas)
+    const cantidad = (h.mult.curas && h.mult.curas.sanar) ?? Math.round(cfg.cura * h.mult.curaPoder);
+    this.curarZona(h, cfg.radio, cantidad, 0x81c784);
+  }
+
+  /**
+   * v0.1.20 — "Cura grande": el especial de los Sanadores. Cura más y en un área más grande.
+   * La cura sale de su potencia en el Excel (unas 2 veces la de Sanar).
+   */
+  usarCuraGrande(h = this.heroe) {
+    if (!h.vivo) return;
+    const cfg = this.balance.magia.curaGrande;
+    const tinte = color(cfg.color);
+    const { x, y } = h.cuerpo;
+    // Dos anillos dorados que se abren, uno detrás del otro
+    for (let i = 0; i < 2; i++) {
+      const anillo = this.add.circle(x, y, 20).setStrokeStyle(8, tinte).setDepth(40);
+      this.tweens.add({ targets: anillo, radius: cfg.radio, alpha: 0, duration: 600, delay: i * 180, onComplete: () => anillo.destroy() });
+    }
+    if (h === this.heroe) this.vibrar(30);
+    if (this.esInvitado) return; // la vida la decide el anfitrión
+    const cantidad = (h.mult.curas && h.mult.curas.curaG) ?? Math.round(this.balance.magia.sanar.cura * 2 * h.mult.curaPoder);
+    this.curarZona(h, cfg.radio, cantidad, tinte);
+  }
+
+  /** Cura "cantidad" a los héroes vivos a menos de "radio" de h (lo usan Sanar y Cura grande) */
+  curarZona(h, radio, cantidad, tinte) {
+    const { x, y } = h.cuerpo;
     for (const otro of this.heroes()) {
       if (!otro.vivo) continue;
-      if (Phaser.Math.Distance.Between(x, y, otro.cuerpo.x, otro.cuerpo.y) > cfg.radio) continue;
+      if (Phaser.Math.Distance.Between(x, y, otro.cuerpo.x, otro.cuerpo.y) > radio) continue;
       otro.vida = Math.min(otro.vida + cantidad, otro.config.vidaMax);
-      const luz = this.add.image(otro.cuerpo.x, otro.cuerpo.y, 'brillo').setTint(0x81c784)
+      const luz = this.add.image(otro.cuerpo.x, otro.cuerpo.y, 'brillo').setTint(tinte)
         .setBlendMode(Phaser.BlendModes.ADD).setDepth(44);
       this.tweens.add({ targets: luz, scale: 2, alpha: 0, duration: 450, onComplete: () => luz.destroy() });
       this.mostrarNumero(otro.cuerpo.x, otro.cuerpo.y - 40, `+${cantidad}`, '#a5d6a7');
@@ -1346,13 +1385,14 @@ export default class EscenaArena extends Phaser.Scene {
    * Crea un proyectil del héroe. No usa el grupo de proyectiles de los enemigos:
    * lo movemos a mano en actualizarMagias() (cada frame) y revisamos si toca a alguien.
    */
-  dispararMagia(h, angulo, cfg) {
+  dispararMagia(h, angulo, cfg, tipo = 'bola') {
     const bola = this.add.image(h.cuerpo.x, h.cuerpo.y, 'brillo').setTint(color(h.clase.color))
       .setBlendMode(Phaser.BlendModes.ADD).setScale((cfg.radio * 2.6) / 128).setDepth(45);
     bola.vx = Math.cos(angulo) * cfg.velocidad;
     bola.vy = Math.sin(angulo) * cfg.velocidad;
     bola.muereEn = this.time.now + cfg.duracionMs;
     bola.cfg = cfg;
+    bola.tipo = tipo; // v0.1.20: para saber con qué multiplicador pega
     bola.duenio = h;
     this.magias.push(bola);
   }
@@ -1371,7 +1411,7 @@ export default class EscenaArena extends Phaser.Scene {
           if (!this.esInvitado) { // el daño lo calcula quien juega solo o el anfitrión
             const h = bola.duenio;
             const direccion = new Phaser.Math.Vector2(bola.vx, bola.vy).normalize();
-            this.danarEnemigo(enemigo, Math.round(bola.cfg.danio * multDanio(h)), direccion, bola.cfg.empuje * (h.raza.empuje || 1), '#e1bee7', h);
+            this.danarEnemigo(enemigo, Math.round(bola.cfg.danio * multPoder(h, bola.tipo)), direccion, bola.cfg.empuje * (h.raza.empuje || 1), '#e1bee7', h);
           }
           break;
         }
@@ -1529,7 +1569,7 @@ export default class EscenaArena extends Phaser.Scene {
     const direccion = new Phaser.Math.Vector2(x - h.cuerpo.x, y - h.cuerpo.y);
     if (direccion.lengthSq() === 0) direccion.set(1, 0);
     direccion.normalize();
-    const danio = Math.round(c.danio * multDanio(h));
+    const danio = Math.round(c.danio * multPoder(h, 'crit'));
     this.danarEnemigo(objetivo, danio, direccion, c.empuje * (h.raza.empuje || 1), '#ff5252', h);
   }
 

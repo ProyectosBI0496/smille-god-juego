@@ -931,7 +931,8 @@
       "empuje": 220,
       "recargaMs": 7000
     },
-    "sanar": {"nombre": "Sanar", "cura": 30, "radio": 280, "recargaMs": 9000}
+    "sanar": {"nombre": "Sanar", "cura": 30, "radio": 280, "recargaMs": 9000},
+    "curaGrande": {"nombre": "Cura grande", "radio": 400, "recargaMs": 12000, "color": "#ffe082"}
   },
   "estadisticas": {
     "lista": {
@@ -1883,6 +1884,10 @@
   "poderes": {
     "_nota": "Poderes por CLASE y ROL (Excel del creador: Propuesta_Poderes_Clases_y_Roles-v2). \"accion\" = habilidad del prototipo que usa por ahora; cdSeg/alcanceM/potencia son los del Excel. La recarga de los botones 2 y 3 = cdSeg × escalaRecarga.",
     "escalaRecarga": [null, 0.5, 0.33],
+    "_notaV0120": "v0.1.20: DAÑO de los botones 2 y 3 = estadística Daño × (potencia ÷ potencia del botón 1) × multPoderes (el daño se reparte entre los golpes o proyectiles del poder). MANÁ = costo × costoMana, como % de la Inteligencia BASE del rol en su nivel (25 × 0,5 = 12,5%). CURA = magia.sanar.cura × (potencia ÷ potenciaCura) × crecimiento de la Vida del rol. Todo sube con el nivel en la proporción del Excel Estadisticas.",
+    "multPoderes": 1.5,
+    "costoMana": 0.5,
+    "potenciaCura": 220,
     "asesino": {
       "dps": {
         "id": "ASE-DPS",
@@ -2094,7 +2099,7 @@
             "nombre": "Cúpula de Serafín",
             "mecanica": "Cúpula Defensiva AoE",
             "texto": "Proyecta una cúpula de energía pura de 9m por 5s: absorbe el 60% del daño entrante de proyectiles y regenera vitalidad continuamente.",
-            "accion": "onda",
+            "accion": "curaG",
             "cdSeg": 36,
             "costo": 85,
             "alcanceM": 15,
@@ -2270,7 +2275,7 @@
             "nombre": "Juicio de Resurrección",
             "mecanica": "Curación AoE + Purga",
             "texto": "Invoca un pilar solar sobre el campo (10m) que restaura gran cantidad de vida a todos los aliados y purifica estados negativos.",
-            "accion": "onda",
+            "accion": "curaG",
             "cdSeg": 38,
             "costo": 85,
             "alcanceM": 10,
@@ -2401,7 +2406,7 @@
             "nombre": "Renacer de la Floresta",
             "mecanica": "Canalización Curativa AoE",
             "texto": "Canaliza una lluvia de polen ancestral (15m) durante 3s que restaura vida masiva por segundo y revierte heridas graves.",
-            "accion": "onda",
+            "accion": "curaG",
             "cdSeg": 36,
             "costo": 85,
             "alcanceM": 15,
@@ -2579,7 +2584,7 @@
             "nombre": "Convergencia Ancestral",
             "mecanica": "Link de Vida + Burst Heal",
             "texto": "Sobrecarga todos los tótems activos y crea un nexo espiritual por 5s que redistribuye equitativamente la vida del equipo y sana masivamente.",
-            "accion": "onda",
+            "accion": "curaG",
             "cdSeg": 38,
             "costo": 85,
             "alcanceM": 16,

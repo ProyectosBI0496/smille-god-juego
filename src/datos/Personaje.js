@@ -292,6 +292,9 @@ export function calcularHeroe(balance, entrada) {
   // (Golpe 25, Proyectil 20...) se multiplica por Daño / daño del molde, y los demás
   // poderes en la misma proporción.
   const multDanio = s.danio / danioMolde(balance, poderes.botones[0].accion);
+  // v0.1.18: la CURA de los poderes crece en la misma proporción que la VIDA del rol
+  const curaPoder = s.vida / estadisticasBase(balance, p.rol, 1).vida;
+  const { costos, poder, curas } = numerosPoderes(balance, p, poderes, s, multDanio, curaPoder);
   return {
     personaje: p,
     idRaza: p.raza,
@@ -317,10 +320,14 @@ export function calcularHeroe(balance, entrada) {
       // (Excel Estadisticas): Vida del héroe / Vida del rol en el nivel 1. Un Sanador nivel 25
       // tiene 694 de vida contra 150 en el nivel 1 → sus poderes curan ×4,63.
       // (El DAÑO de los poderes ya crece igual con la estadística Daño: ver multDanio arriba.)
-      curaPoder: s.vida / estadisticasBase(balance, p.rol, 1).vida,
+      curaPoder,
+      // v0.1.20: multiplicador de DAÑO de cada poder ({ accion: mult }) y CURA de cada poder ({ accion: cura })
+      poder,
+      curas,
       // VELOCIDAD de ataque: con más % se recarga más rápido (50% = normal)
       recarga: Phaser.Math.Clamp((1 + cv.ataqueRef) / (1 + s.velocidad), cv.recargaMin, 1),
     },
+    costos, // v0.1.20: maná que cuesta cada botón (sube con el nivel)
     // ARMADURA = "% de bloqueo": quita esa parte del daño recibido (con un tope)
     reduccion: Phaser.Math.Clamp(s.armadura, 0, cv.armaduraMax),
     // v0.1.7: 8 piezas del set God = aura dorada alrededor del héroe
@@ -328,6 +335,53 @@ export function calcularHeroe(balance, entrada) {
     // FUERZA = probabilidad de aturdir al enemigo cada "aturdirCada" golpes
     aturdir: Phaser.Math.Clamp(s.fuerza, 0, 1),
   };
+}
+
+/**
+ * v0.1.20 — Los números de cada poder (Excel Propuesta_Poderes_Clases_y_Roles-v2 + balance.json → poderes).
+ *   MANÁ:  costo del Excel × costoMana, como % de la Inteligencia BASE del rol en su nivel.
+ *          Ej.: Paso de Humo (25) → 12,5% de 110 (DPS nivel 1) = 14 de maná; en nivel 25, 12,5% de 447 = 56.
+ *          Si subes Inteligencia con puntos o equipo, tienes más maná pero el poder cuesta igual → alcanza para más.
+ *   DAÑO:  botón 1 = la estadística Daño (como antes). Botones 2 y 3 = Daño × (potencia ÷ potencia del botón 1)
+ *          × multPoderes. Como la estadística Daño sube con el nivel, el daño de los poderes sube con ella.
+ *          Ese daño total se reparte entre los golpes o proyectiles del molde (Torbellino 6 golpes, Abanico 5...).
+ *   CURA:  magia.sanar.cura × (potencia ÷ potenciaCura) × curaPoder (crecimiento de la Vida del rol).
+ * Devuelve { costos: [..], poder: { accion: multiplicador }, curas: { accion: cura } }
+ */
+function numerosPoderes(balance, p, poderes, s, multDanio, curaPoder) {
+  const pb = balance.poderes;
+  const base = estadisticasBase(balance, p.rol, p.nivel);
+  const botones = poderes.botones;
+  const costos = botones.map((b) => Math.round((b.costo * pb.costoMana / 100) * base.inteligencia));
+  const poder = {};
+  const curas = {};
+  botones.forEach((b, i) => {
+    if (b.accion === 'sanar' || b.accion === 'curaG') {
+      curas[b.accion] = Math.round(balance.magia.sanar.cura * (b.potencia / pb.potenciaCura) * curaPoder);
+    } else if (i === 0) {
+      poder[b.accion] = multDanio;
+    } else {
+      const objetivo = s.danio * (b.potencia / botones[0].potencia) * pb.multPoderes; // daño total del poder
+      poder[b.accion] = objetivo / danioTotalMolde(balance, b.accion);
+    }
+  });
+  return { costos, poder, curas };
+}
+
+/** Daño TOTAL que hace el molde de un poder sin multiplicar (todos sus golpes o proyectiles juntos) */
+function danioTotalMolde(balance, accion) {
+  const a = balance.clases.asesino;
+  const totales = {
+    atq: balance.ataqueBasico.danio,
+    onda: balance.habilidad.danio,
+    torb: balance.especial.danio * balance.especial.golpes,
+    cuch: a.cuchilladas.danio * a.cuchilladas.golpes,
+    paso: a.pasoSombrio.danio,
+    crit: a.critico.danio,
+    bola: balance.magia.bola.danio,
+    abanico: balance.magia.abanico.danio * balance.magia.abanico.cantidad,
+  };
+  return totales[accion] || balance.ataqueBasico.danio;
 }
 
 /** Daño de la habilidad "molde" del botón 1 (Golpe 25, Cuchilladas 16, Proyectil 20) */
@@ -359,5 +413,5 @@ export function recargaPoder(balance, poder, i, recargaMolde) {
 export const NOMBRE_HABILIDAD = {
   atq: 'Golpe', onda: 'Onda', torb: 'Torbellino',
   cuch: 'Cuchilladas', paso: 'Paso sombrío', crit: 'Golpe crítico',
-  bola: 'Proyectil', abanico: 'Abanico', sanar: 'Sanar al grupo',
+  bola: 'Proyectil', abanico: 'Abanico', sanar: 'Sanar al grupo', curaG: 'Cura grande',
 };
