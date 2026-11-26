@@ -66,7 +66,7 @@ export default class Cooperativo {
       oir('puerta', (m) => escena.mazmorra.vencerSala(m.i));
       oir('anuncio', (m) => escena.mostrarAnuncio(m.texto, true));
       oir('fin', (m) => this.fin(m));
-      oir('iniciar', (m) => escena.scene.restart({ mundo: m.mundo, dificultad: m.dificultad, coop: true, invitado: true }));
+      oir('iniciar', (m) => escena.scene.restart({ mundo: m.mundo, dificultad: m.dificultad, coop: true, invitado: true, vidas: m.vidas }));
       oir('esperar', () => escena.scene.start('EscenaSala', { esperando: true }));
       // v0.1.12: aviso al anfitrión que ya estoy en la partida nueva. Se repite cada
       // medio segundo (en actualizar) hasta que conteste con "sync", por si el primero

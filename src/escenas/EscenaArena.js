@@ -85,6 +85,9 @@ export default class EscenaArena extends Phaser.Scene {
     this.dificultad = (datos && datos.dificultad) || 1; // v0.1.4: 1 Iniciado ... 5 Divino
     this.coop = !!(datos && datos.coop);           // ¿se juega en pareja?
     this.esInvitado = !!(datos && datos.invitado); // ¿somos el invitado?
+    // v0.1.13: al pasar a la SIGUIENTE DIFICULTAD, cada héroe sigue con la vida que tenía
+    // ({ clave: vida }; "yo" = jugando solo). Si no viene, todos empiezan con la vida llena.
+    this.vidasIniciales = (datos && datos.vidas) || null;
   }
 
   // preload(): se ejecuta ANTES de create(). Aquí se cargan archivos.
@@ -148,6 +151,7 @@ export default class EscenaArena extends Phaser.Scene {
       this.heroe.nombre = nick() || 'Tú';
       this.heroe.ponerEtiqueta(this.heroe.nombre);
       this.cooperativo = new Cooperativo(this, red);
+      this.heroe.clave = red.clave; // v0.1.13: para guardar la vida de cada uno al cambiar de dificultad
     } else if (nick()) {
       this.heroe.nombre = nick();
       this.heroe.ponerEtiqueta(nick()); // también jugando solo
@@ -204,6 +208,7 @@ export default class EscenaArena extends Phaser.Scene {
     // v0.1.10: marca de "partida en curso". Si el juego se cierra o se apaga el celular
     // antes de terminar, al volver a abrirlo se cobra como partida perdida.
     empezarPartida({ mundo: this.mundo.nombre, coronasPerder: this.coronasEnJuego().perder });
+    this.ponerVidasIniciales(); // v0.1.13
     this.numerosLibres = [];     // "pool": números de daño guardados para reutilizar
     this.terminado = false;      // true al ganar el mundo
     this.caido = false;          // true al perder (hay que reiniciarlo: restart reutiliza la escena)
@@ -1558,10 +1563,34 @@ export default class EscenaArena extends Phaser.Scene {
     ]);
   }
 
-  /** Empieza (o reinicia) un mundo. En pareja, el invitado entra también. */
-  jugarMundo(indice, dificultad = 1) {
-    if (this.cooperativo) this.cooperativo.enviar({ t: 'iniciar', mundo: indice, dificultad });
-    this.scene.restart({ mundo: indice, dificultad, coop: !!this.cooperativo });
+  /**
+   * Empieza (o reinicia) un mundo. En pareja, el invitado entra también.
+   * v0.1.13: conservarVida = true (siguiente dificultad): cada héroe sigue con su vida.
+   */
+  jugarMundo(indice, dificultad = 1, conservarVida = false) {
+    const vidas = conservarVida ? this.vidasActuales() : null;
+    if (this.cooperativo) this.cooperativo.enviar({ t: 'iniciar', mundo: indice, dificultad, vidas });
+    this.scene.restart({ mundo: indice, dificultad, coop: !!this.cooperativo, vidas });
+  }
+
+  /** v0.1.13: la vida de cada héroe ahora: { clave: vida } ("yo" si juega solo) */
+  vidasActuales() {
+    const vidas = { [this.heroe.clave || 'yo']: this.heroe.vida };
+    for (const [clave, h] of this.companeros) vidas[clave] = h.vida;
+    return vidas;
+  }
+
+  /**
+   * v0.1.13: al empezar, pone a cada héroe la vida que traía de la dificultad anterior.
+   * Nunca más que su vida máxima; el que había caído vuelve con 1 punto (si no, empezaría muerto).
+   */
+  ponerVidasIniciales() {
+    if (!this.vidasIniciales) return;
+    for (const h of this.heroes()) {
+      const vida = this.vidasIniciales[h.clave || 'yo'];
+      if (vida === undefined) continue;
+      h.vida = Phaser.Math.Clamp(Math.round(vida), 1, h.config.vidaMax);
+    }
   }
 
   /** Vuelve al mapa. En pareja, el invitado queda esperando en la sala. */
@@ -1629,7 +1658,7 @@ export default class EscenaArena extends Phaser.Scene {
     if (otraDif) {
       botones.unshift({ // unshift: lo agrega al PRINCIPIO de la lista
         texto: otraDif.nombre, principal: true,
-        accion: () => this.jugarMundo(this.indiceMundo, this.dificultad + 1),
+        accion: () => this.jugarMundo(this.indiceMundo, this.dificultad + 1, true), // v0.1.13: con la vida que tienen
       });
     } else if (siguiente) {
       botones.unshift({ texto: 'Siguiente', principal: true, accion: () => this.jugarMundo(this.indiceMundo + 1) });
