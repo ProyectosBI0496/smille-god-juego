@@ -17,6 +17,7 @@ import { FUENTE_TITULO } from './EscenaArena.js';
 import { crearPersonaje } from '../datos/Progreso.js';
 import { estadisticasDeRol, poderesDe } from '../datos/Personaje.js';
 import { redActual, seguirPareja } from '../red/Red.js';
+import { mostrarTutorial } from '../ui/Tutorial.js'; // v0.1.16: guía con flechas
 
 const TEXTO = { fontFamily: 'Arial, sans-serif', color: '#ffffff' };
 
@@ -64,6 +65,14 @@ export default class EscenaRol extends Phaser.Scene {
     }).setOrigin(0, 1).setInteractive();
     volver.on('pointerdown', () => this.scene.start('EscenaHeroe', { volverA: this.volverA, datosVolver: this.datosVolver }));
     seguirPareja(this);
+
+    // v0.1.16: guía con flechas (la primera vez)
+    mostrarTutorial(this, 'rol', [
+      { texto: 'Elige el ROL de tu héroe: decide sus 3 poderes y su pasiva.\nTANQUE aguanta golpes, DPS hace mucho daño, SANADOR cura.', objetivo: { texto: 'elige tu rol' } },
+      { texto: 'La PASIVA siempre está activa. Debajo están los 3 poderes y el nivel en que se abren.', objetivo: { texto: '(pasiva)' } },
+      { texto: 'Cada rol DESTACA en dos estadísticas: son las que más crecen al subir de nivel.', objetivo: { texto: 'Destaca en' } },
+      { texto: 'Cuando decidas, toca CREAR en ese rol.', objetivo: { texto: 'Crear' } },
+    ]);
   }
 
   crearTarjeta(x, y, ancho, alto, rol) {

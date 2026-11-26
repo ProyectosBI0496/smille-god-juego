@@ -16,6 +16,7 @@ import { FUENTE_TITULO } from './EscenaArena.js';
 import { cuentaParaEscala, elegirHeroe, abrirHeroe, personaje } from '../datos/Progreso.js';
 import { estadoEscala, rangoDe, idHeroe } from '../datos/Personaje.js';
 import { redActual, seguirPareja } from '../red/Red.js';
+import { mostrarTutorial } from '../ui/Tutorial.js'; // v0.1.16: guía con flechas
 
 const TEXTO = { fontFamily: 'Arial, sans-serif', color: '#ffffff' };
 const COLUMNAS = 6;
@@ -83,6 +84,14 @@ export default class EscenaHeroe extends Phaser.Scene {
       else this.scene.start(this.volverA === 'EscenaSala' ? 'EscenaSala' : 'EscenaTitulo', this.datosVolver);
     });
     seguirPareja(this); // si el anfitrión empieza la partida, el invitado entra aunque esté aquí
+
+    // v0.1.16: guía con flechas (la primera vez)
+    mostrarTutorial(this, 'heroes', [
+      { texto: 'MIS HÉROES: aquí están todos los héroes del juego. Cada uno es una RAZA + una CLASE.', objetivo: { texto: 'Mis héroes' } },
+      { texto: 'Las CORONAS 👑 se ganan en las mazmorras. Con coronas, rango y fichas de facción 🔰 se abren héroes nuevos.', objetivo: { texto: 'coronas del jugador' } },
+      { texto: 'Toca un héroe que diga ✚ Crear para crearlo. Cada héroe guarda su propio nivel y equipo.', objetivo: { texto: '✚ Crear' } },
+      { texto: 'Con ◀ y ▶ ves más héroes.', objetivo: { texto: ` / ${this.paginas}` } },
+    ]);
   }
 
   /** "◀  2 / 4  ▶" */

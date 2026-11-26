@@ -20,6 +20,7 @@ import {
   rangoDe, estadisticasBase, textoEstadistica, esPorcentaje,
 } from '../datos/Personaje.js';
 import { redActual, seguirPareja } from '../red/Red.js';
+import { mostrarTutorial } from '../ui/Tutorial.js'; // v0.1.16: guía con flechas
 
 const TEXTO = { fontFamily: 'Arial, sans-serif', color: '#ffffff' };
 
@@ -63,6 +64,21 @@ export default class EscenaPersonaje extends Phaser.Scene {
     // v0.1.3: la tienda de equipo (se le pasa a dónde volver para que la ficha lo recuerde)
     this.boton(W - 450, H - 50, 260, '🛒 Tienda', false, () => this.scene.start('EscenaTienda', { volverA: this.volverA, datosVolver: this.datosVolver }));
     seguirPareja(this);
+
+    // v0.1.16: guía con flechas (la primera vez)
+    const pasos = [
+      { texto: 'Esta es la FICHA de tu héroe: su nivel y su rol.', objetivo: { texto: 'Nivel ' } },
+      { texto: 'RANGO y CORONAS 👑: ganas coronas al vencer mazmorras (al perder, pierdes algunas). Subir de rango abre héroes nuevos.', objetivo: { texto: 'Rango' } },
+      { texto: 'Tus MONEDAS: ☀️ intys y 💎 rubís (para la tienda), 🎟️ fichas (para subir de nivel) y 🔰 fichas de facción (para abrir héroes).', objetivo: { texto: '🎟️' } },
+      { texto: `SUBIR DE NIVEL cuesta fichas 🎟️ (salen de los cofres). Cada nivel te da ${this.balance.progreso.puntosPorNivel} PUNTOS y abre poderes nuevos.`, objetivo: { texto: 'Subir a Nv' } },
+      { texto: 'Tu PASIVA y tus 3 PODERES. Los que tienen 🔒 se abren al subir de nivel.', objetivo: { texto: 'Pasiva:' } },
+      { texto: 'Tus 6 ESTADÍSTICAS. Blanco = lo que da tu nivel · verde = tus puntos · celeste = tu equipo.', objetivo: { texto: 'Estadísticas' } },
+      { texto: 'Con el botón + pones un punto en la estadística que quieras.', objetivo: () => this.children.list.find((t) => t.type === 'Text' && t.text === '+') },
+      { texto: 'En la TIENDA compras equipo y pociones.', objetivo: { texto: 'Tienda' } },
+      { texto: 'Aquí cambias de héroe o creas otro.', objetivo: { texto: 'Cambiar héroe' } },
+      { texto: '¡Listo! Toca JUGAR para elegir tu mundo.', objetivo: { texto: 'Jugar →' } },
+    ];
+    mostrarTutorial(this, 'personaje', pasos);
   }
 
   /** Botón rectangular reutilizable */

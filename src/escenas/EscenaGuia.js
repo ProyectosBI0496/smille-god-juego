@@ -10,6 +10,7 @@ import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
 import { paginasGuia } from '../datos/guia.js';
 import { seguirPareja } from '../red/Red.js';
+import { reiniciarTutorial } from '../ui/Tutorial.js';
 
 export default class EscenaGuia extends Phaser.Scene {
   constructor() {
@@ -64,6 +65,14 @@ export default class EscenaGuia extends Phaser.Scene {
     }).setOrigin(0, 1).setInteractive();
     volver.on('pointerdown', () => this.scene.start('EscenaTitulo'));
     this.input.keyboard.on('keydown-ESC', () => this.scene.start('EscenaTitulo'));
+    // v0.1.16: volver a ver la guía con flechas (menús y primera mazmorra) desde el principio
+    const repetir = this.add.text(W - 24, 24, '↺ Repetir la guía con flechas', {
+      fontFamily: FUENTE_TITULO, fontSize: '22px', color: '#a5d6a7', stroke: '#05070d', strokeThickness: 4,
+    }).setOrigin(1, 0).setInteractive();
+    repetir.on('pointerdown', () => {
+      reiniciarTutorial();
+      this.scene.start('EscenaTitulo');
+    });
     seguirPareja(this); // en grupo: si el anfitrión empieza la partida, el invitado entra aunque esté leyendo
 
     this.irA(this.pagina);

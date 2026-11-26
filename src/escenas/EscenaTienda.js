@@ -25,6 +25,7 @@ import {
   piezaPuesta, bonoSet,
 } from '../datos/Personaje.js';
 import { redActual, seguirPareja } from '../red/Red.js';
+import { mostrarTutorial } from '../ui/Tutorial.js'; // v0.1.16: guía con flechas
 
 const TEXTO = { fontFamily: 'Arial, sans-serif', color: '#ffffff' };
 const VERDE = 0x66bb6a;
@@ -92,6 +93,16 @@ export default class EscenaTienda extends Phaser.Scene {
       wordWrap: { width: W - 260 },
     }).setOrigin(1, 1);
     seguirPareja(this);
+
+    // v0.1.16: guía con flechas (la primera vez)
+    const primerEspacio = Object.values(this.balance.equipo.ranuras)[0].nombre;
+    mostrarTutorial(this, 'tienda', [
+      { texto: 'La TIENDA: equipo para tu héroe y pociones.', objetivo: { texto: 'Tienda: equipo' } },
+      { texto: 'A la izquierda están tus ESPACIOS de equipo (y las pociones). Toca uno para ver qué puedes comprar y qué llevas puesto.', objetivo: { texto: primerEspacio } },
+      { texto: 'Elige el SET: Básico, Moderno o God. Llevar 4 u 8 piezas del mismo set da un BONO extra.', objetivo: { texto: 'Set ' } },
+      { texto: 'Compra POCIONES de vida y de maná para usarlas en las mazmorras.', objetivo: { texto: 'Pociones' } },
+      { texto: 'Cuando termines, vuelve a la ficha de tu héroe.', objetivo: { texto: '← Personaje' } },
+    ]);
   }
 
   datosSinPestana() {

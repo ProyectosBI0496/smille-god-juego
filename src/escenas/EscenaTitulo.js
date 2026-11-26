@@ -9,6 +9,7 @@ import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
 import { mundosSuperados } from '../datos/Progreso.js';
 import { crearEditorNick } from '../ui/EditorNick.js';
+import { mostrarTutorial } from '../ui/Tutorial.js'; // v0.1.16: guía con flechas
 
 export default class EscenaTitulo extends Phaser.Scene {
   constructor() {
@@ -119,5 +120,14 @@ export default class EscenaTitulo extends Phaser.Scene {
     guia.on('pointerdown', () => { this.saliendo = true; this.scene.start('EscenaGuia'); });
     this.input.keyboard.once('keydown-SPACE', empezar);
     this.input.keyboard.once('keydown-ENTER', empezar);
+
+    // v0.1.16: GUÍA CON FLECHAS (solo la primera vez que se abre el juego)
+    this.time.delayedCall(400, () => mostrarTutorial(this, 'titulo', [
+      { texto: '¡Bienvenido a Smille God!\n\nEsta guía te muestra qué hace cada cosa. Toca la pantalla para pasar al siguiente mensaje.' },
+      { texto: 'JUGAR: entra con tu héroe. La primera vez, lo creas.', objetivo: boton },
+      { texto: 'JUGAR EN GRUPO: juega con hasta 2 amigos, cada uno en su celular.', objetivo: pareja },
+      { texto: 'CÓMO SE JUEGA: aquí puedes releer las reglas cuando quieras (y repetir esta guía).', objetivo: guia },
+      { texto: 'Tu NOMBRE de jugador: tócalo para cambiarlo. Lo verán tus compañeros.', objetivo: { texto: 'Jugador:' } },
+    ]));
   }
 }

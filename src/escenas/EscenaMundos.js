@@ -12,6 +12,7 @@ import { FUENTE_TITULO } from './EscenaArena.js';
 import { mundosSuperados, personaje, dificultadSuperada } from '../datos/Progreso.js';
 import { redActual } from '../red/Red.js';
 import { crearMiHeroe } from '../ui/MiHeroe.js';
+import { mostrarTutorial } from '../ui/Tutorial.js'; // v0.1.16: guía con flechas
 
 export default class EscenaMundos extends Phaser.Scene {
   constructor() {
@@ -108,6 +109,13 @@ export default class EscenaMundos extends Phaser.Scene {
       fontFamily: FUENTE_TITULO, fontSize: '28px', color: '#f5c542', stroke: '#05070d', strokeThickness: 4,
     }).setOrigin(0, 1).setInteractive();
     volver.on('pointerdown', () => this.scene.start('EscenaPersonaje'));
+
+    // v0.1.16: guía con flechas (la primera vez)
+    mostrarTutorial(this, 'mundos', [
+      { texto: 'El MAPA: cada mundo es una mazmorra con sus propios monstruos y su jefe.', objetivo: { texto: 'Elige tu mundo' } },
+      { texto: `Las ESTRELLAS son las dificultades que superaste en ese mundo. Con las ${this.balance.dificultades.lista.length} ★ se abre el mundo siguiente.`, objetivo: () => this.children.list.find((o) => o.type === 'Text' && /[★☆]/.test(o.text)) },
+      { texto: 'Aquí dice cuántas oleadas y cuántos jefes tiene. Toca el mundo para elegir la dificultad.', objetivo: { texto: 'oleadas ·' } },
+    ]);
   }
 
   /** Una tarjeta: vista del suelo del mundo, nombre, jefes y su estado */
@@ -236,6 +244,12 @@ export default class EscenaMundos extends Phaser.Scene {
       if (!abierta) return;
       boton.setInteractive().on('pointerdown', () => this.jugar(indice, nivel));
     });
+
+    // v0.1.16: guía con flechas (la primera vez que se abre este panel)
+    mostrarTutorial(this, 'dificultad', [
+      { texto: 'Empieza por la PRIMERA dificultad. Aquí ves la vida ❤️ y el daño ⚔️ de los monstruos y del jefe.', objetivo: { texto: '1. ' } },
+      { texto: 'Las siguientes se abren al superar la anterior: más difíciles, pero con mejores premios. Toca una para entrar.', objetivo: { texto: '2. ' } },
+    ]);
   }
 
   /** Entra a la mazmorra. En pareja, el invitado entra también (con la misma dificultad) */

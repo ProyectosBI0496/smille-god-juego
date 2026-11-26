@@ -94,3 +94,34 @@ document.getElementById('boton-jugar').addEventListener('click', pedirPantallaCo
 
 // Si el jugador giró el celular a mano, el primer toque también activa la pantalla completa
 document.addEventListener('pointerup', pedirPantallaCompleta, { once: true });
+
+// -------------------------------------------------------------
+// v0.1.16: AL DESBLOQUEAR EL CELULAR (o volver a la app)
+// -------------------------------------------------------------
+// Problema: si el celular se bloquea con un dedo en la pantalla, el navegador
+// a veces NO avisa que ese dedo se soltó. Phaser lo sigue creyendo "apoyado" y
+// ocupa uno de sus punteros; con varios así, los toques nuevos se ignoran y el
+// juego "deja de responder". Además se sale de la pantalla completa y el tamaño
+// cambia. Al volver: soltamos todos los dedos, nos aseguramos de que el juego
+// siga corriendo, recalculamos el tamaño y volvemos a pedir pantalla completa.
+function alDespertar() {
+  if (document.visibilityState !== 'visible') return;
+  const juego = window.juego;
+  for (const puntero of juego.input.pointers) {
+    // Como si el dedo se hubiera levantado
+    puntero.active = false;
+    puntero.isDown = false;
+    puntero.primaryDown = false;
+    puntero.buttons = 0;
+  }
+  if (!juego.loop.running) juego.loop.resume(); // el reloj del juego, por si quedó dormido
+  juego.events.emit('despertar'); // las escenas sueltan el joystick y reacomodan sus controles
+  // El tamaño de la pantalla tarda un poco en asentarse (rotación, barra del navegador)
+  setTimeout(() => juego.scale.refresh(), 300);
+  setTimeout(() => juego.scale.refresh(), 1200);
+  // El navegador solo da pantalla completa tras un toque: el próximo toque la pide
+  if (!document.fullscreenElement) document.addEventListener('pointerup', pedirPantallaCompleta, { once: true });
+}
+document.addEventListener('visibilitychange', alDespertar);
+window.addEventListener('pageshow', alDespertar);
+window.addEventListener('focus', alDespertar);

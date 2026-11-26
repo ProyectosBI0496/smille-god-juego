@@ -45,6 +45,7 @@ import BarraVida from '../ui/BarraVida.js';
 import { calcularHeroe, recargaPoder, rangoDe, objetoEquipo } from '../datos/Personaje.js';
 import { redActual } from '../red/Red.js';
 import Cooperativo from '../red/Cooperativo.js';
+import { mostrarTutorial, tutorialVisto, tutorialAbierto, marcarTutorial } from '../ui/Tutorial.js'; // v0.1.16
 
 // Qué clase usar para cada tipo de enemigo de balance.json (por defecto, Enemigo)
 const CLASES = { tirador: Tirador };
@@ -224,6 +225,11 @@ export default class EscenaArena extends Phaser.Scene {
     this.actualizarHud();
     this.mostrarAnuncio(this.mundo.nombre, true);
 
+    // v0.1.16: PRIMERA MAZMORRA GUIADA (solo en el primer mundo, jugando solo, hasta ganarla una vez)
+    this.mazmorraGuiada = this.indiceMundo === 0 && !this.cooperativo && !tutorialVisto('mazmorra');
+    this.colaGuia = []; // explicaciones esperando su turno
+    this.time.delayedCall(900, () => this.guiaInicio());
+
     // Etapa 10: si cambia el tamaño de la pantalla, los controles se reacomodan
     this.ubicarControles();
     this.scale.on('resize', this.ubicarControles, this);
@@ -302,6 +308,7 @@ export default class EscenaArena extends Phaser.Scene {
 
   update(tiempo, delta) {
     if (this.caido) return; // pantalla de derrota
+    if (tutorialAbierto(this)) return; // v0.1.16: la guía está explicando algo: todo quieto
 
     if (this.heroe.vivo && !this.terminado) {
       this.leerMovimiento();
@@ -323,6 +330,7 @@ export default class EscenaArena extends Phaser.Scene {
     this.actualizarMana(delta);
     // v0.1.9: la vida se recupera sola (la calcula quien juega solo o el anfitrión)
     if (!this.esInvitado) this.regenerarVida(delta);
+    this.revisarGuiaPociones(); // v0.1.16
 
     if (this.cooperativo) this.cooperativo.actualizar();
     this.actualizarMagias(delta); // v0.1.2: proyectiles de los héroes
@@ -372,6 +380,13 @@ export default class EscenaArena extends Phaser.Scene {
     // v0.1.10: número rojo sobre el héroe con el daño que recibió (para ver si coincide con el Excel)
     this.mostrarNumero(h.sprite.x, h.sprite.y - h.radio, `-${danio}`, '#ff5252');
     h.ultimoDanio = this.time.now; // v0.1.4: mientras lo atacan, el maná no se recupera
+    if (h === this.heroe && h.vivo) {
+      // v0.1.16: el primer golpe recibido
+      const r = this.balance.regenVida;
+      this.guiar('m-golpe', [
+        { texto: `¡Te golpearon! El número ROJO (-${danio}) es el daño que recibiste y baja tu barra VERDE.\nTu ARMADURA reduce ese daño.\nSi nadie te golpea por ${r.sinDanioMs / 1000} segundos, recuperas vida y maná poco a poco.`, objetivo: this.rectanguloMundo(h.cuerpo.x, h.cuerpo.y, h.radio + 30) },
+      ]);
+    }
     if (h === this.heroe) {
       this.cameras.main.shake(100, 0.006);
       this.vibrar(60);
@@ -448,6 +463,15 @@ export default class EscenaArena extends Phaser.Scene {
     h.inmuneControlHasta = fin + c.inmuneMs;
     h.mostrarControl(cfg, hasta); // el dibujo (icono sobre la cabeza)
     this.mostrarNumero(h.cuerpo.x, h.cuerpo.y - 70, `${cfg.icono} ${cfg.nombre}`, cfg.color);
+    if (h === this.heroe) {
+      // v0.1.16: la primera vez que te aturden o te amarran
+      this.guiar('m-control', [{
+        texto: tipo === 'aturdir'
+          ? `${cfg.icono} ¡Te ATURDIERON! Unos instantes sin moverte ni usar poderes (las pociones sí funcionan).`
+          : `${cfg.icono} ¡Te AMARRARON! Unos instantes sin moverte, pero sí puedes atacar.`,
+        objetivo: this.rectanguloMundo(h.cuerpo.x, h.cuerpo.y, h.radio + 30),
+      }]);
+    }
     if (h === this.heroe) {
       this.vibrar(150);
       this.heroe.cuerpo.body.setVelocity(0, 0);
@@ -542,12 +566,16 @@ export default class EscenaArena extends Phaser.Scene {
         }
       }
       this.mostrarAnuncio(`Oleada ${sala.numero} de ${this.mundo.oleadas}${nombres.length ? `\n${nombres.join(' · ')}` : ''}`);
+      this.time.delayedCall(700, () => this.guiaOleada()); // v0.1.16
     } else {
       const total = this.mazmorra.totalJefes;
       // v0.1.7: el anuncio dice el NOMBRE del jefe de este mundo
       const nombre = this.nombreMonstruo('jefe');
       this.mostrarAnuncio(total === 1 ? `¡${nombre}!` : `¡${nombre} (${sala.numero} de ${total})!`);
       this.cameras.main.shake(400, 0.006);
+      this.time.delayedCall(this.balance.oleadas.retrasoJefeMs + 300, () => this.guiar('m-jefe', [
+        { texto: `¡Un JEFE: ${nombre}!\nTiene mucha vida (su barra está arriba) y pega fuerte.\nSi ves una FRANJA ROJA en el suelo, ¡apártate: va a embestir por ahí!` },
+      ])); // v0.1.16
       this.time.delayedCall(this.balance.oleadas.retrasoJefeMs, () => {
         if (!this.caido) this.crearEnemigo(this.configJefe(sala.numero), sala, Jefe);
       });
@@ -773,6 +801,11 @@ export default class EscenaArena extends Phaser.Scene {
     if (grande) this.mostrarAnuncio('¡Se abrió la puerta del centro!');
     else if (sala.tipo === 'jefe' && !abiertas.length) this.mostrarAnuncio('¡Jefe vencido! Busca el otro camino');
     else this.mostrarAnuncio(sala.tipo === 'jefe' ? '¡Jefe vencido!' : '¡Sigue adelante!');
+    if (sala.tipo === 'oleada') {
+      this.time.delayedCall(900, () => this.guiar('m-sala', [
+        { texto: `¡Oleada vencida! Las REJAS se abren y recuperas ${this.balance.oleadas.curacionPorSala} de vida.\nSigue por el pasillo hasta la próxima sala. Aquí arriba ves cuántas oleadas y jefes faltan.`, objetivo: this.textoProgreso },
+      ])); // v0.1.16
+    }
   }
 
   // =============================================================
@@ -1016,6 +1049,15 @@ export default class EscenaArena extends Phaser.Scene {
   danarEnemigo(enemigo, danio, direccion, empuje, colorNumero = '#ffeb3b', h = this.heroe) {
     enemigo.recibirDanio(danio, direccion, empuje);
     this.mostrarNumero(enemigo.cuerpo.x, enemigo.cuerpo.y - enemigo.radio, `-${danio}`, colorNumero);
+    if (h === this.heroe && this.mazmorraGuiada) {
+      // v0.1.16: el primer golpe: se explica el daño
+      const estadistica = h.tipo === 'caster' ? 'Inteligencia (tu héroe ataca con magia)' : 'Daño';
+      const zona = this.rectanguloMundo(enemigo.cuerpo.x, enemigo.cuerpo.y, enemigo.radio + 20);
+      this.guiar('m-danio', [
+        { texto: `¡Golpe! El número AMARILLO (-${danio}) es el DAÑO que hiciste.\nEse es tu DAÑO BASE: sale de tu estadística ${estadistica}. Sube con tu NIVEL, tus PUNTOS y tu EQUIPO.`, objetivo: zona },
+        { texto: `La barra sobre el monstruo es su VIDA (${enemigo.config.vidaMax}). Cuando llega a cero, cae. Vence a todos para abrir las rejas.`, objetivo: zona },
+      ]);
+    }
     // v0.1.5: FUERZA. Cada 3 golpes del héroe, una probabilidad (su % de Fuerza)
     // de dejar al enemigo aturdido 1 segundo (no se mueve ni ataca).
     const cv = this.balance.estadisticas.conversion;
@@ -1545,12 +1587,112 @@ export default class EscenaArena extends Phaser.Scene {
     // "hidden" lo avisa Phaser cuando la página deja de verse.
     // Al cerrar la escena quitamos el aviso para no acumularlo en cada reinicio.
     this.game.events.on('hidden', this.pausar, this);
+    // v0.1.16: al desbloquear el celular (ver main.js): soltar el joystick y reacomodar
+    this.game.events.on('despertar', this.alDespertar, this);
     this.events.once('shutdown', () => {
       this.game.events.off('hidden', this.pausar, this);
+      this.game.events.off('despertar', this.alDespertar, this);
       // Corrección (sesión 12): si el menú de pausa quedó abierto, se cierra
       // al salir de esta escena. Si no, quedaba encima y bloqueaba los toques.
       this.scene.stop('EscenaPausa');
     });
+  }
+
+  // =============================================================
+  // v0.1.16: PRIMERA MAZMORRA GUIADA
+  // Cada explicación sale UNA vez, cuando pasa lo que explica (el primer golpe,
+  // la primera vez con poca vida...). Mientras se lee, la partida queda quieta.
+  // =============================================================
+
+  /** Muestra un grupo de mensajes de la guía (si toca) y congela la partida mientras se leen */
+  guiar(id, pasos, alTerminar = null) {
+    if (!this.mazmorraGuiada || tutorialVisto(id)) return;
+    if (!this.scene.isActive()) return; // en pausa: ya saldrá la próxima vez
+    if (tutorialAbierto(this)) {
+      // Ya hay otra explicación en pantalla: esta espera su turno en la "cola"
+      this.colaGuia = this.colaGuia || [];
+      if (!this.colaGuia.some(([otro]) => otro === id)) this.colaGuia.push([id, pasos, alTerminar]);
+      return;
+    }
+    this.joystick.soltar();
+    this.direccion.set(0, 0);
+    this.heroe.cuerpo.body.setVelocity(0, 0);
+    this.physics.pause();    // nada se mueve
+    this.time.paused = true; // ni corren los temporizadores (el jefe espera)
+    mostrarTutorial(this, id, pasos, {
+      alTerminar: () => {
+        this.physics.resume();
+        this.time.paused = false;
+        if (alTerminar) alTerminar();
+        // ¿Quedó otra explicación esperando? Se muestra ahora
+        const siguiente = (this.colaGuia || []).shift();
+        if (siguiente) this.guiar(...siguiente);
+      },
+    });
+  }
+
+  /** Un rectángulo de PANTALLA alrededor de un punto del mundo (x, y) */
+  rectanguloMundo(x, y, radio) {
+    const v = this.cameras.main.worldView;
+    return { x: x - v.x - radio, y: y - v.y - radio, ancho: radio * 2, alto: radio * 2 };
+  }
+
+  /** Al entrar: el joystick, la vida, el maná, el avance y la pausa */
+  guiaInicio() {
+    const W = this.scale.baseSize.width;
+    const H = this.scale.baseSize.height;
+    this.guiar('m-inicio', [
+      { texto: 'Esta es tu PRIMERA MAZMORRA. Te iré explicando todo mientras juegas.\n\nToca la pantalla para seguir.' },
+      { texto: 'Apoya el pulgar en la MITAD IZQUIERDA de la pantalla: aparece el JOYSTICK. Arrástralo para caminar.', objetivo: { x: 30, y: H * 0.4, ancho: W / 2 - 60, alto: H * 0.55 } },
+      { texto: 'Este es tu héroe. La barra VERDE es tu VIDA y la AZUL tu MANÁ (los poderes gastan maná).', objetivo: this.rectanguloMundo(this.heroe.cuerpo.x, this.heroe.cuerpo.y - 10, this.heroe.radio + 30) },
+      { texto: 'Arriba ves tu AVANCE (oleadas y jefes) y tu maná con números.', objetivo: { x: 14, y: 40, ancho: 420, alto: 95 } },
+      { texto: 'La PAUSA. Ojo: si sales al mapa o reinicias a media partida, cuenta como PERDIDA.', objetivo: this.partesPausa[0][0] },
+      { texto: 'Camina por el pasillo hasta la primera sala. Al entrar, las REJAS se cierran y salen los monstruos.' },
+    ]);
+  }
+
+  /** En la primera oleada: ataque, poderes, pasiva y pociones */
+  guiaOleada() {
+    const abierto2 = this.datosHeroe.botones > 1;
+    this.guiar('m-oleada', [
+      { texto: '¡Monstruos! Este es tu ATAQUE: tócalo para golpear. Apunta solo al monstruo más cercano.', objetivo: this.boton1.circulo },
+      {
+        texto: abierto2
+          ? 'Tus PODERES: más fuertes, pero cuestan MANÁ (el número azul) y tardan en recargarse.'
+          : `Tus PODERES: cuestan MANÁ y tardan en recargarse. Este está bloqueado 🔒: se abre en el nivel ${this.balance.progreso.nivelBotones[1]}.`,
+        objetivo: this.boton2.circulo,
+      },
+      { texto: 'Tu PASIVA: siempre está activa. Tócala cuando quieras para leer qué hace.', objetivo: this.botonPasiva.circulo },
+      { texto: 'POCIONES: la roja cura VIDA y la azul da MANÁ. El número es cuántas te quedan (se compran en la tienda).', objetivo: this.botonVida.circulo },
+    ]);
+  }
+
+  /** La primera vez con poca vida o poco maná: se señalan las pociones */
+  revisarGuiaPociones() {
+    if (!this.mazmorraGuiada || !this.heroe.vivo || this.terminado) return;
+    const h = this.heroe;
+    const mias = pociones();
+    if (h.vida < h.config.vidaMax * 0.5 && !tutorialVisto('m-pocion-vida')) {
+      this.guiar('m-pocion-vida', [{
+        texto: mias.vida > 0
+          ? `¡Tu vida está BAJA! Toca la POCIÓN DE VIDA para curarte. Te quedan ${mias.vida}.`
+          : '¡Tu vida está BAJA y no tienes pociones! Aléjate de los monstruos un momento para recuperar vida. Compra pociones en la TIENDA.',
+        objetivo: this.botonVida.circulo,
+      }]);
+    } else if (h.mana < h.manaMax * 0.3 && !tutorialVisto('m-pocion-mana')) {
+      this.guiar('m-pocion-mana', [{
+        texto: mias.mana > 0
+          ? `Te queda poco MANÁ para tus poderes. Toca la POCIÓN DE MANÁ. Te quedan ${mias.mana}.`
+          : 'Te queda poco MANÁ. Se recupera solo si nadie te golpea un rato. Compra pociones de maná en la TIENDA.',
+        objetivo: this.botonMana.circulo,
+      }]);
+    }
+  }
+
+  /** v0.1.16: el celular se desbloqueó: el dedo que movía al héroe ya no está */
+  alDespertar() {
+    this.joystick.soltar();
+    this.ubicarControles();
   }
 
   /** Congela la escena y abre el menú de pausa encima */
@@ -1581,6 +1723,10 @@ export default class EscenaArena extends Phaser.Scene {
     this.pantallaFinal(titulo, texto, this.premiosFinales(false), [
       { texto: 'Reintentar', principal: true, accion: () => this.jugarMundo(this.indiceMundo, this.dificultad) },
       { texto: 'Mapa', accion: () => this.irAlMapa() },
+    ]);
+    // v0.1.16
+    this.guiar('m-derrota', [
+      { texto: 'Caíste. Perder quita algunas CORONAS 👑, pero puedes REINTENTAR.\n\nConsejos: usa las POCIONES, aléjate de los monstruos para recuperar vida y SUBE DE NIVEL con las fichas 🎟️ de los cofres.' },
     ]);
   }
 
@@ -1691,6 +1837,12 @@ export default class EscenaArena extends Phaser.Scene {
     const texto = `${mensaje}\nDerrotados: ${this.derrotados}`;
     if (this.cooperativo) this.cooperativo.enviar({ t: 'fin', tipo: 'victoria', titulo, texto });
     this.pantallaFinal(titulo, texto, this.premiosFinales(true), botones);
+    // v0.1.16: al ganar la primera mazmorra termina la guía de la partida
+    this.guiar('m-victoria', [
+      { texto: '¡Superaste tu primera mazmorra!\nGanaste CORONAS 👑 y COFRES: monedas, fichas 🎟️ y a veces equipo. Abajo ves lo que te tocó.' },
+      { texto: 'Puedes seguir a la DIFICULTAD SIGUIENTE (con la vida que te quedó) o volver al MAPA.', objetivo: { texto: botones[0].texto } },
+      { texto: 'Consejo: en la ficha de tu héroe usa las fichas 🎟️ para SUBIR DE NIVEL y reparte tus puntos. ¡Suerte!' },
+    ], () => marcarTutorial('mazmorra'));
   }
 
   /**

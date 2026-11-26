@@ -6,6 +6,7 @@
 // =============================================================
 
 import { FUENTE_TITULO } from './EscenaArena.js';
+import { reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 
 export default class EscenaPausa extends Phaser.Scene {
   constructor() {
@@ -17,6 +18,9 @@ export default class EscenaPausa extends Phaser.Scene {
     const H = this.scale.baseSize.height;
     const cx = W / 2;
     this.cameras.main.setSize(W, H); // tamaño real de la pantalla (modo EXPAND)
+    // v0.1.16: si cambia el tamaño (al desbloquear el celular se sale de la pantalla completa),
+    // el menú se rearma; antes quedaba con el tamaño viejo y el botón Continuar fuera de lugar
+    reiniciarAlCambiarTamano(this);
     const cy = H / 2;
 
     // Fondo oscuro semitransparente: se ve la arena congelada detrás
