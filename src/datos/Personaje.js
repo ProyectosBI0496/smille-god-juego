@@ -313,6 +313,8 @@ export function calcularHeroe(balance, entrada) {
       magia: multDanio,
       // la curación (y las pociones) rinden más con Inteligencia; nunca menos de ×1
       cura: Math.max(1, s.inteligencia / cv.curaRef),
+      // v0.1.17: los PODERES (botones 2 y 3) pegan y curan más con cada nivel
+      poder: 1 + (p.nivel - 1) * (balance.progreso.poderPorNivel || 0),
       // VELOCIDAD de ataque: con más % se recarga más rápido (50% = normal)
       recarga: Phaser.Math.Clamp((1 + cv.ataqueRef) / (1 + s.velocidad), cv.recargaMin, 1),
     },

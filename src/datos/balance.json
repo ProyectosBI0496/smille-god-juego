@@ -1557,6 +1557,8 @@
   "coloresRol": {"tanque": "#64b5f6", "dps": "#ef5350", "heler": "#81c784"},
   "nombresRol": {"tanque": "Tanque", "dps": "DPS", "heler": "Sanador"},
   "progreso": {
+    "_notaPoder": "v0.1.17: cada nivel sube el DAÑO y la CURA de los poderes (botones 2 y 3) en poderPorNivel. 0.05 = +5% por nivel (nivel 1 = x1, nivel 25 = x2,2). El ataque básico ya crece con la estadística Daño.",
+    "poderPorNivel": 0.05,
     "nivelMax": 25,
     "puntosPorNivel": 3,
     "nivelBotones": [1, 2, 3],
@@ -2686,8 +2688,8 @@
     "coronasPerder": 0.8
   },
   "mana": {
-    "_nota": "El máximo de maná = Inteligencia (v0.1.5). Cada poder cuesta maná (columna 'costo'). Se recupera regenPorSegundo (2% del máximo) por segundo si no te golpean durante sinDanioMs.",
-    "regenPorSegundo": 0.02,
+    "_nota": "El máximo de maná = Inteligencia (v0.1.5). Cada poder cuesta maná (columna 'costo'). Se recupera regenPorSegundo (v0.1.17: 0,5% del máximo) por segundo si no te golpean durante sinDanioMs.",
+    "regenPorSegundo": 0.005,
     "sinDanioMs": 2000,
     "color": "#42a5f5"
   },
