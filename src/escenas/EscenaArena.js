@@ -88,6 +88,8 @@ export default class EscenaArena extends Phaser.Scene {
     // v0.1.13: al pasar a la SIGUIENTE DIFICULTAD, cada héroe sigue con la vida que tenía
     // ({ clave: vida }; "yo" = jugando solo). Si no viene, todos empiezan con la vida llena.
     this.vidasIniciales = (datos && datos.vidas) || null;
+    // v0.1.14: número de esta partida en el grupo (sube con cada Reintentar o dificultad nueva)
+    this.idPartida = (datos && datos.partida) || 0;
   }
 
   // preload(): se ejecuta ANTES de create(). Aquí se cargan archivos.
@@ -146,6 +148,8 @@ export default class EscenaArena extends Phaser.Scene {
         h.clave = otro.clave;
         h.nombre = otro.nick || 'Compañero';
         h.ponerEtiqueta(h.nombre);
+        // v0.1.14: su barra azul de maná (el número llega por la red)
+        h.barraMana = new BarraVida(this, h.radio * 2.4, color(this.balance.mana.color));
         this.companeros.set(otro.clave, h);
       });
       this.heroe.nombre = nick() || 'Tú';
@@ -787,6 +791,11 @@ export default class EscenaArena extends Phaser.Scene {
       h.mana = Math.min(h.manaMax, h.mana + h.manaMax * m.regenPorSegundo * (delta / 1000));
     }
     this.barraMana.dibujar(h.cuerpo.x, h.cuerpo.y - h.radio - 13, h.mana / h.manaMax);
+    // v0.1.14: también la barra de maná de cada compañero y el panel del grupo
+    for (const c of this.companeros.values()) {
+      c.barraMana.dibujar(c.cuerpo.x, c.cuerpo.y - c.radio - 13, c.manaMax ? c.mana / c.manaMax : 0);
+    }
+    this.actualizarPanelGrupo();
     // Barra grande arriba a la izquierda, con el número
     const ancho = 240;
     this.barraManaHud.clear()
@@ -798,6 +807,18 @@ export default class EscenaArena extends Phaser.Scene {
       const boton = [this.boton1, this.boton2, this.boton3][i];
       if (i < this.datosHeroe.botones) boton.circulo.setAlpha(h.mana >= poder.costo ? 1 : 0.4);
     });
+  }
+
+  /**
+   * v0.1.14: en grupo, debajo de mi maná, un renglón por compañero con su vida y su maná.
+   * Solo se cambia el texto si algo cambió (cambiar textos en cada frame es lento en el celular).
+   */
+  actualizarPanelGrupo() {
+    if (!this.textoGrupo) return;
+    const lineas = [...this.companeros.values()].map((c) =>
+      `${c.nombre}  ❤ ${Math.ceil(c.vida)}/${c.config.vidaMax}  ✦ ${c.manaMax ? `${Math.floor(c.mana)}/${c.manaMax}` : '...'}`);
+    const texto = lineas.join('\n');
+    if (texto !== this.textoGrupo.text) this.textoGrupo.setText(texto);
   }
 
   /**
@@ -1569,8 +1590,9 @@ export default class EscenaArena extends Phaser.Scene {
    */
   jugarMundo(indice, dificultad = 1, conservarVida = false) {
     const vidas = conservarVida ? this.vidasActuales() : null;
-    if (this.cooperativo) this.cooperativo.enviar({ t: 'iniciar', mundo: indice, dificultad, vidas });
-    this.scene.restart({ mundo: indice, dificultad, coop: !!this.cooperativo, vidas });
+    const partida = this.idPartida + 1; // v0.1.14: una partida nueva = un número nuevo
+    if (this.cooperativo) this.cooperativo.enviar({ t: 'iniciar', mundo: indice, dificultad, vidas, partida });
+    this.scene.restart({ mundo: indice, dificultad, coop: !!this.cooperativo, vidas, partida });
   }
 
   /** v0.1.13: la vida de cada héroe ahora: { clave: vida } ("yo" si juega solo) */
@@ -1609,6 +1631,7 @@ export default class EscenaArena extends Phaser.Scene {
       // Anfitrión: se va ese héroe; si quedan otros, se sigue en grupo
       const h = this.companeros.get(clave);
       h.destruir();
+      h.barraMana.destruir(); // v0.1.14
       this.companeros.delete(clave);
       if (this.cooperativo) this.cooperativo.ultimosYo.delete(clave);
       this.mostrarAnuncio(`${h.nombre} se desconectó`, true);
@@ -1803,6 +1826,10 @@ export default class EscenaArena extends Phaser.Scene {
     this.barraManaHud = this.add.graphics().setScrollFactor(0).setDepth(100);
     this.textoMana = this.add.text(270, 121, '', { ...estilo, fontSize: '16px', color: '#90caf9' })
       .setOrigin(0, 0.5).setScrollFactor(0).setDepth(100);
+    // v0.1.14: en grupo, la vida y el maná de los compañeros (se llena en actualizarPanelGrupo)
+    this.textoGrupo = this.companeros.size
+      ? this.add.text(20, 140, '', { ...estilo, fontSize: '17px', color: '#e0e0e0', lineSpacing: 2 }).setScrollFactor(0).setDepth(100)
+      : null;
     this.textoAyuda = this.add.text(20, this.scale.baseSize.height - 36,
       'PC: WASD mover · ESPACIO botón 1 · K botón 2 · L botón 3 · H poción vida · M poción maná · P pausa', { ...estilo, fontSize: '18px', color: '#c8d3e0' })
       .setScrollFactor(0).setDepth(100);

@@ -110,6 +110,13 @@ export default class EscenaTitulo extends Phaser.Scene {
       stroke: '#05070d', strokeThickness: 5,
     }).setOrigin(0.5).setInteractive();
     pareja.on('pointerdown', () => this.scene.start('EscenaSala'));
+
+    // v0.1.15: la guía "Cómo se juega" (arriba a la izquierda)
+    const guia = this.add.text(24, 20, '📖 Cómo se juega', {
+      fontFamily: FUENTE_TITULO, fontSize: '28px', color: '#f5c542', fontStyle: 'bold',
+      stroke: '#05070d', strokeThickness: 5,
+    }).setInteractive();
+    guia.on('pointerdown', () => { this.saliendo = true; this.scene.start('EscenaGuia'); });
     this.input.keyboard.once('keydown-SPACE', empezar);
     this.input.keyboard.once('keydown-ENTER', empezar);
   }

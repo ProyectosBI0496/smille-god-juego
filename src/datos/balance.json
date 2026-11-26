@@ -957,6 +957,8 @@
         "texto": "% de bloqueo de los golpes enemigos"
       }
     },
+    "_notaPuntosLibres": "v0.1.14: true = los puntos que da cada nivel se ponen en CUALQUIER estadística; false = solo en las 2 del rol",
+    "puntosLibres": true,
     "porPunto": {"fuerza": 0.002, "vida": 1, "danio": 1, "velocidad": 0.002, "inteligencia": 1, "armadura": 0.002},
     "_nota": "v0.1.5: la base sale del Excel (porNivel, según rol y nivel). Cada punto repartido o del equipo suma porPunto: 1 en Vida, Daño e Inteligencia; 0.002 (= 0,20%) en Fuerza, Velocidad y Armadura, que son porcentajes. conversion = cómo se usan en la partida.",
     "conversion": {

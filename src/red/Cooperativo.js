@@ -36,19 +36,24 @@ export default class Cooperativo {
     // tanto sigue mandando la posición VIEJA de su héroe (quizá dentro de una sala lejana).
     // Si el anfitrión la usara, esa sala empezaría su combate y los monstruos saldrían allá.
     this.listos = new Set();
+    // v0.1.14: cada partida tiene un NÚMERO (sube al reintentar o al pasar a la siguiente
+    // dificultad). El invitado lo pone en sus mensajes y el anfitrión ignora los que traen
+    // otro número: así un mensaje viejo de la partida anterior (por ejemplo, la posición
+    // del héroe junto al jefe ya vencido) no puede activar una sala lejana.
+    const deEstaPartida = (m) => (m.p || 0) === escena.idPartida;
 
     const oir = (tipo, funcion) => red.escuchar(escena, tipo, funcion);
     if (this.esAnfitrion) {
       oir('listo', (m, clave) => {
         // Si llega a la partida que ya terminó (todavía reiniciando), no se contesta:
         // el invitado lo volverá a mandar y lo recibirá la partida nueva
-        if (escena.caido || escena.terminado) return;
+        if (escena.caido || escena.terminado || !deEstaPartida(m)) return;
         this.listos.add(clave);
         this.sincronizar(clave); // por si ya salieron monstruos antes de que llegara
       });
-      oir('yo', (m, clave) => { if (this.listos.has(clave)) this.ultimosYo.set(clave, m); });
+      oir('yo', (m, clave) => { if (this.listos.has(clave) && deEstaPartida(m)) this.ultimosYo.set(clave, m); });
       oir('hab', (m, clave) => {
-        if (!this.listos.has(clave)) return; // un ataque de la partida anterior: no cuenta
+        if (!this.listos.has(clave) || !deEstaPartida(m)) return; // un ataque de la partida anterior: no cuenta
         escena.ejecutarRemota(clave, m.h);
         // Los OTROS invitados también tienen que ver ese ataque (se manda a todos; cada uno ignora el suyo)
         if (m.h !== 'pocionVida') this.enviar({ t: 'efecto', h: m.h, ang: m.ang || 0, c: clave });
@@ -66,7 +71,7 @@ export default class Cooperativo {
       oir('puerta', (m) => escena.mazmorra.vencerSala(m.i));
       oir('anuncio', (m) => escena.mostrarAnuncio(m.texto, true));
       oir('fin', (m) => this.fin(m));
-      oir('iniciar', (m) => escena.scene.restart({ mundo: m.mundo, dificultad: m.dificultad, coop: true, invitado: true, vidas: m.vidas }));
+      oir('iniciar', (m) => escena.scene.restart({ mundo: m.mundo, dificultad: m.dificultad, coop: true, invitado: true, vidas: m.vidas, partida: m.partida }));
       oir('esperar', () => escena.scene.start('EscenaSala', { esperando: true }));
       // v0.1.12: aviso al anfitrión que ya estoy en la partida nueva. Se repite cada
       // medio segundo (en actualizar) hasta que conteste con "sync", por si el primero
@@ -79,6 +84,7 @@ export default class Cooperativo {
 
   /** A todos (el anfitrión) o al anfitrión (el invitado) */
   enviar(mensaje) {
+    if (!this.esAnfitrion) mensaje.p = this.escena.idPartida; // v0.1.14: de qué partida es
     this.red.enviar(mensaje);
   }
 
@@ -95,7 +101,10 @@ export default class Cooperativo {
       // Pone al héroe de cada invitado donde él dice que está
       for (const [clave, m] of this.ultimosYo) {
         const h = e.companeros.get(clave);
-        if (h) h.colocarRemoto(m.x, m.y, m.mx, m.my, m.mov);
+        if (!h) continue;
+        h.colocarRemoto(m.x, m.y, m.mx, m.my, m.mov);
+        // v0.1.14: el maná de cada invitado lo lleva SU celular; aquí solo se guarda para mostrarlo
+        if (m.mm) { h.mana = m.m; h.manaMax = m.mm; }
       }
       if (ahora >= this.proximoEnvio) {
         this.proximoEnvio = ahora + ENVIO_ANFITRION_MS;
@@ -119,7 +128,9 @@ export default class Cooperativo {
       this.proximoEnvio = ahora + ENVIO_INVITADO_MS;
       const h = e.heroe;
       const mov = e.direccion.lengthSq() > 0;
-      this.enviar({ t: 'yo', x: Math.round(h.cuerpo.x), y: Math.round(h.cuerpo.y), mx: +h.mirando.x.toFixed(2), my: +h.mirando.y.toFixed(2), mov });
+      // v0.1.14: también mi maná (m) y mi maná máximo (mm), para que los demás lo vean
+      this.enviar({ t: 'yo', x: Math.round(h.cuerpo.x), y: Math.round(h.cuerpo.y), mx: +h.mirando.x.toFixed(2), my: +h.mirando.y.toFixed(2), mov,
+        m: Math.floor(h.mana), mm: h.manaMax });
     }
     if (this.ultimoEstado) this.aplicarFoto(this.ultimoEstado);
   }
@@ -143,9 +154,11 @@ export default class Cooperativo {
   /** ANFITRIÓN: la "foto" del juego en este momento (números redondeados = mensaje más chico) */
   foto() {
     const e = this.escena;
-    // v0.1.9: un renglón por héroe: [clave, x, y, mira x, mira y, vida, ¿se mueve?]
+    // v0.1.9: un renglón por héroe: [clave, x, y, mira x, mira y, vida, ¿se mueve?, maná, maná máximo]
+    // v0.1.14: con el maná, todos ven el de todos
     const fila = (h, clave) => [clave, Math.round(h.cuerpo.x), Math.round(h.cuerpo.y), +h.mirando.x.toFixed(2), +h.mirando.y.toFixed(2),
-      Math.round(h.vida), h.cuerpo.body.velocity.lengthSq() > 0 || this.ultimosYo.get(clave)?.mov ? 1 : 0];
+      Math.round(h.vida), h.cuerpo.body.velocity.lengthSq() > 0 || this.ultimosYo.get(clave)?.mov ? 1 : 0,
+      Math.floor(h.mana || 0), h.manaMax || 0];
     return {
       t: 'estado',
       j: [fila(e.heroe, this.red.clave), ...[...e.companeros].map(([clave, h]) => fila(h, clave))],
@@ -157,16 +170,26 @@ export default class Cooperativo {
   /** INVITADO: dibuja la foto recibida */
   aplicarFoto(m) {
     const e = this.escena;
-    for (const [clave, x, y, mx, my, vida, mov] of m.j) {
+    // v0.1.14: el daño lo calcula el anfitrión, así que aquí no sabemos cada golpe.
+    // Lo deducimos: si la vida BAJÓ desde la foto anterior, mostramos esa diferencia
+    // como número rojo (héroes) o amarillo (enemigos). Así todos ven el daño de todos.
+    const numeroSiBaja = (antes, ahora, x, y, colorTexto) => {
+      const baja = Math.round(antes - ahora);
+      if (baja >= 1) e.mostrarNumero(x, y, `-${baja}`, colorTexto);
+    };
+    for (const [clave, x, y, mx, my, vida, mov, mana, manaMax] of m.j) {
       if (clave === this.red.clave) {
-        // Mi vida la decide el anfitrión (mi posición la decido yo)
+        // Mi vida la decide el anfitrión (mi posición y mi maná los decido yo)
         if (vida < e.heroe.vida - 0.5) e.efectoDanioPropio();
+        numeroSiBaja(e.heroe.vida, vida, e.heroe.sprite.x, e.heroe.sprite.y - e.heroe.radio, '#ff5252');
         e.heroe.vida = vida;
         continue;
       }
       const h = e.companeros.get(clave);
       if (!h) continue;
+      numeroSiBaja(h.vida, vida, h.sprite.x, h.sprite.y - h.radio, '#ff5252');
       h.vida = vida;
+      if (manaMax) { h.mana = mana; h.manaMax = manaMax; }
       h.colocarRemoto(x, y, mx, my, mov === 1);
     }
 
@@ -174,6 +197,7 @@ export default class Cooperativo {
       const en = this.remotos.get(id);
       if (!en) continue;
       en.cuerpo.body.reset(ex, ey);
+      numeroSiBaja(en.vida, evida, ex, ey - en.radio, '#ffeb3b');
       en.vida = evida;
       en.colocarDibujo(ang);
     }
@@ -242,6 +266,8 @@ export default class Cooperativo {
     const e = this.escena;
     const en = this.remotos.get(m.id);
     if (!en) return;
+    // v0.1.14: el último golpe no alcanza a llegar en una foto: se muestra la vida que le quedaba
+    if (en.vida >= 1) e.mostrarNumero(en.cuerpo.x, en.cuerpo.y - en.radio, `-${Math.round(en.vida)}`, '#ffeb3b');
     e.efectoMuerte(en.cuerpo.x, en.cuerpo.y, en.esJefe);
     en.destruir();
     e.enemigos = e.enemigos.filter((x) => x !== en);

@@ -19,6 +19,7 @@ import EscenaNick from './escenas/EscenaNick.js';
 import EscenaRol from './escenas/EscenaRol.js';
 import EscenaPersonaje from './escenas/EscenaPersonaje.js';
 import EscenaTienda from './escenas/EscenaTienda.js';
+import EscenaGuia from './escenas/EscenaGuia.js'; // v0.1.15: cómo se juega
 import { cobrarPartidaAbandonada } from './datos/Progreso.js';
 
 // v0.1.10: si la última vez el juego se cerró (o se apagó el celular) en plena
@@ -49,7 +50,7 @@ const config = {
     // el celular o entrar a pantalla completa), ya no se podía caminar y atacar a la vez.
     activePointers: 6,
   },
-  scene: [EscenaTitulo, EscenaHeroe, EscenaMundos, EscenaArena, EscenaPausa, EscenaSala, EscenaNick, EscenaRol, EscenaPersonaje, EscenaTienda], // la primera de la lista es la que arranca
+  scene: [EscenaTitulo, EscenaHeroe, EscenaMundos, EscenaArena, EscenaPausa, EscenaSala, EscenaNick, EscenaRol, EscenaPersonaje, EscenaTienda, EscenaGuia], // la primera de la lista es la que arranca
 };
 
 // Arranca el juego. Lo guardamos en window.juego para poder

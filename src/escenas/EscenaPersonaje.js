@@ -3,9 +3,8 @@
 //   Izquierda: quién es, su nivel, su RANGO y coronas (v0.1.5), las monedas
 //              y el botón SUBIR DE NIVEL (cuesta FICHAS; cada nivel da puntos).
 //   Derecha:   las 6 estadísticas. v0.1.5: crecen solas con el nivel (Excel)
-//              y además se reparten puntos en las del ROL elegido (v0.1.4):
-//              Tanque → Fuerza y Vida · DPS → Daño y Velocidad ·
-//              Sanador → Inteligencia y Armadura. El equipo suma (en verde).
+//              y además se reparten puntos. v0.1.14: en CUALQUIER estadística
+//              (balance.json → estadisticas → puntosLibres). El equipo suma (en celeste).
 // Cada cambio se guarda al instante y se vuelve a dibujar la escena.
 // =============================================================
 
@@ -164,7 +163,9 @@ export default class EscenaPersonaje extends Phaser.Scene {
   crearEstadisticas(cx, H) {
     const b = this.balance;
     const p = this.p;
-    const permitidas = estadisticasDeRol(b, p.rol);
+    // v0.1.14: con "puntosLibres" (balance.json → estadisticas) los puntos van a CUALQUIER
+    // estadística; si no, solo a las 2 del rol (como antes)
+    const permitidas = b.estadisticas.puntosLibres ? Object.keys(b.estadisticas.lista) : estadisticasDeRol(b, p.rol);
     const bonos = bonosEquipo(b, p);                   // lo que suma el equipo puesto (en verde)
     const base = estadisticasBase(b, p.rol, p.nivel);  // v0.1.5: lo que da el nivel (Excel)
     const h = calcularHeroe(b, p);
@@ -200,7 +201,7 @@ export default class EscenaPersonaje extends Phaser.Scene {
         }).setOrigin(1, 0.5);
         xDerecha -= t.width;
       }
-      if (!puede) return; // los puntos solo van a las estadísticas del rol
+      if (!puede) return; // sin puntos libres: solo las estadísticas del rol
 
       // Botón "+": gasta un punto en esta estadística
       const activo = p.puntos > 0;

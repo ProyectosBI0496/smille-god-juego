@@ -53,7 +53,7 @@ export function redActual() {
 export function seguirPareja(escena) {
   const red = actual;
   if (!red || !red.yaConectado || red.esAnfitrion) return;
-  red.escuchar(escena, 'iniciar', (m) => escena.scene.start('EscenaArena', { mundo: m.mundo, dificultad: m.dificultad, coop: true, invitado: true }));
+  red.escuchar(escena, 'iniciar', (m) => escena.scene.start('EscenaArena', { mundo: m.mundo, dificultad: m.dificultad, coop: true, invitado: true, partida: m.partida }));
 }
 
 /** Un texto al azar de 8 letras/números: la clave de este jugador */

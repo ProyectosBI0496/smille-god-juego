@@ -1,5 +1,5 @@
 {
-  "version": "0.1.13",
+  "version": "0.1.15",
   "archivos": [
     "index.html",
     "src/controles/BotonHabilidad.js",
@@ -7,11 +7,13 @@
     "src/datos/Personaje.js",
     "src/datos/Progreso.js",
     "src/datos/balance.json",
+    "src/datos/guia.js",
     "src/entidades/Enemigo.js",
     "src/entidades/Heroe.js",
     "src/entidades/Jefe.js",
     "src/entidades/Tirador.js",
     "src/escenas/EscenaArena.js",
+    "src/escenas/EscenaGuia.js",
     "src/escenas/EscenaHeroe.js",
     "src/escenas/EscenaMundos.js",
     "src/escenas/EscenaNick.js",

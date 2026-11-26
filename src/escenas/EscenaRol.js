@@ -48,7 +48,7 @@ export default class EscenaRol extends Phaser.Scene {
       fontFamily: FUENTE_TITULO, fontSize: '42px', color: '#f5c542', fontStyle: 'bold',
       stroke: '#3a1500', strokeThickness: 7,
     }).setOrigin(0.5);
-    this.add.text(W / 2, 84, 'El rol decide tus poderes y qué estadísticas subes', {
+    this.add.text(W / 2, 84, 'El rol decide tus poderes y en qué estadísticas destacas', {
       fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#d0d8e0', fontStyle: 'italic',
     }).setOrigin(0.5);
 
@@ -111,9 +111,9 @@ export default class EscenaRol extends Phaser.Scene {
       cy += detalle.height + 8;
     });
 
-    // Qué estadísticas sube este rol
+    // Las estadísticas que más crecen con el nivel en este rol (Excel)
     const stats = estadisticasDeRol(b, rol).map((id) => b.estadisticas.lista[id].nombre).join(' y ');
-    this.add.text(x, y + alto / 2 - 92, `Sube: ${stats}`, {
+    this.add.text(x, y + alto / 2 - 92, `Destaca en: ${stats}`, {
       ...TEXTO, fontSize: '15px', fontStyle: 'bold', color: '#c9a94a',
     }).setOrigin(0.5);
 
