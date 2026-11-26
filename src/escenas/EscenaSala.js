@@ -1,5 +1,5 @@
 // =============================================================
-// Sala para jugar en pareja (Etapa 9)
+// Sala para jugar en grupo (Etapa 9; v0.1.9: hasta 3 jugadores)
 //   - "Crear sala": muestra un código de 4 números y espera al compañero.
 //   - "Unirme": un teclado de números para escribir el código.
 // Al conectarse, cada uno le cuenta al otro su raza ("hola").
@@ -12,7 +12,7 @@ import { FUENTE_TITULO } from './EscenaArena.js';
 import { personaje } from '../datos/Progreso.js';
 import { crearEditorNick } from '../ui/EditorNick.js';
 import { crearMiHeroe } from '../ui/MiHeroe.js';
-import Red, { redActual } from '../red/Red.js';
+import Red, { redActual, MAX_JUGADORES } from '../red/Red.js';
 
 export default class EscenaSala extends Phaser.Scene {
   constructor() {
@@ -31,7 +31,7 @@ export default class EscenaSala extends Phaser.Scene {
     this.add.tileSprite(0, 0, W, H, 'baldosa-1').setOrigin(0).setTint(0x6a6a80);
     crearVineta(this);
     reiniciarAlCambiarTamano(this, () => !redActual()); // con una sala abierta no se rearma
-    this.add.text(this.cx, 60, 'Jugar en pareja', {
+    this.add.text(this.cx, 60, 'Jugar en grupo', {
       fontFamily: FUENTE_TITULO, fontSize: '56px', color: '#f5c542', fontStyle: 'bold',
       stroke: '#3a1500', strokeThickness: 8,
     }).setOrigin(0.5);
@@ -56,7 +56,7 @@ export default class EscenaSala extends Phaser.Scene {
     const red = redActual();
     if (this.esperando && red && red.conectado) {
       this.escucharPartida(red);
-      this.decir('Conectado ✓\nEsperando que tu compañero elija el mundo...');
+      this.decir('Conectado ✓\nEsperando que el anfitrión elija el mundo...');
       return;
     }
     this.decir('Los dos celulares necesitan internet.\nFunciona mejor si están en el mismo Wi-Fi.');
@@ -103,28 +103,44 @@ export default class EscenaSala extends Phaser.Scene {
   crearSala() {
     this.capa.removeAll(true);
     this.decir('Creando la sala...');
+    this.botonJugar = null;  // v0.1.9: aparece cuando entra el primer compañero
+    this.textoEspera = null;
     const red = new Red();
     red.crearSala(
       (codigo) => {
-        this.decir('Pásale este código a tu compañero:');
+        this.decir(`Pásales este código a tus compañeros (hasta ${MAX_JUGADORES - 1}):`);
         this.capa.add(this.add.text(this.cx, 330, codigo, {
           fontFamily: FUENTE_TITULO, fontSize: '140px', color: '#ffffff', fontStyle: 'bold',
           stroke: '#3a1500', strokeThickness: 10,
         }).setOrigin(0.5));
-        const espera = this.add.text(this.cx, 470, 'Esperando a tu compañero...', {
+        const espera = this.add.text(this.cx, 470, 'Esperando jugadores...', {
           fontFamily: 'Arial, sans-serif', fontSize: '24px', color: '#c8d3e0',
         }).setOrigin(0.5);
         this.tweens.add({ targets: espera, alpha: 0.3, duration: 700, yoyo: true, repeat: -1 });
         this.capa.add(espera);
+        this.textoEspera = espera;
       },
       (error) => this.fallo(error),
     );
-    red.escuchar(this, 'conectado', () => red.presentarme('hola'));
-    red.escuchar(this, 'hola', () => {
-      this.decir(`¡Conectado con ${red.nickCompanero || 'tu compañero'}! ✓`);
-      // El anfitrión elige el mundo en el mapa (el mapa sabe que hay pareja)
-      this.time.delayedCall(800, () => this.scene.start('EscenaMundos'));
-    });
+    // v0.1.9: hasta 3 jugadores. Cada vez que alguien entra (o sale), se muestra la lista
+    // y el botón "Jugar"; el anfitrión decide cuándo empezar.
+    red.escuchar(this, 'conectado', () => red.difundirLista()); // el recién llegado recibe la lista
+    red.escuchar(this, 'lista', () => this.mostrarGrupo(red));
+    red.escuchar(this, 'desconectado', () => this.mostrarGrupo(red));
+  }
+
+  /** ANFITRIÓN: quiénes están y el botón para ir al mapa */
+  mostrarGrupo(red) {
+    const otros = red.otros();
+    if (!otros.length) return;
+    const faltan = MAX_JUGADORES - red.cantidad;
+    this.decir(`Conectado con ${red.nombresOtros()} ✓  (${red.cantidad} de ${MAX_JUGADORES})`);
+    if (this.textoEspera) {
+      this.textoEspera.setText(faltan > 0 ? `Puede entrar ${faltan} más con el mismo código...` : '¡Sala llena!');
+    }
+    if (!this.botonJugar) {
+      this.botonJugar = this.boton(this.cx, 560, 'Jugar', () => this.scene.start('EscenaMundos'));
+    }
   }
 
   // ---------------- INVITADO ----------------
@@ -165,8 +181,9 @@ export default class EscenaSala extends Phaser.Scene {
     const red = new Red();
     red.unirse(codigo, (error) => this.fallo(error));
     red.escuchar(this, 'conectado', () => red.presentarme('hola'));
-    red.escuchar(this, 'hola', () => {
-      this.decir(`Conectado con ${red.nickCompanero || 'tu compañero'} ✓\nEsperando que elija el mundo...`);
+    // v0.1.9: el anfitrión manda la lista de todos los jugadores
+    red.escuchar(this, 'lista', () => {
+      this.decir(`Conectado con ${red.nombresOtros() || 'el anfitrión'} ✓\nEsperando que el anfitrión elija el mundo...`);
     });
     this.escucharPartida(red);
   }
@@ -181,7 +198,8 @@ export default class EscenaSala extends Phaser.Scene {
     const textos = {
       'peer-unavailable': 'No existe una sala con ese código.',
       'network': 'No hay conexión a internet.',
-      'desconectado': 'Tu compañero se desconectó.',
+      'desconectado': 'El anfitrión se desconectó.',
+      'llena': 'La sala está llena (máximo 3) o ya está jugando.',
     };
     this.decir(`${textos[error.type] || 'No se pudo conectar.'}\nPrueba de nuevo.`);
     if (redActual()) redActual().cerrar();

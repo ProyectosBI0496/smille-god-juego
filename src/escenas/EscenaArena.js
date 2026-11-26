@@ -12,7 +12,8 @@
 //          ráfaga de los jefes y dificultad que sube sala a sala.
 // Etapa 8: el héroe es de la RAZA elegida (vida, velocidad, fuerza,
 //          recarga y un detalle propio de cada raza).
-// Etapa 9: COOPERATIVO en línea. Hay un segundo héroe ("companero").
+// Etapa 9: COOPERATIVO en línea. v0.1.9: hasta 3 jugadores; los héroes de los
+//   demás están en "companeros" (clave del jugador → Heroe).
 //          El anfitrión calcula todo; el invitado dibuja (ver red/Cooperativo.js).
 //          Si un héroe cae, se levanta al vencer la sala; se pierde si caen los dos.
 // Fase 1: ROLES. El rol elegido decide qué hacen los 3 botones
@@ -127,17 +128,22 @@ export default class EscenaArena extends Phaser.Scene {
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.muros);
     this.physics.add.collider(this.heroe.cuerpo, this.mazmorra.puertas.filter(Boolean));
 
-    // COOPERATIVO: el héroe del otro jugador, con SU raza
-    this.companero = null;
+    // COOPERATIVO: el héroe de cada uno de los otros jugadores, con SU personaje
+    this.companeros = new Map(); // v0.1.9: clave del jugador → Heroe (hasta 2)
     this.cooperativo = null;
     const red = redActual();
     if (this.coop && red && red.conectado) {
-      // El compañero, con SU personaje (lo mandó al conectarse: mensaje "hola")
-      const datosOtro = calcularHeroe(this.balance, red.personajeCompanero);
-      this.companero = new Heroe(this, entrada.cx, entrada.cy + 70, this.configDeHeroe(datosOtro));
-      this.prepararHeroe(this.companero, datosOtro);
-      this.companero.nombre = red.nickCompanero || 'Compañero';
-      this.companero.ponerEtiqueta(this.companero.nombre);
+      if (red.esAnfitrion) red.enPartida = true; // mientras se juega, no entra nadie nuevo
+      // Cada compañero con SU personaje (lo mandó al conectarse: mensaje "hola" → "lista")
+      red.otros().forEach((otro, i) => {
+        const datosOtro = calcularHeroe(this.balance, otro.pj);
+        const h = new Heroe(this, entrada.cx, entrada.cy + (i === 0 ? 70 : -70), this.configDeHeroe(datosOtro));
+        this.prepararHeroe(h, datosOtro);
+        h.clave = otro.clave;
+        h.nombre = otro.nick || 'Compañero';
+        h.ponerEtiqueta(h.nombre);
+        this.companeros.set(otro.clave, h);
+      });
       this.heroe.nombre = nick() || 'Tú';
       this.heroe.ponerEtiqueta(this.heroe.nombre);
       this.cooperativo = new Cooperativo(this, red);
@@ -164,7 +170,7 @@ export default class EscenaArena extends Phaser.Scene {
         this.physics.add.overlap(h.cuerpo, this.proyectiles, (cuerpo, proyectil) => {
           if (!proyectil.active) return;
           apagar(proyectil);
-          this.danarHeroe(proyectil.danio, h);
+          this.danarHeroe(proyectil.danio, h, proyectil.efectos); // v0.1.9: algunos aturden o amarran
         });
       }
     }
@@ -266,7 +272,7 @@ export default class EscenaArena extends Phaser.Scene {
 
   /** Los héroes en juego: el mío y, en pareja, el del compañero */
   heroes() {
-    return [this.heroe, this.companero].filter(Boolean);
+    return [this.heroe, ...this.companeros.values()];
   }
 
   /** El héroe vivo más cercano a (x, y): a ese persiguen los enemigos */
@@ -286,6 +292,8 @@ export default class EscenaArena extends Phaser.Scene {
 
     if (this.heroe.vivo && !this.terminado) {
       this.leerMovimiento();
+      // v0.1.9: aturdido o amarrado = no se puede mover
+      if (this.controlado(this.heroe)) this.direccion.set(0, 0);
       this.heroe.mover(this.direccion);
       // Habilidades con teclado (JustDown = solo en el instante en que se aprieta)
       const recienApretada = Phaser.Input.Keyboard.JustDown;
@@ -300,6 +308,8 @@ export default class EscenaArena extends Phaser.Scene {
     }
     for (const boton of [this.boton1, this.boton2, this.boton3, this.botonVida, this.botonMana]) boton.actualizar();
     this.actualizarMana(delta);
+    // v0.1.9: la vida se recupera sola (la calcula quien juega solo o el anfitrión)
+    if (!this.esInvitado) this.regenerarVida(delta);
 
     if (this.cooperativo) this.cooperativo.actualizar();
     this.actualizarMagias(delta); // v0.1.2: proyectiles de los héroes
@@ -315,7 +325,7 @@ export default class EscenaArena extends Phaser.Scene {
         for (const h of this.heroes()) {
           if (!h.vivo) continue;
           const distancia = Phaser.Math.Distance.Between(enemigo.cuerpo.x, enemigo.cuerpo.y, h.cuerpo.x, h.cuerpo.y);
-          if (distancia < enemigo.radio + h.radio && !(this.time.now < enemigo.dormidoHasta)) this.danarHeroe(enemigo.config.danioContacto, h);
+          if (distancia < enemigo.radio + h.radio && !(this.time.now < enemigo.dormidoHasta)) this.danarHeroe(enemigo.config.danioContacto, h, enemigo.config.efectos);
         }
       }
     }
@@ -338,8 +348,11 @@ export default class EscenaArena extends Phaser.Scene {
     for (const emisor of this.climas) emisor.setPosition(this.cameras.main.scrollX, this.cameras.main.scrollY);
   }
 
-  /** Daño a un héroe (por contacto o proyectil). Si caen todos, se pierde. */
-  danarHeroe(danio, h = this.heroe) {
+  /**
+   * Daño a un héroe (por contacto o proyectil). Si caen todos, se pierde.
+   * efectos (v0.1.9): { aturdir: 0.2, amarrar: 0.25 } = probabilidad de cada efecto en este golpe.
+   */
+  danarHeroe(danio, h = this.heroe, efectos = null) {
     if (!h.vivo || this.terminado || this.caido) return;
     danio = Math.max(1, Math.round(danio * (1 - (h.reduccion || 0)))); // v0.1.2: la ARMADURA quita una parte
     if (!h.recibirDanio(danio)) return;
@@ -348,17 +361,83 @@ export default class EscenaArena extends Phaser.Scene {
       this.cameras.main.shake(100, 0.006);
       this.vibrar(60);
     }
-    if (h.vivo) return;
+    if (h.vivo) {
+      if (efectos) this.intentarControl(h, efectos);
+      return;
+    }
     if (this.heroes().some((otro) => otro.vivo)) {
       // En pareja: el caído queda como fantasma hasta que se vence la sala
       // Cada uno ve el mensaje desde su lado
-      const paraQuienCayo = '¡Caíste! Tu compañero puede salvarte';
+      const paraQuienCayo = '¡Caíste! Tus compañeros pueden salvarte';
       const paraElOtro = `¡${h.nombre || 'Tu compañero'} cayó! Vence la sala`;
       const yo = h === this.heroe;
       this.mostrarAnuncio(yo ? paraQuienCayo : paraElOtro, true);
-      if (this.cooperativo) this.cooperativo.enviar({ t: 'anuncio', texto: yo ? paraElOtro : paraQuienCayo });
+      // v0.1.9: a cada invitado, su mensaje (el que cayó ve uno; los demás, otro)
+      for (const clave of this.companeros.keys()) {
+        this.cooperativo.enviarA(clave, { t: 'anuncio', texto: clave === h.clave ? paraQuienCayo : paraElOtro });
+      }
     } else {
       this.derrota();
+    }
+  }
+
+  // =============================================================
+  // v0.1.9: VIDA que se recupera sola, ATURDIR y AMARRAR
+  // =============================================================
+
+  /**
+   * La vida sube 0,5% del máximo por segundo (balance.json → regenVida) si nadie
+   * golpeó a ese héroe en los últimos "sinDanioMs". Igual que el maná.
+   * delta = milisegundos desde el cuadro anterior; por eso se divide entre 1000.
+   */
+  regenerarVida(delta) {
+    const r = this.balance.regenVida;
+    if (!r || this.terminado) return;
+    for (const h of this.heroes()) {
+      const max = h.config.vidaMax;
+      // "?? -Infinity": si nunca lo golpearon, ultimoDanio no existe todavía
+      const tranquilo = this.time.now - (h.ultimoDanio ?? -Infinity) >= r.sinDanioMs;
+      if (h.vivo && tranquilo && h.vida < max) h.vida = Math.min(max, h.vida + max * r.porSegundo * (delta / 1000));
+    }
+  }
+
+  /** ¿El héroe está aturdido o amarrado ahora? (tipo = 'aturdir', 'amarrar' o cualquiera) */
+  controlado(h, tipo) {
+    const ahora = this.time.now;
+    if (tipo === 'aturdir') return ahora < (h.aturdidoHasta || 0);
+    if (tipo === 'amarrar') return ahora < (h.amarradoHasta || 0);
+    return ahora < (h.aturdidoHasta || 0) || ahora < (h.amarradoHasta || 0);
+  }
+
+  /** Tira los dados de cada efecto del golpe; si sale, lo aplica (salvo que esté inmune) */
+  intentarControl(h, efectos) {
+    if (this.time.now < (h.inmuneControlHasta || 0)) return; // recién salió de un efecto
+    for (const [tipo, probabilidad] of Object.entries(efectos)) {
+      if (this.balance.controles[tipo] && Math.random() < probabilidad) this.aplicarControl(h, tipo);
+    }
+  }
+
+  /**
+   * Aturde o amarra al héroe "h" durante la duración de balance.json → controles.
+   * Si el héroe es el del compañero (yo soy el anfitrión), se lo aviso a su celular,
+   * porque cada jugador mueve a su propio héroe.
+   */
+  aplicarControl(h, tipo, ms) {
+    const c = this.balance.controles;
+    const cfg = c[tipo];
+    const duracion = ms || cfg.duracionMs;
+    const hasta = this.time.now + duracion;
+    if (tipo === 'aturdir') h.aturdidoHasta = Math.max(h.aturdidoHasta || 0, hasta);
+    else h.amarradoHasta = Math.max(h.amarradoHasta || 0, hasta);
+    const fin = Math.max(h.aturdidoHasta || 0, h.amarradoHasta || 0);
+    h.inmuneControlHasta = fin + c.inmuneMs;
+    h.mostrarControl(cfg, hasta); // el dibujo (icono sobre la cabeza)
+    this.mostrarNumero(h.cuerpo.x, h.cuerpo.y - 70, `${cfg.icono} ${cfg.nombre}`, cfg.color);
+    if (h === this.heroe) {
+      this.vibrar(150);
+      this.heroe.cuerpo.body.setVelocity(0, 0);
+    } else if (this.cooperativo && !this.esInvitado) {
+      this.cooperativo.enviarA(h.clave, { t: 'control', tipo, ms: duracion }); // solo a ese jugador
     }
   }
 
@@ -383,6 +462,7 @@ export default class EscenaArena extends Phaser.Scene {
     // velocityFromRotation convierte ángulo + rapidez en velocidad (x, y)
     this.physics.velocityFromRotation(angulo, cfg.velocidad, p.body.velocity);
     p.danio = cfg.danio;
+    p.efectos = cfg.efectos || null; // v0.1.9: el disparo de algunos tiradores aturde o amarra
     p.muereEn = this.time.now + cfg.duracionMs;
     // Anfitrión: el invitado dibuja el mismo proyectil en su celular
     if (this.cooperativo && !this.esInvitado) {
@@ -440,7 +520,11 @@ export default class EscenaArena extends Phaser.Scene {
       const nombres = []; // v0.1.7: qué monstruos salen, para el anuncio
       for (const [tipo, cantidad] of Object.entries(this.composicionOleada(sala.numero))) {
         for (let i = 0; i < cantidad; i++) this.crearEnemigo(this.configEnemigo(tipo, nivel), sala, CLASES[tipo]);
-        if (cantidad > 0 && this.mundo.monstruos) nombres.push(this.nombreMonstruo(tipo));
+        if (cantidad > 0 && this.mundo.monstruos) {
+          // v0.1.9: el icono avisa si ese monstruo aturde (💫) o amarra (🕸️)
+          const iconos = Object.keys(this.efectosMonstruo(tipo) || {}).map((t) => this.balance.controles[t].icono).join('');
+          nombres.push(this.nombreMonstruo(tipo) + (iconos ? ` ${iconos}` : ''));
+        }
       }
       this.mostrarAnuncio(`Oleada ${sala.numero} de ${this.mundo.oleadas}${nombres.length ? `\n${nombres.join(' · ')}` : ''}`);
     } else {
@@ -468,7 +552,7 @@ export default class EscenaArena extends Phaser.Scene {
     for (const [tipo, [min, max]] of Object.entries(this.mundo.enemigos)) {
       // En pareja hay más enemigos (balance.json → cooperativo)
       // v0.1.5: más dificultad = más enemigos (balance.json → dificultades → cantidad)
-      const extra = (this.cooperativo ? this.balance.cooperativo.multCantidad : 1) * (this.dif.cantidad || 1);
+      const extra = this.grupo().cantidad * (this.dif.cantidad || 1); // v0.1.9: más jugadores, más monstruos
       resultado[tipo] = Math.round((min + (max - min) * avance) * extra);
     }
     return resultado;
@@ -485,13 +569,19 @@ export default class EscenaArena extends Phaser.Scene {
     const fuerza = this.mundo.fuerza;
     const f = this.factorVelocidad();
     const fd = this.factorDanio();
+    const efectos = this.efectosMonstruo(tipo); // v0.1.9: ¿aturde o amarra?
+    // v0.1.9: la VIDA sale del Excel (vidaEnemigos) igual que la velocidad: factor = esa vida / la del normal
+    const fv = this.mundo.vidaEnemigos
+      ? this.mundo.vidaEnemigos[this.dificultad - 1] / this.balance.tiposEnemigo.normal.vidaMax
+      : fuerza * dif.vida;
     return {
       ...base, // "..." copia todos los datos del tipo; luego cambiamos algunos
-      vidaMax: Math.round(base.vidaMax * fuerza * dif.vida * (1 + nivel * d.vidaPorSala) * (this.cooperativo ? this.balance.cooperativo.multVida : 1)),
+      vidaMax: Math.round(base.vidaMax * fv * (1 + nivel * d.vidaPorSala) * this.grupo().vida),
       velocidad: Math.round(base.velocidad * f * (1 + nivel * d.velocidadPorSala)),
       danioContacto: Math.round(base.danioContacto * fd * (1 + nivel * d.danioPorSala)),
       // el tirador también dispara más fuerte
-      disparo: base.disparo ? this.disparoLento(base.disparo, fd, f) : undefined,
+      disparo: base.disparo ? { ...this.disparoLento(base.disparo, fd, f), efectos } : undefined,
+      efectos,
       color: this.mundo.colores[tipo],
       colorProyectil: color(this.mundo.colores[tipo]),
       ...this.dibujoMonstruo(tipo), // v0.1.7: el dibujo propio de este mundo
@@ -508,6 +598,12 @@ export default class EscenaArena extends Phaser.Scene {
     return { textura: texturaMonstruo(this.mundo.id, tipo), radioTextura: tipo === 'jefe' ? 50 : 24 };
   }
 
+  /** v0.1.9: los efectos del monstruo de este mundo ({ aturdir: 0.2 }) o null si no tiene */
+  efectosMonstruo(tipo) {
+    const m = this.mundo.monstruos && this.mundo.monstruos[tipo];
+    return (m && m.efectos) || null;
+  }
+
   /** v0.1.7: el nombre del monstruo de este mundo ("Treant ancestral"); si no tiene, el genérico */
   nombreMonstruo(tipo) {
     const m = this.mundo.monstruos && this.mundo.monstruos[tipo];
@@ -522,8 +618,19 @@ export default class EscenaArena extends Phaser.Scene {
    */
   factorVelocidad() {
     const tabla = this.mundo.velocidadEnemigos;
-    if (!tabla) return 1;
-    return tabla[this.dificultad - 1] / this.balance.tiposEnemigo.normal.velocidad;
+    const grupo = this.grupo().velocidad; // v0.1.9: dúo ×1.1, trío ×1.2
+    if (!tabla) return grupo;
+    return (tabla[this.dificultad - 1] / this.balance.tiposEnemigo.normal.velocidad) * grupo;
+  }
+
+  /**
+   * v0.1.9: la dificultad según cuántos juegan (balance.json → grupo).
+   * Solo, todo ×1; en dúo y en trío los monstruos y jefes son más rápidos,
+   * pegan más y tienen más vida. Lo calcula el anfitrión (el que manda los enemigos).
+   */
+  grupo() {
+    const n = 1 + this.companeros.size;
+    return { velocidad: 1, danio: 1, vida: 1, cantidad: 1, ...(this.balance.grupo[String(n)] || {}) };
   }
 
   /**
@@ -534,8 +641,9 @@ export default class EscenaArena extends Phaser.Scene {
    */
   factorDanio() {
     const tabla = this.mundo.danioEnemigos;
-    if (!tabla) return this.dif.danio;
-    return tabla[this.dificultad - 1] / this.balance.tiposEnemigo.normal.danioContacto;
+    const grupo = this.grupo().danio; // v0.1.9: dúo ×1.2, trío ×1.5
+    if (!tabla) return this.dif.danio * grupo;
+    return (tabla[this.dificultad - 1] / this.balance.tiposEnemigo.normal.danioContacto) * grupo;
   }
 
   /** Un disparo más lento que dura más tiempo (así llega igual de lejos) */
@@ -556,14 +664,18 @@ export default class EscenaArena extends Phaser.Scene {
     return {
       ...comun,  // comportamiento común (embestida, aviso...)
       ...propio, // tamaño, vida y velocidad de los jefes de ESTE mundo
-      vidaMax: Math.round(propio.vidaMax * this.dif.vida * (1 + (n - 1) * comun.aumentoVidaPorJefe) * (this.cooperativo ? this.balance.cooperativo.multVidaJefe : 1)),
-      // v0.1.4: con más dificultad, el jefe pega más fuerte; v0.1.5: su velocidad sigue la del mundo
-      velocidad: Math.round(propio.velocidad * f),
+      // v0.1.9: la vida y la velocidad del jefe salen del Excel (vidaJefes, velocidadJefes)
+      vidaMax: Math.round((this.mundo.vidaJefes ? this.mundo.vidaJefes[this.dificultad - 1] : propio.vidaMax * this.dif.vida)
+        * (1 + (n - 1) * comun.aumentoVidaPorJefe) * this.grupo().vida),
+      velocidad: this.mundo.velocidadJefes
+        ? Math.round(this.mundo.velocidadJefes[this.dificultad - 1] * this.grupo().velocidad)
+        : Math.round(propio.velocidad * f),
       velocidadEmbestida: Math.round(comun.velocidadEmbestida * f),
       duracionEmbestidaMs: Math.round(comun.duracionEmbestidaMs / f), // recorre la misma distancia
       // v0.1.6: el golpe del jefe sale del Excel (danioJefes); su ráfaga sigue el daño del mundo
       // v0.1.8: multDanio (balance.json → jefe) multiplica todo el daño del jefe (2 = el doble)
-      danioContacto: Math.round((this.mundo.danioJefes ? this.mundo.danioJefes[this.dificultad - 1] : propio.danioContacto * this.dif.danio) * (comun.multDanio || 1)),
+      danioContacto: Math.round((this.mundo.danioJefes ? this.mundo.danioJefes[this.dificultad - 1] : propio.danioContacto * this.dif.danio)
+        * (comun.multDanio || 1) * this.grupo().danio), // v0.1.9: en grupo pega más
       rafaga: this.disparoLento(comun.rafaga, this.factorDanio() * (comun.multDanio || 1), f),
       radioTextura: 50,
       color: this.mundo.colores.jefe,
@@ -684,6 +796,10 @@ export default class EscenaArena extends Phaser.Scene {
     const h = this.heroe;
     const poder = this.datosHeroe.poderes.botones[i];
     if (!h.vivo || this.caido || this.terminado) return false;
+    if (this.controlado(h, 'aturdir')) { // v0.1.9: aturdido no ataca (amarrado sí)
+      this.mostrarNumero(h.cuerpo.x, h.cuerpo.y - 60, '💫 Aturdido', this.balance.controles.aturdir.color);
+      return false;
+    }
     if (h.mana < poder.costo) {
       this.mostrarNumero(h.cuerpo.x, h.cuerpo.y - 60, 'Sin maná', '#90caf9');
       return false;
@@ -906,7 +1022,7 @@ export default class EscenaArena extends Phaser.Scene {
     this.ejecutarHabilidad(tipo, h);
     if (!this.cooperativo) return;
     const ang = +Math.atan2(h.mirando.y, h.mirando.x).toFixed(3);
-    this.cooperativo.enviar(this.esInvitado ? { t: 'hab', h: tipo } : { t: 'efecto', h: tipo, ang });
+    this.cooperativo.enviar(this.esInvitado ? { t: 'hab', h: tipo, ang } : { t: 'efecto', h: tipo, ang, c: this.cooperativo.red.clave });
   }
 
   ejecutarHabilidad(tipo, h) {
@@ -921,18 +1037,18 @@ export default class EscenaArena extends Phaser.Scene {
     else if (tipo === 'sanar') this.usarSanar(h);
   }
 
-  /** Anfitrión: el invitado usó una habilidad; se hace con SU héroe (aquí sí hace daño) */
-  ejecutarRemota(tipo) {
-    const h = this.companero;
+  /** Anfitrión: un invitado (su clave) usó una habilidad; se hace con SU héroe (aquí sí hace daño) */
+  ejecutarRemota(clave, tipo) {
+    const h = this.companeros.get(clave);
     if (!h || !h.vivo || this.caido || this.terminado) return;
     // v0.1.4: el invitado tomó una poción de vida (la poción ya la restó él en su celular)
     if (tipo === 'pocionVida') this.curarConPocion(h);
     else this.ejecutarHabilidad(tipo, h);
   }
 
-  /** Invitado: el anfitrión usó una habilidad; solo se dibuja */
+  /** Invitado: otro jugador (m.c = su clave) usó una habilidad; solo se dibuja */
   efectoRemoto(m) {
-    const h = this.companero;
+    const h = this.companeros.get(m.c);
     if (!h) return;
     if (m.h === 'atq') {
       h.mirando.set(Math.cos(m.ang), Math.sin(m.ang));
@@ -1263,14 +1379,16 @@ export default class EscenaArena extends Phaser.Scene {
 
   // =============================================================
   // CORONAS (v0.1.5): cada héroe gana coronas al superar una mazmorra y
-  // pierde el 80% (sin decimales) de ese número al caer. Más dificultad,
-  // más coronas (balance.json → dificultades). Cada jugador suma las suyas.
+  // pierde el 80% (sin decimales) de ese número al caer. Cada jugador suma las suyas.
+  // v0.1.9: cuántas, lo dice el Excel Coronas_Ganadas_Mazmorras por mundo y dificultad
+  // (balance.json → mundos → coronasVictoria); si el mundo no lo trae, las de la dificultad.
   // Devuelve el texto para la pantalla final.
   // =============================================================
   darCoronas(victoria) {
     if (this.coronasDadas) return '';
     this.coronasDadas = true;
-    const ganar = this.dif.coronas || 0;
+    const tabla = this.mundo.coronasVictoria;
+    const ganar = (tabla ? tabla[this.dificultad - 1] : this.dif.coronas) || 0;
     const cambio = victoria ? ganar : -Math.floor(ganar * this.balance.dificultades.coronasPerder);
     const { antes, despues } = sumarCoronas(cambio);
     const rangoAntes = rangoDe(this.balance, antes).rango;
@@ -1438,9 +1556,26 @@ export default class EscenaArena extends Phaser.Scene {
     this.scene.start('EscenaMundos');
   }
 
-  /** Se cortó la conexión con el compañero */
-  companeroDesconectado() {
+  /**
+   * Se cortó la conexión con un compañero (clave = cuál; el invitado no la recibe:
+   * para él, se fue el anfitrión).
+   */
+  companeroDesconectado(clave) {
     const red = this.cooperativo && this.cooperativo.red;
+    if (!this.esInvitado && this.companeros.has(clave)) {
+      // Anfitrión: se va ese héroe; si quedan otros, se sigue en grupo
+      const h = this.companeros.get(clave);
+      h.destruir();
+      this.companeros.delete(clave);
+      if (this.cooperativo) this.cooperativo.ultimosYo.delete(clave);
+      this.mostrarAnuncio(`${h.nombre} se desconectó`, true);
+      if (this.companeros.size === 0) {
+        this.cooperativo = null;
+        if (red) red.cerrar();
+      }
+      if (!this.heroes().some((x) => x.vivo) && !this.terminado) this.derrota();
+      return;
+    }
     this.cooperativo = null;
     if (red) red.cerrar();
     if (this.esInvitado) {
@@ -1450,11 +1585,9 @@ export default class EscenaArena extends Phaser.Scene {
       return;
     }
     // Anfitrión: sigue solo
-    if (this.companero) {
-      this.companero.destruir();
-      this.companero = null;
-    }
-    this.mostrarAnuncio('Tu compañero se desconectó', true);
+    for (const h of this.companeros.values()) h.destruir();
+    this.companeros.clear();
+    this.mostrarAnuncio('Tus compañeros se desconectaron', true);
     if (!this.heroe.vivo && !this.terminado) this.derrota();
   }
 
@@ -1472,7 +1605,9 @@ export default class EscenaArena extends Phaser.Scene {
     const otraDif = this.balance.dificultades.lista[this.dificultad]; // la siguiente (índice = número actual)
     const lineas = [];
     if (otraDif) lineas.push(`Nueva dificultad: ${otraDif.nombre}`);
-    if (siguiente && this.dificultad === 1) lineas.push(`Desbloqueaste: ${siguiente.nombre}`);
+    // v0.1.9: el mundo siguiente se abre solo al completar las 5 estrellas (la última dificultad)
+    if (siguiente && !otraDif) lineas.push(`Desbloqueaste: ${siguiente.nombre}`);
+    else if (siguiente) lineas.push(`Completa las ${this.balance.dificultades.lista.length} ★ para abrir ${siguiente.nombre}`);
     const mensaje = lineas.length ? lineas.join(' · ') : '¡Superaste la dificultad más alta!';
     const botones = [{ texto: 'Mapa', accion: () => this.irAlMapa() }];
     if (otraDif) {

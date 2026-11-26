@@ -211,7 +211,7 @@
     "duracionEmbestidaMs": 650,
     "recargaEmbestidaMs": 3500,
     "aumentoVidaPorJefe": 0.2,
-    "multDanio": 2,
+    "multDanio": 1,
     "_notaMultDanio": "v0.1.8: multiplica el daño de los jefes (golpe del Excel danioJefes y ráfaga). 2 = el doble.",
     "rafaga": {"recargaMs": 5500, "avisoMs": 700, "cantidad": 12, "velocidad": 260, "danio": 10, "duracionMs": 3000}
   },
@@ -244,14 +244,18 @@
       "velocidadEnemigos": [150, 160, 170, 180, 190],
       "forma": "linea",
       "danioEnemigos": [15, 30, 45, 60, 75],
-      "danioJefes": [60, 75, 90, 105, 120],
+      "danioJefes": [100, 120, 135, 150, 165],
       "monstruos": {
         "normal": {"nombre": "Lobo musgoso", "cuerpo": "bestia", "adornos": ["orejas", "cola", "colmillos"]},
         "rapido": {"nombre": "Avispa espina", "cuerpo": "insecto", "adornos": ["alas", "antenas"]},
         "resistente": {"nombre": "Escarabajo roble", "cuerpo": "insecto", "adornos": ["caparazon", "cuernos"]},
-        "tirador": {"nombre": "Seta escupidora", "cuerpo": "baba", "adornos": ["hojas"]},
+        "tirador": {"nombre": "Seta escupidora", "cuerpo": "baba", "adornos": ["hojas"], "efectos": {"amarrar": 0.25}},
         "jefe": {"nombre": "Treant ancestral", "cuerpo": "golem", "adornos": ["hojas", "corona"]}
-      }
+      },
+      "vidaEnemigos": [150, 165, 180, 195, 210],
+      "velocidadJefes": [200, 205, 210, 215, 220],
+      "vidaJefes": [1000, 1500, 2000, 2500, 3000],
+      "coronasVictoria": [8, 8, 9, 9, 10]
     },
     {
       "id": "desierto",
@@ -280,14 +284,23 @@
       "velocidadEnemigos": [160, 170, 180, 190, 200],
       "forma": "escalera",
       "danioEnemigos": [30, 45, 60, 75, 90],
-      "danioJefes": [75, 90, 105, 120, 135],
+      "danioJefes": [165, 185, 200, 215, 230],
       "monstruos": {
         "normal": {"nombre": "Chacal de arena", "cuerpo": "bestia", "adornos": ["orejas", "cola"]},
-        "rapido": {"nombre": "Escorpión veloz", "cuerpo": "insecto", "adornos": ["pinzas", "cola"]},
+        "rapido": {
+          "nombre": "Escorpión veloz",
+          "cuerpo": "insecto",
+          "adornos": ["pinzas", "cola"],
+          "efectos": {"aturdir": 0.2}
+        },
         "resistente": {"nombre": "Tortuga de duna", "cuerpo": "reptil", "adornos": ["caparazon"]},
         "tirador": {"nombre": "Cobra escupidora", "cuerpo": "serpiente", "adornos": ["colmillos"]},
         "jefe": {"nombre": "Gusano de las dunas", "cuerpo": "serpiente", "adornos": ["puas", "colmillos", "corona"]}
-      }
+      },
+      "vidaEnemigos": [210, 225, 240, 255, 270],
+      "velocidadJefes": [210, 215, 220, 225, 230],
+      "vidaJefes": [3000, 3500, 4000, 4500, 5000],
+      "coronasVictoria": [10, 10, 11, 11, 12]
     },
     {
       "id": "infierno",
@@ -316,18 +329,22 @@
       "velocidadEnemigos": [170, 180, 190, 200, 210],
       "forma": "serpiente",
       "danioEnemigos": [45, 60, 75, 90, 105],
-      "danioJefes": [90, 105, 120, 135, 150],
+      "danioJefes": [230, 250, 265, 280, 295],
       "monstruos": {
         "normal": {"nombre": "Diablillo", "cuerpo": "demonio", "adornos": ["cuernos", "cola"]},
         "rapido": {"nombre": "Murciélago de brasa", "cuerpo": "ave", "adornos": ["alas", "llamas"]},
-        "resistente": {"nombre": "Gólem de magma", "cuerpo": "golem", "adornos": ["llamas"]},
+        "resistente": {"nombre": "Gólem de magma", "cuerpo": "golem", "adornos": ["llamas"], "efectos": {"aturdir": 0.25}},
         "tirador": {"nombre": "Ojo ígneo", "cuerpo": "espectro", "adornos": ["ojoUnico", "llamas"]},
         "jefe": {
           "nombre": "Señor del Averno",
           "cuerpo": "demonio",
           "adornos": ["alas", "cuernos", "llamas", "corona"]
         }
-      }
+      },
+      "vidaEnemigos": [270, 285, 300, 315, 330],
+      "velocidadJefes": [220, 225, 230, 235, 240],
+      "vidaJefes": [4500, 5500, 6500, 7500, 8500],
+      "coronasVictoria": [12, 12, 13, 13, 14]
     },
     {
       "id": "nevado",
@@ -356,14 +373,18 @@
       "velocidadEnemigos": [180, 190, 200, 210, 220],
       "forma": "cruz",
       "danioEnemigos": [60, 75, 90, 105, 120],
-      "danioJefes": [105, 120, 135, 150, 165],
+      "danioJefes": [295, 315, 330, 345, 360],
       "monstruos": {
         "normal": {"nombre": "Lobo escarcha", "cuerpo": "bestia", "adornos": ["orejas", "puas", "colmillos"]},
         "rapido": {"nombre": "Liebre glacial", "cuerpo": "bestia", "adornos": ["orejas"]},
-        "resistente": {"nombre": "Yeti joven", "cuerpo": "demonio", "adornos": ["colmillos"]},
-        "tirador": {"nombre": "Espíritu de nieve", "cuerpo": "espectro", "adornos": []},
+        "resistente": {"nombre": "Yeti joven", "cuerpo": "demonio", "adornos": ["colmillos"], "efectos": {"aturdir": 0.2}},
+        "tirador": {"nombre": "Espíritu de nieve", "cuerpo": "espectro", "adornos": [], "efectos": {"amarrar": 0.3}},
         "jefe": {"nombre": "Yeti ancestral", "cuerpo": "demonio", "adornos": ["cuernos", "colmillos", "corona"]}
-      }
+      },
+      "vidaEnemigos": [330, 345, 360, 375, 390],
+      "velocidadJefes": [230, 235, 240, 245, 250],
+      "vidaJefes": [7000, 8000, 9000, 10000, 11000],
+      "coronasVictoria": [14, 14, 15, 15, 16]
     },
     {
       "id": "ciudad",
@@ -392,14 +413,28 @@
       "forma": "laberinto",
       "velocidadEnemigos": [190, 200, 210, 220, 230],
       "danioEnemigos": [75, 90, 105, 120, 135],
-      "danioJefes": [120, 135, 150, 165, 180],
+      "danioJefes": [360, 380, 395, 410, 425],
       "monstruos": {
         "normal": {"nombre": "Rata de cloaca", "cuerpo": "bestia", "adornos": ["orejas", "cola"]},
-        "rapido": {"nombre": "Dron vigía", "cuerpo": "robot", "adornos": ["alas", "antenas"]},
-        "resistente": {"nombre": "Tanque blindado", "cuerpo": "robot", "adornos": ["caparazon"]},
+        "rapido": {
+          "nombre": "Dron vigía",
+          "cuerpo": "robot",
+          "adornos": ["alas", "antenas"],
+          "efectos": {"amarrar": 0.25}
+        },
+        "resistente": {
+          "nombre": "Tanque blindado",
+          "cuerpo": "robot",
+          "adornos": ["caparazon"],
+          "efectos": {"aturdir": 0.25}
+        },
         "tirador": {"nombre": "Torreta", "cuerpo": "robot", "adornos": ["ojoUnico"]},
         "jefe": {"nombre": "Mecha alcalde", "cuerpo": "robot", "adornos": ["antenas", "puas", "corona"]}
-      }
+      },
+      "vidaEnemigos": [390, 405, 420, 435, 450],
+      "velocidadJefes": [240, 245, 250, 255, 260],
+      "vidaJefes": [9500, 11000, 12500, 14000, 15500],
+      "coronasVictoria": [16, 16, 17, 17, 18]
     },
     {
       "id": "espacio",
@@ -428,14 +463,23 @@
       "forma": "espiral",
       "velocidadEnemigos": [200, 210, 220, 230, 240],
       "danioEnemigos": [90, 105, 120, 135, 150],
-      "danioJefes": [135, 150, 165, 180, 195],
+      "danioJefes": [425, 445, 460, 475, 490],
       "monstruos": {
         "normal": {"nombre": "Alienígena gris", "cuerpo": "demonio", "adornos": ["antenas"]},
         "rapido": {"nombre": "Cometa errante", "cuerpo": "cristal", "adornos": ["llamas"]},
         "resistente": {"nombre": "Roca lunar", "cuerpo": "golem", "adornos": ["puas"]},
-        "tirador": {"nombre": "Medusa estelar", "cuerpo": "pulpo", "adornos": []},
+        "tirador": {
+          "nombre": "Medusa estelar",
+          "cuerpo": "pulpo",
+          "adornos": [],
+          "efectos": {"aturdir": 0.2, "amarrar": 0.2}
+        },
         "jefe": {"nombre": "Devorador de estrellas", "cuerpo": "pulpo", "adornos": ["ojoUnico", "corona"]}
-      }
+      },
+      "vidaEnemigos": [450, 465, 480, 495, 510],
+      "velocidadJefes": [250, 255, 260, 265, 270],
+      "vidaJefes": [12000, 13500, 15500, 17500, 19500],
+      "coronasVictoria": [18, 18, 19, 19, 20]
     },
     {
       "id": "cielo",
@@ -464,14 +508,18 @@
       "forma": "escalera",
       "velocidadEnemigos": [210, 220, 230, 240, 250],
       "danioEnemigos": [105, 120, 135, 150, 165],
-      "danioJefes": [150, 165, 180, 195, 210],
+      "danioJefes": [490, 510, 525, 540, 555],
       "monstruos": {
         "normal": {"nombre": "Harpía", "cuerpo": "ave", "adornos": ["alas", "cola"]},
-        "rapido": {"nombre": "Colibrí tormenta", "cuerpo": "ave", "adornos": ["alas"]},
+        "rapido": {"nombre": "Colibrí tormenta", "cuerpo": "ave", "adornos": ["alas"], "efectos": {"aturdir": 0.2}},
         "resistente": {"nombre": "Gólem de nube", "cuerpo": "baba", "adornos": ["alas"]},
-        "tirador": {"nombre": "Arquero alado", "cuerpo": "demonio", "adornos": ["alas"]},
+        "tirador": {"nombre": "Arquero alado", "cuerpo": "demonio", "adornos": ["alas"], "efectos": {"amarrar": 0.25}},
         "jefe": {"nombre": "Fénix del trueno", "cuerpo": "ave", "adornos": ["alas", "llamas", "corona"]}
-      }
+      },
+      "vidaEnemigos": [510, 525, 540, 555, 570],
+      "velocidadJefes": [260, 265, 270, 275, 280],
+      "vidaJefes": [17000, 19000, 21000, 23000, 25000],
+      "coronasVictoria": [20, 20, 21, 21, 22]
     },
     {
       "id": "prehistorico",
@@ -500,14 +548,28 @@
       "forma": "laberinto",
       "velocidadEnemigos": [220, 230, 240, 250, 260],
       "danioEnemigos": [120, 135, 150, 165, 180],
-      "danioJefes": [165, 180, 195, 210, 225],
+      "danioJefes": [555, 575, 590, 605, 620],
       "monstruos": {
         "normal": {"nombre": "Raptor", "cuerpo": "reptil", "adornos": ["colmillos", "cola"]},
         "rapido": {"nombre": "Pterodáctilo", "cuerpo": "ave", "adornos": ["alas", "cuernos"]},
-        "resistente": {"nombre": "Anquilosaurio", "cuerpo": "reptil", "adornos": ["caparazon", "puas"]},
-        "tirador": {"nombre": "Dilofo escupidor", "cuerpo": "reptil", "adornos": ["aletas"]},
+        "resistente": {
+          "nombre": "Anquilosaurio",
+          "cuerpo": "reptil",
+          "adornos": ["caparazon", "puas"],
+          "efectos": {"aturdir": 0.3}
+        },
+        "tirador": {
+          "nombre": "Dilofo escupidor",
+          "cuerpo": "reptil",
+          "adornos": ["aletas"],
+          "efectos": {"amarrar": 0.25}
+        },
         "jefe": {"nombre": "Rex tirano", "cuerpo": "reptil", "adornos": ["colmillos", "puas", "corona"]}
-      }
+      },
+      "vidaEnemigos": [570, 585, 600, 615, 630],
+      "velocidadJefes": [270, 275, 280, 285, 290],
+      "vidaJefes": [22000, 24000, 26000, 28000, 30000],
+      "coronasVictoria": [22, 22, 23, 23, 24]
     },
     {
       "id": "congelado",
@@ -536,14 +598,28 @@
       "forma": "espiral",
       "velocidadEnemigos": [230, 240, 250, 260, 270],
       "danioEnemigos": [135, 150, 165, 180, 195],
-      "danioJefes": [180, 195, 210, 225, 240],
+      "danioJefes": [620, 640, 655, 670, 685],
       "monstruos": {
         "normal": {"nombre": "Pingüino glacial", "cuerpo": "ave", "adornos": ["aletas"]},
         "rapido": {"nombre": "Hada de hielo", "cuerpo": "espectro", "adornos": ["alas"]},
-        "resistente": {"nombre": "Coloso de hielo", "cuerpo": "cristal", "adornos": ["puas"]},
-        "tirador": {"nombre": "Cristal lanzador", "cuerpo": "cristal", "adornos": ["ojoUnico"]},
+        "resistente": {
+          "nombre": "Coloso de hielo",
+          "cuerpo": "cristal",
+          "adornos": ["puas"],
+          "efectos": {"aturdir": 0.25, "amarrar": 0.25}
+        },
+        "tirador": {
+          "nombre": "Cristal lanzador",
+          "cuerpo": "cristal",
+          "adornos": ["ojoUnico"],
+          "efectos": {"amarrar": 0.3}
+        },
         "jefe": {"nombre": "Reina de hielo", "cuerpo": "cristal", "adornos": ["alas", "corona"]}
-      }
+      },
+      "vidaEnemigos": [630, 645, 660, 675, 690],
+      "velocidadJefes": [280, 285, 290, 295, 300],
+      "vidaJefes": [27000, 30000, 31000, 32000, 33000],
+      "coronasVictoria": [24, 24, 25, 25, 26]
     },
     {
       "id": "abismo",
@@ -572,14 +648,28 @@
       "forma": "serpiente",
       "velocidadEnemigos": [240, 250, 260, 270, 280],
       "danioEnemigos": [150, 165, 180, 195, 210],
-      "danioJefes": [195, 210, 225, 240, 255],
+      "danioJefes": [685, 705, 720, 735, 750],
       "monstruos": {
         "normal": {"nombre": "Pez abisal", "cuerpo": "pez", "adornos": ["colmillos", "antenas"]},
-        "rapido": {"nombre": "Anguila eléctrica", "cuerpo": "serpiente", "adornos": ["aletas"]},
+        "rapido": {
+          "nombre": "Anguila eléctrica",
+          "cuerpo": "serpiente",
+          "adornos": ["aletas"],
+          "efectos": {"aturdir": 0.25}
+        },
         "resistente": {"nombre": "Cangrejo coraza", "cuerpo": "insecto", "adornos": ["pinzas", "caparazon"]},
-        "tirador": {"nombre": "Medusa", "cuerpo": "pulpo", "adornos": ["tentaculos"]},
+        "tirador": {
+          "nombre": "Medusa",
+          "cuerpo": "pulpo",
+          "adornos": ["tentaculos"],
+          "efectos": {"aturdir": 0.2, "amarrar": 0.25}
+        },
         "jefe": {"nombre": "Kraken", "cuerpo": "pulpo", "adornos": ["tentaculos", "ojoUnico", "corona"]}
-      }
+      },
+      "vidaEnemigos": [690, 705, 720, 735, 750],
+      "velocidadJefes": [290, 295, 300, 305, 310],
+      "vidaJefes": [37000, 40000, 43000, 46000, 49000],
+      "coronasVictoria": [26, 26, 27, 27, 28]
     },
     {
       "id": "reino",
@@ -608,14 +698,28 @@
       "forma": "laberinto",
       "velocidadEnemigos": [250, 260, 270, 280, 290],
       "danioEnemigos": [165, 180, 195, 210, 225],
-      "danioJefes": [210, 225, 240, 255, 270],
+      "danioJefes": [750, 770, 785, 800, 815],
       "monstruos": {
-        "normal": {"nombre": "Sombra rastrera", "cuerpo": "espectro", "adornos": ["colmillos"]},
+        "normal": {
+          "nombre": "Sombra rastrera",
+          "cuerpo": "espectro",
+          "adornos": ["colmillos"],
+          "efectos": {"amarrar": 0.2}
+        },
         "rapido": {"nombre": "Murciélago vampiro", "cuerpo": "ave", "adornos": ["alas", "colmillos"]},
         "resistente": {"nombre": "Caballero hueco", "cuerpo": "demonio", "adornos": ["caparazon", "cuernos"]},
-        "tirador": {"nombre": "Hechicero umbrío", "cuerpo": "espectro", "adornos": ["ojoUnico"]},
+        "tirador": {
+          "nombre": "Hechicero umbrío",
+          "cuerpo": "espectro",
+          "adornos": ["ojoUnico"],
+          "efectos": {"aturdir": 0.25, "amarrar": 0.25}
+        },
         "jefe": {"nombre": "Rey sin rostro", "cuerpo": "espectro", "adornos": ["alas", "corona"]}
-      }
+      },
+      "vidaEnemigos": [750, 765, 780, 795, 810],
+      "velocidadJefes": [300, 305, 310, 315, 320],
+      "vidaJefes": [47000, 50000, 53000, 56000, 59000],
+      "coronasVictoria": [28, 28, 29, 29, 30]
     },
     {
       "id": "trono",
@@ -650,28 +754,46 @@
       "forma": "cruz",
       "velocidadEnemigos": [260, 270, 280, 290, 300],
       "danioEnemigos": [180, 195, 210, 225, 240],
-      "danioJefes": [225, 240, 255, 270, 285],
+      "danioJefes": [815, 835, 850, 865, 880],
       "monstruos": {
         "normal": {"nombre": "Guardián sonriente", "cuerpo": "golem", "adornos": ["cuernos"]},
         "rapido": {"nombre": "Arlequín fugaz", "cuerpo": "espectro", "adornos": ["cuernos"]},
-        "resistente": {"nombre": "Coloso dorado", "cuerpo": "golem", "adornos": ["caparazon", "puas"]},
-        "tirador": {"nombre": "Oráculo risueño", "cuerpo": "cristal", "adornos": ["ojoUnico", "alas"]},
+        "resistente": {
+          "nombre": "Coloso dorado",
+          "cuerpo": "golem",
+          "adornos": ["caparazon", "puas"],
+          "efectos": {"aturdir": 0.3}
+        },
+        "tirador": {
+          "nombre": "Oráculo risueño",
+          "cuerpo": "cristal",
+          "adornos": ["ojoUnico", "alas"],
+          "efectos": {"aturdir": 0.25, "amarrar": 0.3}
+        },
         "jefe": {
           "nombre": "Smille, el Dios Sonriente",
           "cuerpo": "demonio",
           "adornos": ["alas", "cuernos", "llamas", "corona"]
         }
-      }
+      },
+      "vidaEnemigos": [810, 825, 840, 855, 870],
+      "velocidadJefes": [310, 315, 320, 325, 330],
+      "vidaJefes": [57000, 62000, 63000, 64000, 65000],
+      "coronasVictoria": [30, 30, 31, 31, 32]
     }
   ],
   "joystick": {"radioBase": 90, "radioPalanca": 40, "zonaMuerta": 0.15, "seguirDedo": true},
   "botones": {"radio": 70, "radioPequeno": 52, "margen": 60},
-  "cooperativo": {"multCantidad": 1.6, "multVida": 1.4, "multVidaJefe": 1.8},
+  "grupo": {
+    "_nota": "v0.1.9: dificultad según cuántos juegan en línea (máximo 3). Multiplica la velocidad, el daño y la vida de monstruos y jefes; cantidad = más monstruos por oleada. 1 jugador = todo x1.",
+    "2": {"nombre": "Dúo", "velocidad": 1.1, "danio": 1.2, "vida": 1.5, "cantidad": 2},
+    "3": {"nombre": "Trío", "velocidad": 1.2, "danio": 1.5, "vida": 2, "cantidad": 3}
+  },
   "dificultad": {
     "vidaPorSala": 0.06,
     "velocidadPorSala": 0.02,
     "danioPorSala": 0.04,
-    "_nota": "velocidadEnemigos de cada mundo (una por dificultad) es la velocidad del enemigo NORMAL. Los demás van en proporción a su velocidad en tiposEnemigo (normal 150 = 1×; rápido 180 = 1,2×; resistente 100 = 0,67×; tirador 125 = 0,83×), y el jefe, su embestida y los disparos también. vidaPorSala etc. = cada sala es un poco más difícil."
+    "_nota": "velocidadEnemigos de cada mundo (una por dificultad) es la velocidad del enemigo NORMAL. Los demás van en proporción a su velocidad en tiposEnemigo (normal 150 = 1×; rápido 180 = 1,2×; resistente 100 = 0,67×; tirador 125 = 0,83×), y la embestida y los disparos también. v0.1.9: vidaEnemigos = vida del NORMAL (los demás en proporción a su vidaMax); vidaJefes y velocidadJefes = los del jefe tal cual (ya no se multiplican por la dificultad). vidaPorSala etc. = cada sala es un poco más difícil."
   },
   "clases": {
     "guerrero": {
@@ -3213,5 +3335,16 @@
       {"rango": 19, "insignia": "rojo", "color": "#ef5350", "desde": 1601},
       {"rango": 20, "insignia": "blanca", "color": "#ffffff", "desde": 1801}
     ]
+  },
+  "regenVida": {
+    "_nota": "v0.1.9: la vida se recupera porSegundo (0.005 = 0,5% de la vida máxima) cada segundo, solo si nadie te golpeó en los últimos sinDanioMs.",
+    "porSegundo": 0.005,
+    "sinDanioMs": 2000
+  },
+  "controles": {
+    "_nota": "v0.1.9: efectos de algunos monstruos (mundos[i].monstruos[tipo].efectos = probabilidad por golpe). ATURDIR: no te mueves ni usas poderes (las pociones sí). AMARRAR: no te mueves, pero sí atacas. Después de un efecto quedas inmune inmuneMs para no quedar atrapado sin parar.",
+    "aturdir": {"nombre": "Aturdido", "icono": "💫", "duracionMs": 900, "color": "#ffeb3b"},
+    "amarrar": {"nombre": "Amarrado", "icono": "🕸️", "duracionMs": 1600, "color": "#8bc34a"},
+    "inmuneMs": 2500
   }
 }

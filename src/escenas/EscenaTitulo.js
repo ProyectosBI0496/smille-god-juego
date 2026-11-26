@@ -95,7 +95,7 @@ export default class EscenaTitulo extends Phaser.Scene {
     boton.on('pointerdown', empezar);
 
     // Etapa 9: jugar en pareja (otra persona, otro celular)
-    const pareja = this.add.text(cx, 670, 'Jugar en pareja', {
+    const pareja = this.add.text(cx, 670, 'Jugar en grupo', {
       fontFamily: FUENTE_TITULO, fontSize: '30px', color: '#f5c542', fontStyle: 'bold',
       stroke: '#05070d', strokeThickness: 5,
     }).setOrigin(0.5).setInteractive();

@@ -34,21 +34,29 @@ export default class EscenaMundos extends Phaser.Scene {
     const H = this.scale.baseSize.height;
     this.balance = this.cache.json.get('balance');
     const mundos = this.balance.mundos;
-    const superados = mundosSuperados();
+    const superados = mundosSuperados(this.balance.dificultades.lista.length); // v0.1.9: mundos con 5 ★
 
     this.cameras.main.fadeIn(300);
     this.add.tileSprite(0, 0, W, H, 'baldosa-0').setOrigin(0).setTint(0x6a6a80);
     crearVineta(this);
     reiniciarAlCambiarTamano(this); // si cambia el tamaño de la pantalla, se rearma
 
-    // En pareja (Etapa 9): solo el anfitrión elige; se le avisa al invitado
+    // En grupo (Etapa 9; v0.1.9: hasta 3): solo el anfitrión elige; se les avisa a los invitados
     const red = redActual();
     this.enPareja = !!(red && red.esAnfitrion && red.conectado);
-    if (this.enPareja) {
-      this.add.text(W / 2, 128, 'Modo pareja ✓ — tu compañero entrará contigo', {
+    if (red && red.esAnfitrion) {
+      red.enPartida = false; // en el mapa todavía puede entrar alguien con el código
+      const grupo = this.balance.grupo[String(red.cantidad)];
+      const texto = this.enPareja
+        ? `${grupo ? grupo.nombre : 'Grupo'} ✓ — entran contigo: ${red.nombresOtros()}`
+        : `Sala ${red.codigo} abierta — esperando jugadores`;
+      this.add.text(W / 2, 128, texto, {
         fontFamily: 'Arial, sans-serif', fontSize: '22px', color: '#a5d6a7', stroke: '#05070d', strokeThickness: 4,
       }).setOrigin(0.5);
-      red.escuchar(this, 'desconectado', () => { red.cerrar(); this.scene.restart(); });
+      // Si alguien entra o sale, se rearma la pantalla (con la misma página)
+      const rearmar = () => this.scene.restart({ pagina: this.pagina });
+      red.escuchar(this, 'lista', rearmar);
+      red.escuchar(this, 'desconectado', rearmar);
     }
 
     this.add.text(W / 2, 70, 'Elige tu mundo', {
@@ -150,6 +158,14 @@ export default class EscenaMundos extends Phaser.Scene {
       g.lineStyle(8, 0xbbbbbb).strokeCircle(x, y - 62, 22);
       g.fillStyle(0xbbbbbb).fillRoundedRect(x - 34, y - 58, 68, 52, 8);
       g.fillStyle(0x333333).fillCircle(x, y - 36, 7);
+      // v0.1.9: se abre solo con las 5 estrellas del mundo anterior
+      const anterior = this.balance.mundos[indice - 1];
+      if (anterior) {
+        this.add.text(x, y + 10, `Completa las ${total} ★\nde ${anterior.nombre}`, {
+          fontFamily: 'Arial, sans-serif', fontSize: '17px', color: '#ffe082', align: 'center',
+          stroke: '#05070d', strokeThickness: 4,
+        }).setOrigin(0.5);
+      }
       return;
     }
 
@@ -204,8 +220,14 @@ export default class EscenaMundos extends Phaser.Scene {
       const titulo = this.add.text(W / 2 - anchoBoton / 2 + 24, y - 14, `${nivel}. ${d.nombre}${hecha}`, {
         fontFamily: FUENTE_TITULO, fontSize: '28px', fontStyle: 'bold', color: abierta ? d.color : '#777777',
       }).setOrigin(0, 0.5);
+      // v0.1.9: si el mundo trae sus números del Excel, se muestran (❤️ vida, ⚔️ daño)
+      const k = i;
+      const multJefe = this.balance.jefe.multDanio || 1;
+      const conExcel = mundo.vidaEnemigos && mundo.vidaJefes;
       const detalle = abierta
-        ? `Vida ×${d.vida} · Daño ×${d.danio} · Premios ×${d.premios}`
+        ? (conExcel
+          ? `Monstruos ❤️${mundo.vidaEnemigos[k]} ⚔️${mundo.danioEnemigos[k]} · Jefe ❤️${mundo.vidaJefes[k]} ⚔️${Math.round(mundo.danioJefes[k] * multJefe)}`
+          : `Vida ×${d.vida} · Daño ×${d.danio} · Premios ×${d.premios}`)
         : `🔒 Supera ${lista[i - 1].nombre} para abrirla`;
       const texto = this.add.text(W / 2 - anchoBoton / 2 + 24, y + 18, detalle, {
         fontFamily: 'Arial, sans-serif', fontSize: '16px', color: abierta ? '#cfd8dc' : '#777777',

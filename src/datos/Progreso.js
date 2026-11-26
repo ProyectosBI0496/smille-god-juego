@@ -202,10 +202,16 @@ export function cuentaParaEscala() {
 
 // ----------------- Mazmorras (por héroe desde v0.1.5) -----------------
 
-/** Cuántos mundos superó el héroe actual (0 = solo el primero está abierto) */
-export function mundosSuperados() {
-  const h = personaje();
-  return (h && h.mundos) || 0;
+/**
+ * Cuántos mundos COMPLETÓ el héroe actual (0 = solo el primero está abierto).
+ * v0.1.9: un mundo cuenta como completado solo con sus 5 estrellas (todas las
+ * dificultades); así, el mundo siguiente se abre si y solo si el anterior tiene 5 ★.
+ * Se cuentan de corrido desde el primero.
+ */
+export function mundosSuperados(estrellas = 5) {
+  let n = 0;
+  while (dificultadSuperada(n) >= estrellas) n += 1;
+  return n;
 }
 
 /** v0.1.4: la dificultad más alta superada en el mundo "indice" (0 si ninguna) */
@@ -216,7 +222,7 @@ export function dificultadSuperada(indice) {
 
 /**
  * Marca como superado el mundo número "indice" (0 = el primero) en la "dificultad" dada.
- * Superarlo en cualquier dificultad abre el mundo siguiente (en Iniciado).
+ * v0.1.9: el mundo siguiente se abre al superar la ÚLTIMA dificultad (5 ★), ver mundosSuperados.
  */
 export function marcarSuperado(indice, dificultad = 1) {
   cambiarActual((h) => {

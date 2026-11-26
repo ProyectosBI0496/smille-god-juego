@@ -105,6 +105,39 @@ export default class Heroe {
       if (this.alas) this.alas.setAlpha(alfa);
     }
     if (this.etiqueta) this.etiqueta.setPosition(x, y - this.radio - 44);
+
+    // v0.1.9: icono de ATURDIDO (💫) o AMARRADO (🕸️) sobre la cabeza, hasta que se acabe
+    if (this.iconoControl) {
+      if (t >= this.controlHasta) {
+        this.iconoControl.destroy();
+        this.anilloControl.destroy();
+        this.iconoControl = null;
+      } else {
+        this.iconoControl.setPosition(x, y - this.radio - 30);
+        this.anilloControl.setPosition(x, y).setAngle(t * 0.2);
+      }
+    }
+  }
+
+  /**
+   * v0.1.9: dibuja que el héroe está aturdido o amarrado (lo llama la escena).
+   * cfg = balance.json → controles.aturdir (icono, color); hasta = cuándo termina.
+   */
+  mostrarControl(cfg, hasta) {
+    if (this.iconoControl) {
+      this.iconoControl.destroy();
+      this.anilloControl.destroy();
+    }
+    this.controlHasta = hasta;
+    this.iconoControl = this.escena.add.text(0, 0, cfg.icono, { fontSize: '30px' }).setOrigin(0.5).setDepth(56);
+    // Un anillo punteado que gira alrededor de los pies
+    const c = Phaser.Display.Color.HexStringToColor(cfg.color).color;
+    this.anilloControl = this.escena.add.graphics().setDepth(8);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      this.anilloControl.lineStyle(5, c, 0.9).beginPath()
+        .arc(0, 0, this.radio + 8, a, a + 0.45).strokePath();
+    }
   }
 
   /** Nombre flotante sobre el héroe (para distinguir al compañero) */
@@ -117,7 +150,7 @@ export default class Heroe {
 
   /** Quita al héroe de la escena (si el compañero se desconecta) */
   destruir() {
-    for (const objeto of [this.cuerpo, this.sprite, this.alas, this.sombra, this.etiqueta, this.aura]) {
+    for (const objeto of [this.cuerpo, this.sprite, this.alas, this.sombra, this.etiqueta, this.aura, this.iconoControl, this.anilloControl]) {
       if (objeto) objeto.destroy();
     }
     this.barra.destruir();

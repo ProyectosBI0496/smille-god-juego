@@ -1,12 +1,14 @@
 // =============================================================
-// Cooperativo (Etapa 9): la partida de a dos, dentro de la escena de juego
+// Cooperativo (Etapa 9): la partida en grupo, dentro de la escena de juego
+// v0.1.9: hasta 3 jugadores (el anfitrión + 2 invitados).
 //
 // ANFITRIÓN (el que creó la sala): es el "árbitro". Calcula TODO:
-//   enemigos, daño, salas, jefes. Unas 15 veces por segundo le envía al
-//   invitado una "foto" del juego (mensaje "estado").
+//   enemigos, daño, salas, jefes. Unas 15 veces por segundo les envía a los
+//   invitados una "foto" del juego (mensaje "estado") con TODOS los héroes.
 // INVITADO: mueve a su propio héroe en su celular (así se siente rápido)
 //   y envía su posición ("yo") y sus botones ("hab"). Lo demás solo lo
-//   DIBUJA según lo que manda el anfitrión.
+//   DIBUJA según lo que manda el anfitrión (también al otro invitado).
+// Cada héroe se reconoce por la CLAVE de su jugador (ver Red.js).
 //
 // Mensajes: estado, yo, hab, nace, muerte, efecto, disparo, aviso,
 //           puerta, anuncio, fin, iniciar, esperar.
@@ -27,20 +29,25 @@ export default class Cooperativo {
     this.proximoEnvio = 0;
     this.siguienteId = 1;
     this.remotos = new Map(); // invitado: id → enemigo dibujado
-    this.ultimoYo = null;     // anfitrión: última posición del invitado
+    this.ultimosYo = new Map(); // anfitrión: clave → última posición de cada invitado
     this.ultimoEstado = null; // invitado: última foto del anfitrión
 
     const oir = (tipo, funcion) => red.escuchar(escena, tipo, funcion);
     if (this.esAnfitrion) {
-      oir('yo', (m) => { this.ultimoYo = m; });
-      oir('hab', (m) => escena.ejecutarRemota(m.h));
-      oir('reconectado', () => this.sincronizar()); // v0.1.2: volvió tras apagar la pantalla
+      oir('yo', (m, clave) => { this.ultimosYo.set(clave, m); });
+      oir('hab', (m, clave) => {
+        escena.ejecutarRemota(clave, m.h);
+        // Los OTROS invitados también tienen que ver ese ataque (se manda a todos; cada uno ignora el suyo)
+        if (m.h !== 'pocionVida') this.enviar({ t: 'efecto', h: m.h, ang: m.ang || 0, c: clave });
+      });
+      oir('reconectado', (clave) => this.sincronizar(clave)); // v0.1.2: volvió tras apagar la pantalla
     } else {
       oir('sync', (m) => this.recibirSincronia(m));
       oir('estado', (m) => { this.ultimoEstado = m; });
+      oir('control', (m) => escena.aplicarControl(escena.heroe, m.tipo, m.ms)); // v0.1.9: me aturdieron o amarraron
       oir('nace', (m) => this.crearRemoto(m));
       oir('muerte', (m) => this.morirRemoto(m));
-      oir('efecto', (m) => escena.efectoRemoto(m));
+      oir('efecto', (m) => { if (m.c !== red.clave) escena.efectoRemoto(m); }); // el mío ya lo dibujé
       oir('disparo', (m) => escena.dispararProyectil(m.x, m.y, m.a, { velocidad: m.v, danio: 0, duracionMs: m.ms }, m.c));
       oir('aviso', (m) => this.dibujarAviso(m));
       oir('puerta', (m) => escena.mazmorra.vencerSala(m.i));
@@ -49,11 +56,17 @@ export default class Cooperativo {
       oir('iniciar', (m) => escena.scene.restart({ mundo: m.mundo, dificultad: m.dificultad, coop: true, invitado: true }));
       oir('esperar', () => escena.scene.start('EscenaSala', { esperando: true }));
     }
-    oir('desconectado', () => escena.companeroDesconectado());
+    oir('desconectado', (clave) => escena.companeroDesconectado(clave));
   }
 
+  /** A todos (el anfitrión) o al anfitrión (el invitado) */
   enviar(mensaje) {
     this.red.enviar(mensaje);
+  }
+
+  /** v0.1.9: el anfitrión le manda algo a UN invitado (por su clave) */
+  enviarA(clave, mensaje) {
+    this.red.enviarA(clave, mensaje);
   }
 
   /** Cada frame */
@@ -61,9 +74,11 @@ export default class Cooperativo {
     const e = this.escena;
     const ahora = e.time.now;
     if (this.esAnfitrion) {
-      // Pone al héroe del invitado donde él dice que está
-      const m = this.ultimoYo;
-      if (m && e.companero) e.companero.colocarRemoto(m.x, m.y, m.mx, m.my, m.mov);
+      // Pone al héroe de cada invitado donde él dice que está
+      for (const [clave, m] of this.ultimosYo) {
+        const h = e.companeros.get(clave);
+        if (h) h.colocarRemoto(m.x, m.y, m.mx, m.my, m.mov);
+      }
       if (ahora >= this.proximoEnvio) {
         this.proximoEnvio = ahora + ENVIO_ANFITRION_MS;
         this.enviar(this.foto());
@@ -104,11 +119,12 @@ export default class Cooperativo {
   /** ANFITRIÓN: la "foto" del juego en este momento (números redondeados = mensaje más chico) */
   foto() {
     const e = this.escena;
-    const h = e.heroe;
+    // v0.1.9: un renglón por héroe: [clave, x, y, mira x, mira y, vida, ¿se mueve?]
+    const fila = (h, clave) => [clave, Math.round(h.cuerpo.x), Math.round(h.cuerpo.y), +h.mirando.x.toFixed(2), +h.mirando.y.toFixed(2),
+      Math.round(h.vida), h.cuerpo.body.velocity.lengthSq() > 0 || this.ultimosYo.get(clave)?.mov ? 1 : 0];
     return {
       t: 'estado',
-      a: [Math.round(h.cuerpo.x), Math.round(h.cuerpo.y), +h.mirando.x.toFixed(2), +h.mirando.y.toFixed(2), Math.round(h.vida), h.cuerpo.body.velocity.lengthSq() > 0 ? 1 : 0],
-      b: e.companero ? Math.round(e.companero.vida) : 0,
+      j: [fila(e.heroe, this.red.clave), ...[...e.companeros].map(([clave, h]) => fila(h, clave))],
       e: e.enemigos.map((en) => [en.id, Math.round(en.cuerpo.x), Math.round(en.cuerpo.y), +en.sprite.rotation.toFixed(2), Math.round(en.vida)]),
       h: [e.oleadasVencidas, e.jefesVencidos, e.derrotados], // v0.1.4: sin curas (ahora hay pociones)
     };
@@ -117,14 +133,18 @@ export default class Cooperativo {
   /** INVITADO: dibuja la foto recibida */
   aplicarFoto(m) {
     const e = this.escena;
-    const [x, y, mx, my, vida, mov] = m.a;
-    if (e.companero) {
-      e.companero.vida = vida;
-      e.companero.colocarRemoto(x, y, mx, my, mov === 1);
+    for (const [clave, x, y, mx, my, vida, mov] of m.j) {
+      if (clave === this.red.clave) {
+        // Mi vida la decide el anfitrión (mi posición la decido yo)
+        if (vida < e.heroe.vida - 0.5) e.efectoDanioPropio();
+        e.heroe.vida = vida;
+        continue;
+      }
+      const h = e.companeros.get(clave);
+      if (!h) continue;
+      h.vida = vida;
+      h.colocarRemoto(x, y, mx, my, mov === 1);
     }
-    // Mi vida la decide el anfitrión
-    if (m.b < e.heroe.vida) e.efectoDanioPropio();
-    e.heroe.vida = m.b;
 
     for (const [id, ex, ey, ang, evida] of m.e) {
       const en = this.remotos.get(id);
@@ -151,11 +171,11 @@ export default class Cooperativo {
   }
 
   /**
-   * v0.1.2 — El invitado se RECONECTÓ (por ejemplo, apagó la pantalla un rato).
+   * v0.1.2 — Un invitado se RECONECTÓ (por ejemplo, apagó la pantalla un rato).
    * Mientras no estaba se perdió avisos de enemigos nuevos o muertos, así que le
    * mandamos la lista COMPLETA: enemigos vivos y salas ya vencidas (rejas abiertas).
    */
-  sincronizar() {
+  sincronizar(clave) {
     const e = this.escena;
     const enemigos = e.enemigos.filter((en) => en.id).map((en) => {
       const c = en.config;
@@ -165,7 +185,7 @@ export default class Cooperativo {
       };
     });
     const vencidas = e.mazmorra.salas.map((sala, i) => (sala.estado === 'vencida' ? i : -1)).filter((i) => i >= 0);
-    this.enviar({ t: 'sync', en: enemigos, v: vencidas });
+    this.enviarA(clave, { t: 'sync', en: enemigos, v: vencidas }); // solo al que volvió
   }
 
   /** INVITADO: borra lo que tenía dibujado y lo arma de nuevo con la lista del anfitrión */
@@ -217,7 +237,7 @@ export default class Cooperativo {
     if (m.tipo === 'victoria') marcarSuperado(e.indiceMundo, e.dificultad); // el invitado también avanza
     e.terminado = true;
     // Mis cofres los abro yo, en mi celular (los jefes vencidos llegan en cada "foto")
-    e.pantallaFinal(m.titulo, `${m.texto}\nEsperando a tu compañero...`, e.premiosFinales(m.tipo === 'victoria'), [
+    e.pantallaFinal(m.titulo, `${m.texto}\nEsperando al anfitrión...`, e.premiosFinales(m.tipo === 'victoria'), [
       { texto: 'Salir', accion: () => { this.red.cerrar(); e.scene.start('EscenaTitulo'); } },
     ]);
   }

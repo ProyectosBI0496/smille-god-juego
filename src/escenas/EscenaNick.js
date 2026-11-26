@@ -8,7 +8,7 @@
 import { crearTexturas } from '../graficos/Texturas.js';
 import { crearVineta, reiniciarAlCambiarTamano } from '../ui/Pantalla.js';
 import { FUENTE_TITULO } from './EscenaArena.js';
-import { nick, guardarNick, razaElegida } from '../datos/Progreso.js';
+import { nick, guardarNick } from '../datos/Progreso.js';
 import { redActual } from '../red/Red.js';
 
 const MAXIMO = 12;
@@ -84,7 +84,7 @@ export default class EscenaNick extends Phaser.Scene {
   terminar() {
     guardarNick(this.texto);
     const red = redActual();
-    if (red && red.conectado) red.enviar({ t: 'raza', raza: razaElegida(), nick: nick() });
+    if (red && red.conectado) red.presentarme(); // v0.1.9: los demás ven mi nombre nuevo (con mi héroe)
     this.scene.start(this.volverA, this.datosVolver);
   }
 }
