@@ -243,8 +243,8 @@
       "decoracionPorSala": [{"tipo": "arbusto", "cantidad": 6}, {"tipo": "flores", "cantidad": 6}, {"tipo": "roca", "cantidad": 2}],
       "velocidadEnemigos": [150, 160, 170, 180, 190],
       "forma": "linea",
-      "danioEnemigos": [15, 30, 45, 60, 75],
-      "danioJefes": [100, 120, 135, 150, 165],
+      "danioEnemigos": [10, 15, 15, 20, 25],
+      "danioJefes": [35, 40, 50, 55, 65],
       "monstruos": {
         "normal": {"nombre": "Lobo musgoso", "cuerpo": "bestia", "adornos": ["orejas", "cola", "colmillos"]},
         "rapido": {"nombre": "Avispa espina", "cuerpo": "insecto", "adornos": ["alas", "antenas"]},
@@ -253,7 +253,7 @@
         "jefe": {"nombre": "Treant ancestral", "cuerpo": "golem", "adornos": ["hojas", "corona"]}
       },
       "vidaEnemigos": [150, 165, 180, 195, 210],
-      "velocidadJefes": [200, 205, 210, 215, 220],
+      "velocidadJefes": [155, 160, 165, 170, 175],
       "vidaJefes": [1000, 1500, 2000, 2500, 3000],
       "coronasVictoria": [8, 8, 9, 9, 10]
     },
@@ -283,8 +283,8 @@
       "decoracionPorSala": [{"tipo": "cactus", "cantidad": 5}, {"tipo": "roca", "cantidad": 5}],
       "velocidadEnemigos": [160, 170, 180, 190, 200],
       "forma": "escalera",
-      "danioEnemigos": [30, 45, 60, 75, 90],
-      "danioJefes": [165, 185, 200, 215, 230],
+      "danioEnemigos": [15, 15, 20, 25, 25],
+      "danioJefes": [40, 50, 55, 65, 75],
       "monstruos": {
         "normal": {"nombre": "Chacal de arena", "cuerpo": "bestia", "adornos": ["orejas", "cola"]},
         "rapido": {
@@ -298,7 +298,7 @@
         "jefe": {"nombre": "Gusano de las dunas", "cuerpo": "serpiente", "adornos": ["puas", "colmillos", "corona"]}
       },
       "vidaEnemigos": [210, 225, 240, 255, 270],
-      "velocidadJefes": [210, 215, 220, 225, 230],
+      "velocidadJefes": [160, 165, 170, 175, 180],
       "vidaJefes": [3000, 3500, 4000, 4500, 5000],
       "coronasVictoria": [10, 10, 11, 11, 12]
     },
@@ -328,8 +328,8 @@
       "decoracionPorSala": [{"tipo": "lava", "cantidad": 2}, {"tipo": "roca", "cantidad": 4}],
       "velocidadEnemigos": [170, 180, 190, 200, 210],
       "forma": "serpiente",
-      "danioEnemigos": [45, 60, 75, 90, 105],
-      "danioJefes": [230, 250, 265, 280, 295],
+      "danioEnemigos": [15, 20, 20, 25, 30],
+      "danioJefes": [45, 55, 65, 75, 85],
       "monstruos": {
         "normal": {"nombre": "Diablillo", "cuerpo": "demonio", "adornos": ["cuernos", "cola"]},
         "rapido": {"nombre": "Murciélago de brasa", "cuerpo": "ave", "adornos": ["alas", "llamas"]},
@@ -342,7 +342,7 @@
         }
       },
       "vidaEnemigos": [270, 285, 300, 315, 330],
-      "velocidadJefes": [220, 225, 230, 235, 240],
+      "velocidadJefes": [175, 180, 185, 190, 195],
       "vidaJefes": [4500, 5500, 6500, 7500, 8500],
       "coronasVictoria": [12, 12, 13, 13, 14]
     },
@@ -372,8 +372,8 @@
       "decoracionPorSala": [{"tipo": "hielo", "cantidad": 2}, {"tipo": "roca", "cantidad": 3}],
       "velocidadEnemigos": [180, 190, 200, 210, 220],
       "forma": "cruz",
-      "danioEnemigos": [60, 75, 90, 105, 120],
-      "danioJefes": [295, 315, 330, 345, 360],
+      "danioEnemigos": [20, 20, 25, 30, 35],
+      "danioJefes": [55, 65, 75, 90, 100],
       "monstruos": {
         "normal": {"nombre": "Lobo escarcha", "cuerpo": "bestia", "adornos": ["orejas", "puas", "colmillos"]},
         "rapido": {"nombre": "Liebre glacial", "cuerpo": "bestia", "adornos": ["orejas"]},
@@ -382,7 +382,7 @@
         "jefe": {"nombre": "Yeti ancestral", "cuerpo": "demonio", "adornos": ["cuernos", "colmillos", "corona"]}
       },
       "vidaEnemigos": [330, 345, 360, 375, 390],
-      "velocidadJefes": [230, 235, 240, 245, 250],
+      "velocidadJefes": [190, 195, 200, 205, 210],
       "vidaJefes": [7000, 8000, 9000, 10000, 11000],
       "coronasVictoria": [14, 14, 15, 15, 16]
     },
@@ -412,8 +412,8 @@
       "decoracionPorSala": [{"tipo": "auto", "cantidad": 2}, {"tipo": "roca", "cantidad": 2}],
       "forma": "laberinto",
       "velocidadEnemigos": [190, 200, 210, 220, 230],
-      "danioEnemigos": [75, 90, 105, 120, 135],
-      "danioJefes": [360, 380, 395, 410, 425],
+      "danioEnemigos": [20, 25, 30, 35, 40],
+      "danioJefes": [60, 75, 85, 100, 110],
       "monstruos": {
         "normal": {"nombre": "Rata de cloaca", "cuerpo": "bestia", "adornos": ["orejas", "cola"]},
         "rapido": {
@@ -432,7 +432,7 @@
         "jefe": {"nombre": "Mecha alcalde", "cuerpo": "robot", "adornos": ["antenas", "puas", "corona"]}
       },
       "vidaEnemigos": [390, 405, 420, 435, 450],
-      "velocidadJefes": [240, 245, 250, 255, 260],
+      "velocidadJefes": [200, 205, 210, 215, 220],
       "vidaJefes": [9500, 11000, 12500, 14000, 15500],
       "coronasVictoria": [16, 16, 17, 17, 18]
     },
@@ -462,8 +462,8 @@
       "decoracionPorSala": [{"tipo": "crater", "cantidad": 2}, {"tipo": "cristal", "cantidad": 3}],
       "forma": "espiral",
       "velocidadEnemigos": [200, 210, 220, 230, 240],
-      "danioEnemigos": [90, 105, 120, 135, 150],
-      "danioJefes": [425, 445, 460, 475, 490],
+      "danioEnemigos": [20, 30, 35, 40, 45],
+      "danioJefes": [70, 85, 95, 110, 125],
       "monstruos": {
         "normal": {"nombre": "Alienígena gris", "cuerpo": "demonio", "adornos": ["antenas"]},
         "rapido": {"nombre": "Cometa errante", "cuerpo": "cristal", "adornos": ["llamas"]},
@@ -477,7 +477,7 @@
         "jefe": {"nombre": "Devorador de estrellas", "cuerpo": "pulpo", "adornos": ["ojoUnico", "corona"]}
       },
       "vidaEnemigos": [450, 465, 480, 495, 510],
-      "velocidadJefes": [250, 255, 260, 265, 270],
+      "velocidadJefes": [215, 220, 225, 230, 235],
       "vidaJefes": [12000, 13500, 15500, 17500, 19500],
       "coronasVictoria": [18, 18, 19, 19, 20]
     },
@@ -507,8 +507,8 @@
       "decoracionPorSala": [{"tipo": "nube", "cantidad": 4}, {"tipo": "flores", "cantidad": 3}],
       "forma": "escalera",
       "velocidadEnemigos": [210, 220, 230, 240, 250],
-      "danioEnemigos": [105, 120, 135, 150, 165],
-      "danioJefes": [490, 510, 525, 540, 555],
+      "danioEnemigos": [25, 30, 35, 45, 50],
+      "danioJefes": [75, 90, 105, 125, 140],
       "monstruos": {
         "normal": {"nombre": "Harpía", "cuerpo": "ave", "adornos": ["alas", "cola"]},
         "rapido": {"nombre": "Colibrí tormenta", "cuerpo": "ave", "adornos": ["alas"], "efectos": {"aturdir": 0.2}},
@@ -517,7 +517,7 @@
         "jefe": {"nombre": "Fénix del trueno", "cuerpo": "ave", "adornos": ["alas", "llamas", "corona"]}
       },
       "vidaEnemigos": [510, 525, 540, 555, 570],
-      "velocidadJefes": [260, 265, 270, 275, 280],
+      "velocidadJefes": [225, 230, 235, 240, 245],
       "vidaJefes": [17000, 19000, 21000, 23000, 25000],
       "coronasVictoria": [20, 20, 21, 21, 22]
     },
@@ -547,8 +547,8 @@
       "decoracionPorSala": [{"tipo": "arbusto", "cantidad": 5}, {"tipo": "hueso", "cantidad": 2}, {"tipo": "roca", "cantidad": 2}],
       "forma": "laberinto",
       "velocidadEnemigos": [220, 230, 240, 250, 260],
-      "danioEnemigos": [120, 135, 150, 165, 180],
-      "danioJefes": [555, 575, 590, 605, 620],
+      "danioEnemigos": [25, 35, 40, 45, 55],
+      "danioJefes": [85, 100, 120, 135, 150],
       "monstruos": {
         "normal": {"nombre": "Raptor", "cuerpo": "reptil", "adornos": ["colmillos", "cola"]},
         "rapido": {"nombre": "Pterodáctilo", "cuerpo": "ave", "adornos": ["alas", "cuernos"]},
@@ -567,7 +567,7 @@
         "jefe": {"nombre": "Rex tirano", "cuerpo": "reptil", "adornos": ["colmillos", "puas", "corona"]}
       },
       "vidaEnemigos": [570, 585, 600, 615, 630],
-      "velocidadJefes": [270, 275, 280, 285, 290],
+      "velocidadJefes": [240, 245, 250, 255, 260],
       "vidaJefes": [22000, 24000, 26000, 28000, 30000],
       "coronasVictoria": [22, 22, 23, 23, 24]
     },
@@ -597,8 +597,8 @@
       "decoracionPorSala": [{"tipo": "hielo", "cantidad": 3}, {"tipo": "cristal", "cantidad": 3}],
       "forma": "espiral",
       "velocidadEnemigos": [230, 240, 250, 260, 270],
-      "danioEnemigos": [135, 150, 165, 180, 195],
-      "danioJefes": [620, 640, 655, 670, 685],
+      "danioEnemigos": [30, 35, 45, 50, 60],
+      "danioJefes": [90, 110, 130, 145, 165],
       "monstruos": {
         "normal": {"nombre": "Pingüino glacial", "cuerpo": "ave", "adornos": ["aletas"]},
         "rapido": {"nombre": "Hada de hielo", "cuerpo": "espectro", "adornos": ["alas"]},
@@ -617,7 +617,7 @@
         "jefe": {"nombre": "Reina de hielo", "cuerpo": "cristal", "adornos": ["alas", "corona"]}
       },
       "vidaEnemigos": [630, 645, 660, 675, 690],
-      "velocidadJefes": [280, 285, 290, 295, 300],
+      "velocidadJefes": [255, 260, 265, 270, 275],
       "vidaJefes": [27000, 30000, 31000, 32000, 33000],
       "coronasVictoria": [24, 24, 25, 25, 26]
     },
@@ -647,8 +647,8 @@
       "decoracionPorSala": [{"tipo": "coral", "cantidad": 4}, {"tipo": "roca", "cantidad": 2}],
       "forma": "serpiente",
       "velocidadEnemigos": [240, 250, 260, 270, 280],
-      "danioEnemigos": [150, 165, 180, 195, 210],
-      "danioJefes": [685, 705, 720, 735, 750],
+      "danioEnemigos": [30, 40, 50, 55, 65],
+      "danioJefes": [100, 120, 140, 160, 180],
       "monstruos": {
         "normal": {"nombre": "Pez abisal", "cuerpo": "pez", "adornos": ["colmillos", "antenas"]},
         "rapido": {
@@ -667,7 +667,7 @@
         "jefe": {"nombre": "Kraken", "cuerpo": "pulpo", "adornos": ["tentaculos", "ojoUnico", "corona"]}
       },
       "vidaEnemigos": [690, 705, 720, 735, 750],
-      "velocidadJefes": [290, 295, 300, 305, 310],
+      "velocidadJefes": [275, 280, 285, 290, 295],
       "vidaJefes": [37000, 40000, 43000, 46000, 49000],
       "coronasVictoria": [26, 26, 27, 27, 28]
     },
@@ -697,8 +697,8 @@
       "decoracionPorSala": [{"tipo": "cristal", "cantidad": 3}, {"tipo": "roca", "cantidad": 3}],
       "forma": "laberinto",
       "velocidadEnemigos": [250, 260, 270, 280, 290],
-      "danioEnemigos": [165, 180, 195, 210, 225],
-      "danioJefes": [750, 770, 785, 800, 815],
+      "danioEnemigos": [35, 40, 50, 60, 65],
+      "danioJefes": [105, 125, 150, 170, 190],
       "monstruos": {
         "normal": {
           "nombre": "Sombra rastrera",
@@ -717,7 +717,7 @@
         "jefe": {"nombre": "Rey sin rostro", "cuerpo": "espectro", "adornos": ["alas", "corona"]}
       },
       "vidaEnemigos": [750, 765, 780, 795, 810],
-      "velocidadJefes": [300, 305, 310, 315, 320],
+      "velocidadJefes": [295, 300, 305, 310, 315],
       "vidaJefes": [47000, 50000, 53000, 56000, 59000],
       "coronasVictoria": [28, 28, 29, 29, 30]
     },
@@ -753,8 +753,8 @@
       "decoracionPorSala": [{"tipo": "cristal", "cantidad": 3}, {"tipo": "flores", "cantidad": 2}],
       "forma": "cruz",
       "velocidadEnemigos": [260, 270, 280, 290, 300],
-      "danioEnemigos": [180, 195, 210, 225, 240],
-      "danioJefes": [815, 835, 850, 865, 880],
+      "danioEnemigos": [35, 45, 55, 60, 70],
+      "danioJefes": [110, 130, 155, 175, 195],
       "monstruos": {
         "normal": {"nombre": "Guardián sonriente", "cuerpo": "golem", "adornos": ["cuernos"]},
         "rapido": {"nombre": "Arlequín fugaz", "cuerpo": "espectro", "adornos": ["cuernos"]},

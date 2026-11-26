@@ -45,7 +45,7 @@ import BarraVida from '../ui/BarraVida.js';
 import { calcularHeroe, recargaPoder, rangoDe, objetoEquipo } from '../datos/Personaje.js';
 import { redActual } from '../red/Red.js';
 import Cooperativo from '../red/Cooperativo.js';
-import { mostrarTutorial, tutorialVisto, tutorialAbierto, marcarTutorial } from '../ui/Tutorial.js'; // v0.1.16
+import { mostrarTutorial, tutorialVisto, tutorialAbierto, marcarTutorial, guiaParaEsteHeroe } from '../ui/Tutorial.js'; // v0.1.16
 
 // Qué clase usar para cada tipo de enemigo de balance.json (por defecto, Enemigo)
 const CLASES = { tirador: Tirador };
@@ -225,8 +225,17 @@ export default class EscenaArena extends Phaser.Scene {
     this.actualizarHud();
     this.mostrarAnuncio(this.mundo.nombre, true);
 
-    // v0.1.16: PRIMERA MAZMORRA GUIADA (solo en el primer mundo, jugando solo, hasta ganarla una vez)
-    this.mazmorraGuiada = this.indiceMundo === 0 && !this.cooperativo && !tutorialVisto('mazmorra');
+    // v0.1.19 ARREGLO "poder pegado / jefe que no sale": si la partida anterior se cerró con
+    // la guía abierta, el RELOJ de la escena quedaba en pausa (Phaser no lo reinicia al volver
+    // a empezar la escena). Sin reloj no terminan los poderes ni sale el jefe. Se suelta siempre.
+    this.time.paused = false;
+    this.physics.resume();
+
+    // PRIMERA MAZMORRA GUIADA. v0.1.19: solo en el Bosque ★ (dificultad 1), jugando solo,
+    // con el PRIMER héroe y solo la PRIMERA vez que se entra (gane o pierda, no se repite).
+    this.mazmorraGuiada = this.indiceMundo === 0 && this.dificultad === 1 && !this.cooperativo
+      && !tutorialVisto('mazmorra') && guiaParaEsteHeroe();
+    if (this.mazmorraGuiada) this.events.once('shutdown', () => marcarTutorial('mazmorra'));
     this.colaGuia = []; // explicaciones esperando su turno
     this.time.delayedCall(900, () => this.guiaInicio());
 
@@ -1591,6 +1600,7 @@ export default class EscenaArena extends Phaser.Scene {
     // v0.1.16: al desbloquear el celular (ver main.js): soltar el joystick y reacomodar
     this.game.events.on('despertar', this.alDespertar, this);
     this.events.once('shutdown', () => {
+      this.time.paused = false; // v0.1.19: nunca dejar el reloj en pausa al salir
       this.game.events.off('hidden', this.pausar, this);
       this.game.events.off('despertar', this.alDespertar, this);
       // Corrección (sesión 12): si el menú de pausa quedó abierto, se cierra

@@ -72,7 +72,7 @@ export default class EscenaRol extends Phaser.Scene {
       { texto: 'La PASIVA siempre está activa. Debajo están los 3 poderes y el nivel en que se abren.', objetivo: { texto: '(pasiva)' } },
       { texto: 'Cada rol DESTACA en dos estadísticas: son las que más crecen al subir de nivel.', objetivo: { texto: 'Destaca en' } },
       { texto: 'Cuando decidas, toca CREAR en ese rol.', objetivo: { texto: 'Crear' } },
-    ]);
+    ], { soloPrimerHeroe: true }); // v0.1.19: al crear un SEGUNDO héroe ya no sale
   }
 
   crearTarjeta(x, y, ancho, alto, rol) {

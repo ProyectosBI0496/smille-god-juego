@@ -21,8 +21,10 @@
 // =============================================================
 
 import { FUENTE_TITULO } from '../escenas/EscenaArena.js';
+import { heroes, personaje } from '../datos/Progreso.js';
 
 const CLAVE = 'smilleGod.tutorial';
+const CLAVE_DUENO = 'smilleGod.heroeDeLaGuia'; // v0.1.19: el héroe que recibe la guía (el primero)
 const PROFUNDIDAD = 1000; // por encima de todo
 const DORADO = 0xf5c542;
 
@@ -50,10 +52,40 @@ export function marcarTutorial(id) {
   }
 }
 
-/** Borra todo: el tutorial se verá de nuevo desde el principio */
+/** El id ("raza.clase") del héroe con el que se juega ahora, o null si no hay ninguno */
+function idActual() {
+  const p = personaje();
+  return p ? `${p.raza}.${p.clase}` : null;
+}
+
+/**
+ * v0.1.19: la guía es SOLO para el PRIMER héroe del jugador.
+ * - Sin héroes todavía (está creando el primero): sí.
+ * - Con héroes: solo si el que juega ahora es el "dueño" de la guía.
+ *   El dueño se guarda la primera vez; en partidas viejas se toma el primer héroe creado.
+ */
+export function guiaParaEsteHeroe() {
+  const ids = Object.keys(heroes());
+  if (ids.length === 0) return true;
+  let dueno = null;
+  try {
+    dueno = localStorage.getItem(CLAVE_DUENO);
+    if (!dueno || !ids.includes(dueno)) {
+      dueno = ids[0];
+      localStorage.setItem(CLAVE_DUENO, dueno);
+    }
+  } catch (error) {
+    dueno = ids[0];
+  }
+  return idActual() === dueno;
+}
+
+/** Borra todo: el tutorial se verá de nuevo desde el principio (con el héroe de ahora) */
 export function reiniciarTutorial() {
   try {
     localStorage.removeItem(CLAVE);
+    const id = idActual();
+    if (id) localStorage.setItem(CLAVE_DUENO, id); // "Repetir la guía" la da al héroe actual
   } catch (error) {
     // nada que borrar
   }
@@ -100,12 +132,16 @@ function rectanguloDe(escena, objetivo) {
 
 /**
  * Muestra los pasos de un tutorial (si no se vio antes).
- * opciones: { alTerminar, forzar (mostrarlo aunque ya se haya visto) }
+ * opciones: { alTerminar, forzar (mostrarlo aunque ya se haya visto),
+ *            soloPrimerHeroe (true: no sale si ya existe algún héroe, p. ej. al crear el segundo) }
  * Devuelve true si se mostró.
  */
 export function mostrarTutorial(escena, id, pasos, opciones = {}) {
-  const { alTerminar = null, forzar = false } = opciones;
-  if ((!forzar && tutorialVisto(id)) || escena.tutorialActual) {
+  const { alTerminar = null, forzar = false, soloPrimerHeroe = false } = opciones;
+  // v0.1.19: con un segundo héroe (o creándolo) la guía ya no sale
+  const noToca = !forzar && (tutorialVisto(id) || !guiaParaEsteHeroe()
+    || (soloPrimerHeroe && Object.keys(heroes()).length > 0));
+  if (noToca || escena.tutorialActual) {
     // Ya visto (o ya hay otro abierto): no se muestra
     if (alTerminar && !escena.tutorialActual) alTerminar();
     return false;
@@ -220,6 +256,12 @@ export function mostrarTutorial(escena, id, pasos, opciones = {}) {
       capa.add(flecha);
       escena.tweens.add({ targets: flecha, y: fy + (flechaArriba ? -12 : 12), duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
+
+    // v0.1.19 ARREGLO "guía congelada": cada objeto de la capa también debe quedar fijo en
+    // la pantalla. Phaser dibuja los hijos con el scrollFactor del contenedor, pero para
+    // saber si los TOCASTE usa el de cada hijo. En la mazmorra la cámara se mueve con el
+    // héroe, así que los toques no "caían" sobre la tapa ni sobre "Saltar".
+    capa.each((objeto) => objeto.setScrollFactor(0));
   };
 
   mostrarPaso();
