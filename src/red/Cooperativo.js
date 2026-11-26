@@ -11,7 +11,7 @@
 // Cada héroe se reconoce por la CLAVE de su jugador (ver Red.js).
 //
 // Mensajes: estado, yo, hab, nace, muerte, efecto, disparo, aviso,
-//           puerta, anuncio, fin, iniciar, esperar.
+//           puerta, anuncio, fin, iniciar, esperar, listo.
 // =============================================================
 
 import Enemigo from '../entidades/Enemigo.js';
@@ -31,11 +31,24 @@ export default class Cooperativo {
     this.remotos = new Map(); // invitado: id → enemigo dibujado
     this.ultimosYo = new Map(); // anfitrión: clave → última posición de cada invitado
     this.ultimoEstado = null; // invitado: última foto del anfitrión
+    // v0.1.12: anfitrión: los invitados que YA están en esta partida (avisaron con "listo").
+    // Al dar "Reintentar", el celular del invitado tarda un momento en reiniciar y mientras
+    // tanto sigue mandando la posición VIEJA de su héroe (quizá dentro de una sala lejana).
+    // Si el anfitrión la usara, esa sala empezaría su combate y los monstruos saldrían allá.
+    this.listos = new Set();
 
     const oir = (tipo, funcion) => red.escuchar(escena, tipo, funcion);
     if (this.esAnfitrion) {
-      oir('yo', (m, clave) => { this.ultimosYo.set(clave, m); });
+      oir('listo', (m, clave) => {
+        // Si llega a la partida que ya terminó (todavía reiniciando), no se contesta:
+        // el invitado lo volverá a mandar y lo recibirá la partida nueva
+        if (escena.caido || escena.terminado) return;
+        this.listos.add(clave);
+        this.sincronizar(clave); // por si ya salieron monstruos antes de que llegara
+      });
+      oir('yo', (m, clave) => { if (this.listos.has(clave)) this.ultimosYo.set(clave, m); });
       oir('hab', (m, clave) => {
+        if (!this.listos.has(clave)) return; // un ataque de la partida anterior: no cuenta
         escena.ejecutarRemota(clave, m.h);
         // Los OTROS invitados también tienen que ver ese ataque (se manda a todos; cada uno ignora el suyo)
         if (m.h !== 'pocionVida') this.enviar({ t: 'efecto', h: m.h, ang: m.ang || 0, c: clave });
@@ -55,6 +68,11 @@ export default class Cooperativo {
       oir('fin', (m) => this.fin(m));
       oir('iniciar', (m) => escena.scene.restart({ mundo: m.mundo, dificultad: m.dificultad, coop: true, invitado: true }));
       oir('esperar', () => escena.scene.start('EscenaSala', { esperando: true }));
+      // v0.1.12: aviso al anfitrión que ya estoy en la partida nueva. Se repite cada
+      // medio segundo (en actualizar) hasta que conteste con "sync", por si el primero
+      // llegó mientras el anfitrión todavía estaba reiniciando.
+      this.sincronizado = false;
+      this.proximoListo = 0;
     }
     oir('desconectado', (clave) => escena.companeroDesconectado(clave));
   }
@@ -84,6 +102,12 @@ export default class Cooperativo {
         this.enviar(this.foto());
       }
       return;
+    }
+
+    // INVITADO: v0.1.12: "listo" hasta que el anfitrión responda
+    if (!this.sincronizado && ahora >= this.proximoListo) {
+      this.proximoListo = ahora + 500;
+      this.enviar({ t: 'listo' });
     }
 
     // INVITADO: si hace rato no llega nada del anfitrión, se avisa en pantalla
@@ -191,6 +215,7 @@ export default class Cooperativo {
   /** INVITADO: borra lo que tenía dibujado y lo arma de nuevo con la lista del anfitrión */
   recibirSincronia(m) {
     const e = this.escena;
+    this.sincronizado = true; // v0.1.12: el anfitrión ya sabe que estoy en esta partida
     for (const en of this.remotos.values()) en.destruir();
     e.enemigos = [];
     this.remotos.clear();
