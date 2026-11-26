@@ -287,16 +287,6 @@ export default class EscenaArena extends Phaser.Scene {
     h.reduccion = datos.reduccion;
     h.aturdir = datos.aturdir; // v0.1.5: FUERZA = probabilidad de aturdir cada 3 golpes
     h.golpes = 0;
-    // v0.1.17: qué acciones son PODERES (botones 2 y 3) y cuánto suben con el nivel.
-    // El botón 1 (ataque básico) no: ese ya crece con la estadística Daño.
-    const [primero, ...resto] = datos.poderes.botones.map((b) => b.accion);
-    h.accionesPoder = resto.filter((a) => a !== primero);
-    h.multPoder = datos.mult.poder;
-  }
-
-  /** v0.1.17: el multiplicador por NIVEL si la acción es un poder del héroe (si no, 1) */
-  fp(h, accion) {
-    return h.accionesPoder && h.accionesPoder.includes(accion) ? h.multPoder : 1;
   }
 
   /** Los héroes en juego: el mío y, en pareja, el del compañero */
@@ -1174,7 +1164,7 @@ export default class EscenaArena extends Phaser.Scene {
     this.tweens.add({ targets: luz, scale: (h.radio * 2.4) / 128, alpha: 0, duration: 350, onComplete: () => luz.destroy() });
     if (heroe === this.heroe) this.cameras.main.shake(120, 0.004);
 
-    this.golpearArea(x, y, h.radio, h.danio * this.fp(heroe, 'onda'), h.empuje, x, y, heroe);
+    this.golpearArea(x, y, h.radio, h.danio, h.empuje, x, y, heroe);
   }
 
   /** Botón 3 — "Torbellino": varios golpes giratorios seguidos alrededor del héroe */
@@ -1216,7 +1206,7 @@ export default class EscenaArena extends Phaser.Scene {
         if (!heroe.vivo || !heroe.cuerpo.active) return;
         const { x, y } = heroe.cuerpo;
         anillo.setAlpha(0.5 + (golpesDados % 2) * 0.5); // parpadeo en cada golpe
-        this.golpearArea(x, y, e.radio, e.danio * this.fp(heroe, 'torb'), e.empuje, x, y, heroe);
+        this.golpearArea(x, y, e.radio, e.danio, e.empuje, x, y, heroe);
       },
     });
   }
@@ -1240,7 +1230,7 @@ export default class EscenaArena extends Phaser.Scene {
           zona.x = objetivo.cuerpo.x; // muy pegado: el golpe se centra en él
           zona.y = objetivo.cuerpo.y;
         }
-        this.golpearArea(zona.x, zona.y, zona.radio, c.danio * this.fp(h, 'cuch'), c.empuje, h.cuerpo.x, h.cuerpo.y, h);
+        this.golpearArea(zona.x, zona.y, zona.radio, c.danio, c.empuje, h.cuerpo.x, h.cuerpo.y, h);
       });
     }
   }
@@ -1289,7 +1279,7 @@ export default class EscenaArena extends Phaser.Scene {
     h.actualizarDibujo(false);
     if (h === this.heroe) this.cameras.main.shake(90, 0.003);
 
-    this.golpearArea(destino.x, destino.y, p.radio, p.danio * this.fp(h, 'paso'), p.empuje, destino.x, destino.y, h);
+    this.golpearArea(destino.x, destino.y, p.radio, p.danio, p.empuje, destino.x, destino.y, h);
   }
 
   // =============================================================
@@ -1304,7 +1294,7 @@ export default class EscenaArena extends Phaser.Scene {
     const cfg = this.balance.magia.bola;
     const objetivo = this.enemigoMasCercano(cfg.rangoAutoApuntado * (h.raza.autoApuntado || 1), h);
     if (objetivo) h.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
-    this.dispararMagia(h, Math.atan2(h.mirando.y, h.mirando.x), cfg, this.fp(h, 'bola'));
+    this.dispararMagia(h, Math.atan2(h.mirando.y, h.mirando.x), cfg);
   }
 
   /** Botón 3 de los "a distancia" DPS: varios proyectiles en abanico */
@@ -1317,7 +1307,7 @@ export default class EscenaArena extends Phaser.Scene {
     for (let i = 0; i < cfg.cantidad; i++) {
       // reparte los proyectiles entre -apertura/2 y +apertura/2 alrededor del centro
       const desvio = cfg.cantidad === 1 ? 0 : (i / (cfg.cantidad - 1) - 0.5) * cfg.apertura;
-      this.dispararMagia(h, centro + desvio, cfg, this.fp(h, 'abanico'));
+      this.dispararMagia(h, centro + desvio, cfg);
     }
     if (h === this.heroe) this.cameras.main.shake(80, 0.003);
   }
@@ -1330,7 +1320,8 @@ export default class EscenaArena extends Phaser.Scene {
     const anillo = this.add.circle(x, y, 20).setStrokeStyle(6, 0x81c784).setDepth(40);
     this.tweens.add({ targets: anillo, radius: cfg.radio, alpha: 0, duration: 450, onComplete: () => anillo.destroy() });
     if (this.esInvitado) return; // la vida la decide el anfitrión
-    const cantidad = Math.round(cfg.cura * h.mult.cura * this.fp(h, 'sanar')); // v0.1.17: x nivel
+    // v0.1.18: la cura crece como la VIDA del rol en el Excel (Vida del héroe / Vida del rol en nivel 1)
+    const cantidad = Math.round(cfg.cura * h.mult.curaPoder);
     for (const otro of this.heroes()) {
       if (!otro.vivo) continue;
       if (Phaser.Math.Distance.Between(x, y, otro.cuerpo.x, otro.cuerpo.y) > cfg.radio) continue;
@@ -1346,14 +1337,13 @@ export default class EscenaArena extends Phaser.Scene {
    * Crea un proyectil del héroe. No usa el grupo de proyectiles de los enemigos:
    * lo movemos a mano en actualizarMagias() (cada frame) y revisamos si toca a alguien.
    */
-  dispararMagia(h, angulo, cfg, factor = 1) {
+  dispararMagia(h, angulo, cfg) {
     const bola = this.add.image(h.cuerpo.x, h.cuerpo.y, 'brillo').setTint(color(h.clase.color))
       .setBlendMode(Phaser.BlendModes.ADD).setScale((cfg.radio * 2.6) / 128).setDepth(45);
     bola.vx = Math.cos(angulo) * cfg.velocidad;
     bola.vy = Math.sin(angulo) * cfg.velocidad;
     bola.muereEn = this.time.now + cfg.duracionMs;
     bola.cfg = cfg;
-    bola.factor = factor; // v0.1.17: el multiplicador por nivel (si es un poder)
     bola.duenio = h;
     this.magias.push(bola);
   }
@@ -1372,7 +1362,7 @@ export default class EscenaArena extends Phaser.Scene {
           if (!this.esInvitado) { // el daño lo calcula quien juega solo o el anfitrión
             const h = bola.duenio;
             const direccion = new Phaser.Math.Vector2(bola.vx, bola.vy).normalize();
-            this.danarEnemigo(enemigo, Math.round(bola.cfg.danio * multDanio(h) * (bola.factor || 1)), direccion, bola.cfg.empuje * (h.raza.empuje || 1), '#e1bee7', h);
+            this.danarEnemigo(enemigo, Math.round(bola.cfg.danio * multDanio(h)), direccion, bola.cfg.empuje * (h.raza.empuje || 1), '#e1bee7', h);
           }
           break;
         }
@@ -1530,7 +1520,7 @@ export default class EscenaArena extends Phaser.Scene {
     const direccion = new Phaser.Math.Vector2(x - h.cuerpo.x, y - h.cuerpo.y);
     if (direccion.lengthSq() === 0) direccion.set(1, 0);
     direccion.normalize();
-    const danio = Math.round(c.danio * multDanio(h) * this.fp(h, 'crit')); // v0.1.17: x nivel si es poder
+    const danio = Math.round(c.danio * multDanio(h));
     this.danarEnemigo(objetivo, danio, direccion, c.empuje * (h.raza.empuje || 1), '#ff5252', h);
   }
 

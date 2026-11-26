@@ -56,7 +56,7 @@ export function paginasGuia(b) {
         '• Tu héroe es una RAZA + una CLASE + un ROL (Tanque, DPS o Sanador). El rol decide tus poderes.\n'
         + `• SUBIR DE NIVEL cuesta fichas. Cada nivel te da ${b.progreso.puntosPorNivel} PUNTOS: `
         + 'ponlos en la estadística que quieras con el botón +.\n'
-        + `• Cada nivel también sube el daño y la curación de tus PODERES (+${Math.round(b.progreso.poderPorNivel * 100)}% por nivel).\n\n`
+        + '• Tus PODERES crecen con el nivel igual que tu rol: su daño sube como tu Daño y su curación como tu Vida.\n\n'
         + estadisticas,
     },
     {

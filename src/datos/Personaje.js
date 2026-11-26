@@ -313,8 +313,11 @@ export function calcularHeroe(balance, entrada) {
       magia: multDanio,
       // la curación (y las pociones) rinden más con Inteligencia; nunca menos de ×1
       cura: Math.max(1, s.inteligencia / cv.curaRef),
-      // v0.1.17: los PODERES (botones 2 y 3) pegan y curan más con cada nivel
-      poder: 1 + (p.nivel - 1) * (balance.progreso.poderPorNivel || 0),
+      // v0.1.18: la CURA de los poderes crece en la misma proporción que la VIDA del rol
+      // (Excel Estadisticas): Vida del héroe / Vida del rol en el nivel 1. Un Sanador nivel 25
+      // tiene 694 de vida contra 150 en el nivel 1 → sus poderes curan ×4,63.
+      // (El DAÑO de los poderes ya crece igual con la estadística Daño: ver multDanio arriba.)
+      curaPoder: s.vida / estadisticasBase(balance, p.rol, 1).vida,
       // VELOCIDAD de ataque: con más % se recarga más rápido (50% = normal)
       recarga: Phaser.Math.Clamp((1 + cv.ataqueRef) / (1 + s.velocidad), cv.recargaMin, 1),
     },

@@ -234,7 +234,7 @@ export default class EscenaPersonaje extends Phaser.Scene {
 
     // Resumen: así queda el héroe en la partida
     const resumen = `Vida ${h.vidaMax} · Velocidad ${h.velocidad} · Daño ×${h.mult.fisico.toFixed(2)} · Magia ×${h.mult.magia.toFixed(2)}\n`
-      + `Curación ×${h.mult.cura.toFixed(2)} · Poderes ×${h.mult.poder.toFixed(2)} · Recarga ×${h.mult.recarga.toFixed(2)} · Bloqueo ${Math.round(h.reduccion * 100)}%`;
+      + `Curación ×${h.mult.cura.toFixed(2)} · Cura de poderes ×${h.mult.curaPoder.toFixed(2)} · Recarga ×${h.mult.recarga.toFixed(2)} · Bloqueo ${Math.round(h.reduccion * 100)}%`;
     this.add.text(cx, H - 135, resumen, { ...TEXTO, fontSize: '15px', color: '#ffe082', align: 'center' }).setOrigin(0.5);
   }
 }
