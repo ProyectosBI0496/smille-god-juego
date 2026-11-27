@@ -84,6 +84,19 @@ function multPoder(h, tipo) {
   return (h.mult.poder && h.mult.poder[tipo]) ?? multDanio(h);
 }
 
+/**
+ * v0.1.21 — Distancia del punto (px, py) al tramo de recta que va de (x1, y1) a (x2, y2).
+ * "t" dice en qué parte del tramo está el punto más cercano: 0 = al inicio, 1 = al final.
+ * Lo recortamos entre 0 y 1 para no salirnos del tramo.
+ */
+function distanciaATramo(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const largo2 = dx * dx + dy * dy; // largo del tramo al cuadrado
+  const t = largo2 === 0 ? 0 : Phaser.Math.Clamp(((px - x1) * dx + (py - y1) * dy) / largo2, 0, 1);
+  return Phaser.Math.Distance.Between(px, py, x1 + dx * t, y1 + dy * t);
+}
+
 export default class EscenaArena extends Phaser.Scene {
   constructor() {
     super('EscenaArena');
@@ -1313,22 +1326,36 @@ export default class EscenaArena extends Phaser.Scene {
   usarBola(h = this.heroe) {
     if (!h.vivo) return;
     const cfg = this.balance.magia.bola;
-    const objetivo = this.enemigoMasCercano(cfg.rangoAutoApuntado * (h.raza.autoApuntado || 1), h);
-    if (objetivo) h.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
-    this.dispararMagia(h, Math.atan2(h.mirando.y, h.mirando.x), cfg, 'bola');
+    const rango = cfg.rangoAutoApuntado * (h.raza.autoApuntado || 1);
+    const objetivo = this.enemigoMasCercano(rango, h);
+    if (objetivo) this.apuntarConVentaja(h, objetivo, cfg.velocidad);
+    this.dispararMagia(h, Math.atan2(h.mirando.y, h.mirando.x), cfg, 'bola', rango);
+  }
+
+  /**
+   * v0.1.21 — Apunta a donde ESTARÁ el enemigo cuando llegue el proyectil, no a donde está ahora.
+   * tiempo de vuelo ≈ distancia / velocidad del proyectil; luego sumamos lo que el enemigo
+   * se mueve en ese tiempo (su velocidad × tiempo). Así no fallan los que caminan de lado.
+   */
+  apuntarConVentaja(h, objetivo, velocidadProyectil) {
+    const { x, y } = objetivo.cuerpo;
+    const v = (objetivo.cuerpo.body && objetivo.cuerpo.body.velocity) || { x: 0, y: 0 };
+    const tiempo = Phaser.Math.Distance.Between(h.cuerpo.x, h.cuerpo.y, x, y) / velocidadProyectil;
+    h.apuntarA(x + v.x * tiempo, y + v.y * tiempo);
   }
 
   /** Botón 3 de los "a distancia" DPS: varios proyectiles en abanico */
   usarAbanico(h = this.heroe) {
     if (!h.vivo) return;
     const cfg = this.balance.magia.abanico;
-    const objetivo = this.enemigoMasCercano(this.balance.magia.bola.rangoAutoApuntado, h);
-    if (objetivo) h.apuntarA(objetivo.cuerpo.x, objetivo.cuerpo.y);
+    const rango = this.balance.magia.bola.rangoAutoApuntado;
+    const objetivo = this.enemigoMasCercano(rango, h);
+    if (objetivo) this.apuntarConVentaja(h, objetivo, cfg.velocidad);
     const centro = Math.atan2(h.mirando.y, h.mirando.x);
     for (let i = 0; i < cfg.cantidad; i++) {
       // reparte los proyectiles entre -apertura/2 y +apertura/2 alrededor del centro
       const desvio = cfg.cantidad === 1 ? 0 : (i / (cfg.cantidad - 1) - 0.5) * cfg.apertura;
-      this.dispararMagia(h, centro + desvio, cfg, 'abanico');
+      this.dispararMagia(h, centro + desvio, cfg, 'abanico', rango);
     }
     if (h === this.heroe) this.cameras.main.shake(80, 0.003);
   }
@@ -1385,12 +1412,17 @@ export default class EscenaArena extends Phaser.Scene {
    * Crea un proyectil del héroe. No usa el grupo de proyectiles de los enemigos:
    * lo movemos a mano en actualizarMagias() (cada frame) y revisamos si toca a alguien.
    */
-  dispararMagia(h, angulo, cfg, tipo = 'bola') {
+  dispararMagia(h, angulo, cfg, tipo = 'bola', rangoApuntado = 0) {
     const bola = this.add.image(h.cuerpo.x, h.cuerpo.y, 'brillo').setTint(color(h.clase.color))
       .setBlendMode(Phaser.BlendModes.ADD).setScale((cfg.radio * 2.6) / 128).setDepth(45);
     bola.vx = Math.cos(angulo) * cfg.velocidad;
     bola.vy = Math.sin(angulo) * cfg.velocidad;
-    bola.muereEn = this.time.now + cfg.duracionMs;
+    // v0.1.21: el proyectil vive una DISTANCIA (en píxeles), no un tiempo. Antes usaba el reloj y,
+    // si el celular se trababa un instante, el reloj avanzaba pero el proyectil no: se apagaba antes.
+    // Además siempre llega un poco más lejos que el auto-apuntado (alcanceExtra), para no
+    // morir justo delante del enemigo que apuntó.
+    const recorrido = cfg.velocidad * cfg.duracionMs / 1000;
+    bola.alcanceRestante = Math.max(recorrido, rangoApuntado + (cfg.alcanceExtra || 0));
     bola.cfg = cfg;
     bola.tipo = tipo; // v0.1.20: para saber con qué multiplicador pega
     bola.duenio = h;
@@ -1401,21 +1433,33 @@ export default class EscenaArena extends Phaser.Scene {
   actualizarMagias(delta) {
     const dt = delta / 1000; // milisegundos → segundos
     this.magias = this.magias.filter((bola) => {
+      // v0.1.21: guardamos de dónde sale en este frame para revisar TODO el tramo recorrido
+      const x1 = bola.x;
+      const y1 = bola.y;
       bola.x += bola.vx * dt;
       bola.y += bola.vy * dt;
-      let muere = this.time.now >= bola.muereEn || !this.puntoLibre(bola.x, bola.y, 4); // tiempo o muro
-      if (!muere) {
-        for (const enemigo of this.enemigos) {
-          if (Phaser.Math.Distance.Between(bola.x, bola.y, enemigo.cuerpo.x, enemigo.cuerpo.y) > enemigo.radio + bola.cfg.radio) continue;
-          muere = true;
-          if (!this.esInvitado) { // el daño lo calcula quien juega solo o el anfitrión
-            const h = bola.duenio;
-            const direccion = new Phaser.Math.Vector2(bola.vx, bola.vy).normalize();
-            this.danarEnemigo(enemigo, Math.round(bola.cfg.danio * multPoder(h, bola.tipo)), direccion, bola.cfg.empuje * (h.raza.empuje || 1), '#e1bee7', h);
-          }
-          break;
+      bola.alcanceRestante -= Phaser.Math.Distance.Between(x1, y1, bola.x, bola.y);
+      // v0.1.21: PRIMERO revisamos si toca a un enemigo y DESPUÉS los muros. Antes era al revés y,
+      // si el enemigo estaba pegado a un muro, el proyectil tocaba el muro y se apagaba sin pegarle.
+      // Si choca con un muro, aceptamos enemigos un poco más lejos (toleranciaMuro): así le pega
+      // al enemigo que está pegado a una columna aunque el proyectil roce la esquina antes.
+      const chocaMuro = !this.puntoLibre(bola.x, bola.y, 4);
+      const tolerancia = chocaMuro ? (bola.cfg.toleranciaMuro || 0) : 0;
+      let muere = false;
+      for (const enemigo of this.enemigos) {
+        // Distancia del enemigo al TRAMO (no solo al punto final): si el celular va lento,
+        // el proyectil da saltos grandes y podría "atravesar" al enemigo sin tocarlo.
+        const d = distanciaATramo(enemigo.cuerpo.x, enemigo.cuerpo.y, x1, y1, bola.x, bola.y);
+        if (d > enemigo.radio + bola.cfg.radio + tolerancia) continue;
+        muere = true;
+        if (!this.esInvitado) { // el daño lo calcula quien juega solo o el anfitrión
+          const h = bola.duenio;
+          const direccion = new Phaser.Math.Vector2(bola.vx, bola.vy).normalize();
+          this.danarEnemigo(enemigo, Math.round(bola.cfg.danio * multPoder(h, bola.tipo)), direccion, bola.cfg.empuje * (h.raza.empuje || 1), '#e1bee7', h);
         }
+        break;
       }
+      if (!muere) muere = bola.alcanceRestante <= 0 || chocaMuro; // alcance o muro
       if (!muere) return true; // sigue volando
       const chispa = this.add.image(bola.x, bola.y, 'brillo').setTint(bola.tintTopLeft)
         .setBlendMode(Phaser.BlendModes.ADD).setScale(0.3).setDepth(45);

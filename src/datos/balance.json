@@ -918,7 +918,9 @@
       "radio": 14,
       "empuje": 160,
       "recargaMs": 450,
-      "rangoAutoApuntado": 520
+      "rangoAutoApuntado": 780,
+      "alcanceExtra": 90,
+      "toleranciaMuro": 22
     },
     "abanico": {
       "nombre": "Abanico",
@@ -929,7 +931,9 @@
       "duracionMs": 700,
       "radio": 16,
       "empuje": 220,
-      "recargaMs": 7000
+      "recargaMs": 7000,
+      "alcanceExtra": 90,
+      "toleranciaMuro": 22
     },
     "sanar": {"nombre": "Sanar", "cura": 30, "radio": 280, "recargaMs": 9000},
     "curaGrande": {"nombre": "Cura grande", "radio": 400, "recargaMs": 12000, "color": "#ffe082"}
